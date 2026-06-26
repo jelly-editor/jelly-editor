@@ -2,7 +2,11 @@
 import JellyShape from "@/components/jelly/JellyShape.astro";
 import AppleIcon from "@/components/ui/AppleIcon.astro";
 import pkg from "../../../../../package.json";
-const { version } = pkg;
+
+const envVersion = process.env.PUBLIC_VERSION;
+// Use environment version if it looks like a version/tag (and isn't the branch name 'main'), otherwise package version
+const rawVersion = (envVersion && envVersion !== 'main') ? envVersion : pkg.version;
+const version = rawVersion.startsWith('v') ? rawVersion.slice(1) : rawVersion;
 ---
 
 <section id="download" class="relative overflow-hidden">

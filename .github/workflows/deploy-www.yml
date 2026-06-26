@@ -7,6 +7,8 @@ on:
     paths:
       - 'apps/www/**'
       - '.github/workflows/deploy-www.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -25,6 +27,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build Website
+        env:
+          PUBLIC_VERSION: ${{ github.event.release.tag_name || github.ref_name }}
         run: bun run --filter www build
 
       - name: Deploy to Website Repository
