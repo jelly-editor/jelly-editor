@@ -1964,6 +1964,8 @@ dependencies = [
  "jelly-fs",
  "jelly-protocol",
  "jelly-watcher",
+ "serde",
+ "serde_json",
  "tauri",
 ]
 
