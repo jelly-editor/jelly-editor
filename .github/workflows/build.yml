@@ -29,6 +29,11 @@ jobs:
         with:
           targets: aarch64-apple-darwin
 
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
       - run: bun install --frozen-lockfile
 
       - name: Build, sign, and publish
