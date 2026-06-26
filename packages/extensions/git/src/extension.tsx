@@ -1,0 +1,72 @@
+import type { Extension, ExtensionContext } from "@jelly/sdk";
+import { GitPanel } from "./ui/GitPanel";
+import { StatusBranch } from "./ui/StatusBranch";
+import { refreshGitStatus } from "./refresh";
+import { useGitStore } from "./store";
+
+function GitIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+      <line x1="6" y1="9" x2="6" y2="21" />
+    </svg>
+  );
+}
+
+export const gitExtension: Extension = {
+  manifest: {
+    id: "jelly.git",
+    name: "Git",
+    version: "1.0.0",
+    contributes: {
+      commands: [{ id: "git.refresh", title: "Refresh Git Status" }],
+    },
+  },
+
+  activate(ctx: ExtensionContext) {
+    const store = useGitStore;
+
+    // Debounce refreshes — file events can arrive in bursts.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refreshSoon = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => refreshGitStatus(), 250);
+    };
+
+    // Pick up the current workspace (in case git activated after it opened),
+    // then track it via events.
+    void Promise.resolve(ctx.commands.execute<string | null>("workspace.getPath"))
+      .then((path) => {
+        if (path) {
+          store.getState().setWorkspacePath(path);
+          refreshGitStatus();
+        }
+      })
+      .catch(() => {});
+
+    ctx.subscriptions.push(
+      ctx.commands.register("git.refresh", () => refreshGitStatus()),
+      ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => {
+        store.getState().setWorkspacePath(path);
+        refreshGitStatus();
+      }),
+      ctx.events.on("file:saved", refreshSoon),
+      ctx.events.on("file:changed_externally", refreshSoon),
+      ctx.events.on<{ path: string | null }>("editor:diff_changed", ({ path }) =>
+        store.getState().setActiveDiffPath(path),
+      ),
+      { dispose: () => clearTimeout(timer) },
+    );
+
+    ctx.ui.contributeActivityBarItem({ id: "git", order: 20, title: "Git", icon: () => <GitIcon /> });
+    ctx.ui.contributeSidebarPanel({ id: "git", render: () => <GitPanel ctx={ctx} /> });
+    ctx.ui.contributeStatusBarItem({
+      id: "git.branch",
+      align: "left",
+      order: 10,
+      render: () => <StatusBranch ctx={ctx} />,
+    });
+  },
+};

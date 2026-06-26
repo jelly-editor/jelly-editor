@@ -1,0 +1,67 @@
+---
+import Kbd from "@/components/ui/Kbd.astro";
+import SearchIcon from "@/components/ui/SearchIcon.astro";
+
+const items = [
+  { i: "⌘P", t: "Go to File…", s: "src/components/Editor.tsx" },
+  { i: "⌘⇧F", t: "Find in Project", s: "Search across 12,403 files" },
+  { i: "⌘⇧G", t: "Source Control: Stage Hunk", s: "git" },
+  { i: "⌃`", t: "Toggle Terminal", s: "view" },
+  { i: "⌘B", t: "Toggle Sidebar", s: "view" },
+];
+---
+
+<section class="border-b border-rule/70">
+  <div class="mx-auto grid max-w-[1240px] gap-16 px-6 py-24 md:grid-cols-12 md:py-32">
+    <div class="order-2 md:order-1 md:col-span-7">
+      <!-- CommandPalette -->
+      <div class="relative rounded-2xl border border-rule bg-surface-2/60 p-10">
+        <div class="absolute inset-0 -z-10 rounded-2xl"></div>
+        <div class="mx-auto max-w-[520px] overflow-hidden rounded-xl border border-rule bg-background shadow-[0_1px_0_rgba(12,10,20,0.04),0_30px_60px_-30px_rgba(12,10,20,0.25)]">
+          <div class="flex items-center gap-3 border-b border-rule px-4 py-3.5">
+            <SearchIcon class="h-3.5 w-3.5 text-ink-faint" />
+            <input
+              readonly
+              value="open file"
+              class="flex-1 bg-transparent text-[14px] text-ink outline-none"
+            />
+            <Kbd>esc</Kbd>
+          </div>
+          <ul class="py-1">
+            {items.map((it, i) => (
+              <li
+                class={`flex items-center justify-between gap-4 px-4 py-2.5 ${
+                  i === 0 ? "bg-jelly-cream/60" : ""
+                }`}
+              >
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class={`h-1.5 w-1.5 rounded-full ${i === 0 ? "bg-jelly-magenta" : "bg-ink-faint/40"}`}></span>
+                  <span class="truncate text-[13.5px] text-ink">{it.t}</span>
+                  <span class="truncate font-mono text-[11.5px] text-ink-faint">{it.s}</span>
+                </div>
+                <Kbd class="font-mono">{it.i}</Kbd>
+              </li>
+            ))}
+          </ul>
+          <div class="flex items-center justify-between border-t border-rule px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-faint">
+            <span>↑↓ navigate</span>
+            <span>↵ open</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-1 md:order-2 md:col-span-5">
+      <p class="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+        Command palette
+      </p>
+      <h2 class="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[48px]">
+        Everything,<br />one keystroke away.
+      </h2>
+      <p class="mt-6 max-w-md text-[15.5px] leading-relaxed text-ink-muted">
+        Open files, run commands, jump to symbols, switch branches, summon the terminal. Press
+        <Kbd class="mx-1.5">⌘</Kbd><Kbd>K</Kbd> and keep your hands where they belong.
+      </p>
+    </div>
+  </div>
+</section>

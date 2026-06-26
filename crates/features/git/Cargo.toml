@@ -1,0 +1,9 @@
+[package]
+name = "jelly-git"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jelly-protocol = { path = "../../jelly-protocol" }
+tauri = { version = "2", features = [] }
+git2 = { version = "0.21.0", default-features = false, features = ["vendored-libgit2"] }

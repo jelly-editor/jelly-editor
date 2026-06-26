@@ -1,0 +1,1 @@
+export { filesExtension } from "./extension";

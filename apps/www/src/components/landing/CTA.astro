@@ -1,0 +1,40 @@
+---
+import JellyShape from "@/components/jelly/JellyShape.astro";
+import AppleIcon from "@/components/ui/AppleIcon.astro";
+---
+
+<section id="download" class="relative overflow-hidden">
+  <div class="pointer-events-none absolute -left-16 bottom-0 hidden md:block">
+    <JellyShape variant="pebble" class="h-32 w-32 text-jelly-cream" />
+  </div>
+  <div class="pointer-events-none absolute right-10 top-10 hidden md:block">
+    <JellyShape variant="blob" class="h-20 w-20 text-jelly-soft/40" />
+  </div>
+
+  <div class="mx-auto max-w-[1240px] px-6 py-28 text-center md:py-36">
+    <h2 class="mx-auto max-w-2xl text-balance text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[56px]">
+      Write code at the speed of thought.
+    </h2>
+    <p class="mx-auto mt-5 max-w-md text-[16px] text-ink-muted">
+      Free during the public beta. No account required.
+    </p>
+    <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+      <a
+        href="#"
+        class="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-6 text-[14px] font-medium text-background transition-transform hover:-translate-y-px"
+      >
+        <AppleIcon class="h-3.5 w-3.5" />
+        Download Jelly · 0.9.4
+      </a>
+      <a
+        href="#"
+        class="inline-flex h-11 items-center gap-2 rounded-full border border-rule bg-surface px-6 text-[14px] font-medium text-ink transition-colors hover:bg-surface-2"
+      >
+        Read the changelog →
+      </a>
+    </div>
+    <p class="mt-5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+      Requires macOS 13 or later · Linux &amp; Windows in development
+    </p>
+  </div>
+</section>

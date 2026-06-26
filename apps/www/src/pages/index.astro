@@ -1,0 +1,43 @@
+---
+import Nav from "@/components/landing/Nav.astro";
+import Hero from "@/components/landing/Hero.astro";
+import Marquee from "@/components/landing/Marquee.astro";
+import Pillars from "@/components/landing/Pillars.astro";
+import FeatureSplit from "@/components/landing/FeatureSplit.astro";
+import CommandSection from "@/components/landing/CommandSection.astro";
+import SpecGrid from "@/components/landing/SpecGrid.astro";
+import Quote from "@/components/landing/Quote.astro";
+import CTA from "@/components/landing/CTA.astro";
+import Footer from "@/components/landing/Footer.astro";
+import "../styles/global.css";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Jelly — A native code editor, crafted for speed.</title>
+    <meta name="description" content="Jelly is a native desktop code editor for developers who care about speed, focus, and craftsmanship. Lightweight, fast to launch, distraction-free." />
+    <meta property="og:title" content="Jelly — A native code editor, crafted for speed." />
+    <meta property="og:description" content="Native. Fast. Focused. Jelly is a desktop code editor designed for developers who care about the details." />
+  </head>
+  <body class="bg-background text-ink selection:bg-jelly-cream/80">
+    <div class="min-h-screen bg-background text-ink">
+      <Nav />
+      <main>
+        <Hero />
+        <Marquee />
+        <Pillars />
+        <FeatureSplit />
+        <CommandSection />
+        <SpecGrid />
+        <Quote />
+        <CTA />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

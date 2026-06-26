@@ -1,0 +1,45 @@
+---
+import JellyMark from "@/components/jelly/JellyMark.astro";
+
+const cols = [
+  { h: "Product", l: ["Download", "Changelog", "Roadmap", "Pricing"] },
+  { h: "Resources", l: ["Documentation", "Keybindings", "Themes", "Community"] },
+  { h: "Company", l: ["About", "Blog", "Careers", "Contact"] },
+];
+---
+
+<footer class="border-t border-rule/70 bg-surface">
+  <div class="mx-auto max-w-[1240px] px-6 py-14">
+    <div class="grid gap-10 md:grid-cols-12">
+      <div class="md:col-span-5">
+        <div class="flex items-center gap-2.5">
+          <JellyMark class="h-6 w-6 text-jelly-magenta" />
+          <span class="text-[15px] font-semibold tracking-tight">Jelly</span>
+        </div>
+        <p class="mt-4 max-w-xs text-[13.5px] leading-relaxed text-ink-muted">
+          A native desktop code editor. Designed and built in Lisbon &amp; Brooklyn.
+        </p>
+      </div>
+
+      {cols.map((col) => (
+        <div class="md:col-span-2">
+          <p class="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+            {col.h}
+          </p>
+          <ul class="space-y-2.5 text-[13.5px] text-ink-muted">
+            {col.l.map((x) => (
+              <li>
+                <a href="#" class="transition-colors hover:text-ink">{x}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+      <span>© 2026 Jelly Software, Inc.</span>
+      <span>Built natively. No tracking.</span>
+    </div>
+  </div>
+</footer>

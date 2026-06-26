@@ -1,0 +1,1 @@
+export { openEditorWindow } from "./window";

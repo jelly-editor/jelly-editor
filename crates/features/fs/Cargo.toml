@@ -1,0 +1,10 @@
+[package]
+name = "jelly-fs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jelly-protocol = { path = "../../jelly-protocol" }
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["sync"] }
+ignore = "0.4.26"

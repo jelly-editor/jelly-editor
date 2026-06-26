@@ -1,0 +1,10 @@
+[package]
+name = "jelly-watcher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jelly-protocol = { path = "../../jelly-protocol" }
+tauri = { version = "2", features = [] }
+notify = "8.2.0"
+notify-debouncer-mini = "0.7.0"

@@ -1,0 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Premium light-grey slate color system matching a modern, clean designer aesthetic */
+  --color-background: #ffffff;
+  --color-ink: #0f0f11;
+  --color-ink-muted: #52525b;
+  --color-ink-faint: #a1a1aa;
+  --color-rule: rgba(15, 15, 17, 0.08);
+
+  --color-surface: #faf9f6;
+  --color-surface-2: #f1f0ec;
+
+  --color-jelly-cream: #fbf5e6;
+  --color-jelly-soft: #eef2ff;
+  --color-jelly-magenta: #e11d48;
+  --color-jelly-violet: #8b5cf6;
+  --color-jelly-pink: #ec4899;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

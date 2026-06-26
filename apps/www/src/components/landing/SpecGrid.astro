@@ -1,0 +1,43 @@
+---
+const rows = [
+  { k: "Cold start", v: "90 ms" },
+  { k: "Memory at rest", v: "62 MB" },
+  { k: "Install size", v: "14 MB" },
+  { k: "Frame budget", v: "120 fps" },
+  { k: "Languages", v: "80+" },
+  { k: "Runtime", v: "Native Swift" },
+  { k: "Architecture", v: "Universal" },
+  { k: "Updates", v: "Background, signed" },
+];
+---
+
+<section id="specs" class="border-b border-rule/70 bg-surface">
+  <div class="mx-auto max-w-[1240px] px-6 py-24 md:py-32">
+    <div class="mb-14 flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <p class="mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+          By the numbers
+        </p>
+        <h2 class="max-w-2xl text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[48px]">
+          Lightweight is a feature, not a marketing line.
+        </h2>
+      </div>
+      <p class="max-w-sm text-[14px] text-ink-muted">
+        Measured on a 14&quot; M3 MacBook Pro, opening a 12,000-file monorepo from cold.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 border-l border-t border-rule md:grid-cols-4">
+      {rows.map((r) => (
+        <div
+          class="flex flex-col gap-3 border-b border-r border-rule bg-background p-6"
+        >
+          <span class="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+            {r.k}
+          </span>
+          <span class="text-[28px] font-semibold tracking-[-0.02em] text-ink">{r.v}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

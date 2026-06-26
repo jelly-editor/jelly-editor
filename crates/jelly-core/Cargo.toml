@@ -1,0 +1,10 @@
+[package]
+name = "jelly-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jelly-protocol = { path = "../jelly-protocol" }
+jelly-fs = { path = "../features/fs" }
+jelly-watcher = { path = "../features/watcher" }
+tauri = { version = "2", features = [] }

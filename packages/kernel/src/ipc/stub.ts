@@ -1,0 +1,44 @@
+import type { IpcClient } from "@jelly/sdk";
+
+/**
+ * A placeholder IpcClient whose every call rejects. The host injects the real
+ * client (@jelly/ipc) when constructing the kernel; this only exists so the
+ * kernel is usable in tests and never has to import @tauri-apps/api itself.
+ */
+export function createStubIpc(): IpcClient {
+  const fail = (method: string) => async (): Promise<never> => {
+    throw new Error(
+      `[kernel] ipc.${method} called but no IpcClient was provided to the kernel`,
+    );
+  };
+
+  return {
+    fs: {
+      read: fail("fs.read"),
+      save: fail("fs.save"),
+      list: fail("fs.list"),
+      create: fail("fs.create"),
+      createDir: fail("fs.createDir"),
+      rename: fail("fs.rename"),
+      delete: fail("fs.delete"),
+    },
+    git: {
+      status: fail("git.status"),
+      diff: fail("git.diff"),
+      stage: fail("git.stage"),
+      unstage: fail("git.unstage"),
+      commit: fail("git.commit"),
+    },
+    terminal: {
+      create: fail("terminal.create"),
+      input: fail("terminal.input"),
+      resize: fail("terminal.resize"),
+      close: fail("terminal.close"),
+    },
+    workspace: {
+      open: fail("workspace.open"),
+      recent: fail("workspace.recent"),
+      removeRecent: fail("workspace.removeRecent"),
+    },
+  };
+}

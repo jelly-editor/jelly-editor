@@ -1,0 +1,58 @@
+---
+import JellyEditor from "@/components/jelly/JellyEditor.astro";
+import JellyShape from "@/components/jelly/JellyShape.astro";
+import AppleIcon from "@/components/ui/AppleIcon.astro";
+---
+
+<section class="relative overflow-hidden">
+  <!-- subtle decorative jelly shape — sparingly used, no gradients -->
+  <div class="pointer-events-none absolute -right-24 top-32 hidden lg:block">
+    <JellyShape variant="capsule" class="h-44 w-44 text-jelly-cream" />
+  </div>
+  <div class="pointer-events-none absolute -left-12 top-[420px] hidden lg:block">
+    <JellyShape variant="pebble" class="h-24 w-24 text-jelly-soft/60" />
+  </div>
+
+  <div class="mx-auto max-w-[1240px] px-6 pt-20 pb-10 md:pt-28">
+    <div class="mx-auto max-w-3xl text-center">
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-rule bg-surface px-3 py-1 text-[11.5px] text-ink-muted">
+        <span class="h-1.5 w-1.5 rounded-full bg-jelly-magenta"></span>
+        <span class="font-mono uppercase tracking-[0.14em]">v0.9 · Public beta</span>
+      </div>
+
+      <h1 class="text-balance text-[44px] font-semibold leading-[1.04] tracking-[-0.035em] text-ink md:text-[68px]">
+        A native code editor,<br />crafted for speed.
+      </h1>
+      <p class="mx-auto mt-6 max-w-xl text-pretty text-[16.5px] leading-[1.55] text-ink-muted md:text-[17px]">
+        Jelly is a desktop editor for developers who care about the details — instant launch, lightweight by design, quiet by default.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="#download"
+          class="inline-flex h-10 items-center gap-2 rounded-full bg-ink px-5 text-[13.5px] font-medium text-background transition-transform hover:-translate-y-px"
+        >
+          <AppleIcon class="h-3.5 w-3.5" />
+          Download for macOS
+        </a>
+        <a
+          href="#features"
+          class="inline-flex h-10 items-center gap-2 rounded-full border border-rule bg-surface px-5 text-[13.5px] font-medium text-ink transition-colors hover:bg-surface-2"
+        >
+          See it in motion
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <p class="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+        Universal · Apple Silicon &amp; Intel · 14 MB
+      </p>
+    </div>
+
+    <!-- Product UI — the hero -->
+    <div class="relative mt-16 md:mt-20">
+      <div class="absolute inset-x-10 -bottom-6 -z-10 h-24 rounded-[40px] bg-ink/[0.06] blur-2xl"></div>
+      <JellyEditor />
+    </div>
+  </div>
+</section>

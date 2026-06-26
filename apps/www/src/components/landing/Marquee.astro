@@ -1,0 +1,22 @@
+---
+const items = [
+  "Linear", "Vercel", "Supabase", "Raycast", "Arc", "Framer", "Replicate", "Liveblocks",
+];
+---
+
+<section class="border-y border-rule/70 bg-surface">
+  <div class="mx-auto max-w-[1240px] px-6 py-10">
+    <p class="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+      Trusted by engineers at
+    </p>
+    <div class="grid grid-cols-2 items-center gap-x-8 gap-y-4 sm:grid-cols-4 md:grid-cols-8">
+      {items.map((n) => (
+        <div
+          class="text-center text-[14px] font-medium tracking-tight text-ink-muted/80"
+        >
+          {n}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

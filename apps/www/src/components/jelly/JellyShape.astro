@@ -1,0 +1,51 @@
+---
+interface Props {
+  variant: "capsule" | "pebble" | "blob";
+  class?: string;
+}
+
+const { variant, class: className = "" } = Astro.props;
+---
+
+{variant === "capsule" && (
+  <svg
+    viewBox="0 0 120 120"
+    fill="currentColor"
+    class={className}
+    aria-hidden="true"
+  >
+    {/* Diagonal soft-rounded capsule */}
+    <rect
+      x="20"
+      y="40"
+      width="80"
+      height="40"
+      rx="20"
+      transform="rotate(-30 60 60)"
+    />
+  </svg>
+)}
+
+{variant === "pebble" && (
+  <svg
+    viewBox="0 0 100 100"
+    fill="currentColor"
+    class={className}
+    aria-hidden="true"
+  >
+    {/* Asymmetrical smooth river stone/pebble */}
+    <path d="M48 12 C25 15 12 32 15 55 C18 78 38 88 58 85 C78 82 88 65 85 45 C82 25 70 9 48 12 Z" />
+  </svg>
+)}
+
+{variant === "blob" && (
+  <svg
+    viewBox="0 0 100 100"
+    fill="currentColor"
+    class={className}
+    aria-hidden="true"
+  >
+    {/* Wavy, dynamic organic blob */}
+    <path d="M50 12 C28 8 8 28 12 52 C16 76 34 92 58 88 C82 84 94 62 88 38 C82 14 72 16 50 12 Z" />
+  </svg>
+)}

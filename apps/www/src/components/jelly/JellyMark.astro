@@ -1,0 +1,23 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 24 24"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  class={className}
+  aria-hidden="true"
+>
+  {/* Smooth organic shape representing Jelly logo */}
+  <path
+    d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 9 20.3 6.8 17.5 4.8C14.7 2.8 13.5 2 12 2Z"
+    fill="currentColor"
+  />
+  {/* Subtle organic reflection dot */}
+  <circle cx="8.5" cy="8.5" r="2" fill="white" fill-opacity="0.4" />
+</svg>

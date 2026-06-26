@@ -1,0 +1,1 @@
+export { createStubIpc } from "./stub";

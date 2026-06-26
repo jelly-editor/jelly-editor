@@ -1,0 +1,39 @@
+---
+const items = [
+  {
+    kicker: "Native",
+    title: "Built for the metal.",
+    body: "No web runtime. No Electron tax. Jelly compiles to a single native binary — every keystroke, paint, and scroll routed through the OS.",
+  },
+  {
+    kicker: "Fast",
+    title: "Cold start in 90 ms.",
+    body: "Open a project the moment you press the keys. Indexing happens in the background, never in your way.",
+  },
+  {
+    kicker: "Quiet",
+    title: "Designed to disappear.",
+    body: "A composed surface, generous spacing, and a single accent. The editor recedes so the code can speak.",
+  },
+];
+---
+
+<section id="features" class="border-b border-rule/70">
+  <div class="mx-auto max-w-[1240px] px-6 py-24 md:py-32">
+    <div class="grid gap-x-12 gap-y-10 md:grid-cols-3">
+      {items.map((it, i) => (
+        <div class="flex flex-col">
+          <div class="mb-6 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+            <span>0{i + 1}</span>
+            <span class="h-px w-8 bg-rule"></span>
+            <span>{it.kicker}</span>
+          </div>
+          <h3 class="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-ink">
+            {it.title}
+          </h3>
+          <p class="mt-3 text-[15px] leading-relaxed text-ink-muted">{it.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

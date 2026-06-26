@@ -1,0 +1,16 @@
+/* Remote web fonts — must stay first: CSS requires url-imports before any other
+   rule, so they can't live inside the (later-imported) @jelly/ui theme. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
+
+@import "tailwindcss";
+
+/* Design system (theme tokens, @font-face, base styles) lives in @jelly/ui. */
+@import "@jelly/ui/theme.css";
+
+/* Tailwind ignores node_modules, where the workspace packages resolve, so it
+   misses the class names now living in @jelly/ui and the extensions. Opt their
+   real source back in. */
+@source "../../../packages/ui/src";
+@source "../../../packages/kernel/src";
+@source "../../../packages/extensions";

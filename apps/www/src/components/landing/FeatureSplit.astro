@@ -1,0 +1,91 @@
+---
+import JellyShape from "@/components/jelly/JellyShape.astro";
+import Check from "@/components/ui/Check.astro";
+
+const lines = [
+  { t: "  export function useFocus(ref) {", k: "ctx" },
+  { t: "-   const [active, set] = useState(false)", k: "rem" },
+  { t: "+   const [active, setActive] = useState(false)", k: "add" },
+  { t: "    useEffect(() => {", k: "ctx" },
+  { t: "-     const fn = () => set(document.activeElement === ref.current)", k: "rem" },
+  { t: "+     const fn = () => setActive(document.activeElement === ref.current)", k: "add" },
+  { t: "      document.addEventListener('focusin', fn)", k: "ctx" },
+  { t: "      return () => document.removeEventListener('focusin', fn)", k: "ctx" },
+  { t: "    }, [ref])", k: "ctx" },
+  { t: "    return active", k: "ctx" },
+  { t: "  }", k: "ctx" },
+];
+---
+
+<section id="craft" class="border-b border-rule/70 bg-surface">
+  <div class="mx-auto grid max-w-[1240px] gap-16 px-6 py-24 md:grid-cols-12 md:py-32">
+    <div class="md:col-span-5">
+      <p class="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+        The craft
+      </p>
+      <h2 class="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[48px]">
+        Every detail<br />considered.
+      </h2>
+      <p class="mt-6 max-w-md text-[15.5px] leading-relaxed text-ink-muted">
+        Typography tuned per language. A cursor that respects subpixel motion. Diffs you can
+        actually read. Jelly is the editor we wished existed.
+      </p>
+
+      <ul class="mt-10 space-y-4 text-[14.5px]">
+        {[
+          "Tree-sitter highlighting for 80+ languages",
+          "Built-in LSP with zero configuration",
+          "Pixel-perfect Git gutter & inline diffs",
+          "Integrated terminal with GPU rendering",
+          "Project-wide search at 1M lines / second",
+        ].map((f) => (
+          <li class="flex items-start gap-3">
+            <Check class="mt-[5px] h-3.5 w-3.5 shrink-0 text-jelly-violet" />
+            <span class="text-ink">{f}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="relative md:col-span-7">
+      <!-- DiffPanel -->
+      <div class="overflow-hidden rounded-2xl border border-rule bg-background shadow-[0_1px_0_rgba(12,10,20,0.04),0_24px_60px_-30px_rgba(12,10,20,0.18)]">
+        <div class="flex items-center justify-between border-b border-rule px-4 py-2.5 text-[12px]">
+          <div class="flex items-center gap-2 text-ink-muted">
+            <span class="font-mono text-[11px] text-ink-faint">src/</span>
+            <span class="font-mono text-ink">hooks/useFocus.ts</span>
+          </div>
+          <div class="flex items-center gap-2 font-mono text-[11px] text-ink-faint">
+            <span class="text-jelly-violet">+2</span>
+            <span>−2</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto bg-background py-4 font-mono text-[12.5px] leading-[1.7]">
+          {lines.map((l, i) => (
+            <div
+              class={
+                l.k === "add"
+                  ? "bg-jelly-cream/50 text-ink flex items-center"
+                  : l.k === "rem"
+                    ? "bg-surface-2 text-ink-muted line-through decoration-ink-faint/40 flex items-center"
+                    : "text-ink-muted flex items-center"
+              }
+            >
+              <span class="inline-block w-9 shrink-0 select-none pr-3 text-right font-mono text-[10.5px] text-ink-faint">
+                {i + 1}
+              </span>
+              <span class="inline-block w-4 shrink-0 select-none text-ink-faint">
+                {l.k === "add" ? "+" : l.k === "rem" ? "−" : " "}
+              </span>
+              <span class="whitespace-pre">{l.t.slice(2)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="pointer-events-none absolute -right-6 -bottom-6 hidden md:block">
+        <JellyShape variant="blob" class="h-20 w-20 text-jelly-magenta/15" />
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,130 @@
+/* @jelly/ui — the design system: theme tokens, fonts, and base styles.
+   Imported by the host app's Tailwind entry (after `@import "tailwindcss"`).
+
+   NOTE: the remote Inter / JetBrains Mono `@import url(...)`s are NOT here — CSS
+   requires url-imports to come first, and this file is itself imported after
+   `@import "tailwindcss"`. They live at the top of the host's entry CSS. */
+
+/* Alias the *installed* Nerd Font so the WebView reliably resolves it by name.
+   `local()` references the on-disk font (by PostScript and full name) — no font
+   is bundled or downloaded. */
+@font-face {
+  font-family: "0xProto Nerd Font Mono";
+  font-style: normal;
+  font-weight: 400;
+  src: local("0xProtoNFM-Regular"), local("0xProto Nerd Font Mono");
+}
+@font-face {
+  font-family: "0xProto Nerd Font Mono";
+  font-style: normal;
+  font-weight: 700;
+  src: local("0xProtoNFM-Bold"), local("0xProto Nerd Font Mono Bold");
+}
+
+/* ── Design tokens (dark / default) ─────────────────────── */
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-bg: oklch(16.29% 0.0041 106.85);
+  --color-bg-elevated: oklch(19.04% 0.004 106.77);
+  --color-bg-hover: oklch(22.57% 0.0038 106.7);
+  --color-bg-active: oklch(25.88% 0.0073 106.9);
+  --color-border: oklch(26.3% 0.0073 106.89);
+  --color-text: oklch(89.93% 0.0121 79.78);
+  --color-text-muted: oklch(46.94% 0.0108 78.22);
+  --color-text-dim: oklch(32.21% 0.0059 78.24);
+  --color-accent: oklch(65.18% 0.1233 54.05);
+  --color-accent-fg: oklch(100% 0 0);
+  --color-accent-dim: oklch(24.04% 0.0316 63.29);
+  --color-danger: oklch(60.24% 0.1336 21.88);
+  --color-success: oklch(64.19% 0.0991 151.53);
+  --color-warning: oklch(70.87% 0.1162 83.19);
+
+  /* Editor syntax tokens (dark) */
+  --color-syntax-keyword: oklch(69.21% 0.0625 332.66);
+  --color-syntax-string: oklch(76.83% 0.0749 131.06);
+  --color-syntax-number: oklch(69.29% 0.0963 38.24);
+  --color-syntax-comment: oklch(55.1% 0.0234 264.36);
+  --color-syntax-function: oklch(77.46% 0.0622 217.47);
+  --color-syntax-variable: oklch(89.93% 0.0121 79.78);
+  --color-syntax-type: oklch(85.49% 0.0892 84.09);
+  --color-syntax-punct: oklch(70.28% 0.0111 247.99);
+  --color-syntax-tag: oklch(60.61% 0.1206 15.34);
+  --color-syntax-attr: oklch(85.49% 0.0892 84.09);
+}
+
+/* ── Light overrides ────────────────────────────────────── */
+[data-theme="light"] {
+  --color-bg: oklch(95.88% 0.0086 84.57);
+  --color-bg-elevated: oklch(99.07% 0.0054 95.1);
+  --color-bg-hover: oklch(93.41% 0.0112 89.73);
+  --color-bg-active: oklch(90.35% 0.0125 91.53);
+  --color-border: oklch(88.87% 0.0142 88.69);
+  --color-text: oklch(21.86% 0.0082 84.59);
+  --color-text-muted: oklch(55.58% 0.0206 78.14);
+  --color-text-dim: oklch(76.51% 0.0181 84.59);
+  --color-accent: oklch(60.13% 0.1236 54.87);
+  --color-accent-fg: oklch(100% 0 0);
+  --color-accent-dim: oklch(92.46% 0.0229 71.78);
+  --color-danger: oklch(54.07% 0.1555 23.91);
+  --color-success: oklch(52.66% 0.0921 152.17);
+  --color-warning: oklch(53.84% 0.097 82.2);
+
+  /* Editor syntax tokens (light) */
+  --color-syntax-keyword: oklch(56.31% 0.2069 294.97);
+  --color-syntax-string: oklch(51.58% 0.1444 148.36);
+  --color-syntax-number: oklch(56.5% 0.1381 56.14);
+  --color-syntax-comment: oklch(63.34% 0 89.88);
+  --color-syntax-function: oklch(45.09% 0.1641 258.18);
+  --color-syntax-variable: oklch(21.86% 0.0082 84.59);
+  --color-syntax-type: oklch(46.57% 0.1371 43.35);
+  --color-syntax-punct: oklch(56.51% 0.0189 250.97);
+  --color-syntax-tag: oklch(51.29% 0.1634 33.01);
+  --color-syntax-attr: oklch(46.57% 0.1371 43.35);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* keep root at 16px so rem-based spacing utilities resolve correctly;
+     base text size applied below */
+  body,
+  #root {
+    font-size: 13px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-dim);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

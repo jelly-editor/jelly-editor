@@ -1,0 +1,1 @@
+export { editorExtension } from "./extension";
