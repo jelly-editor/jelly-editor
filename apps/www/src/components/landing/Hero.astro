@@ -50,15 +50,53 @@ const version = rawVersion.startsWith('v') ? rawVersion.slice(1) : rawVersion;
       </div>
     </div>
 
-    <!-- Product UI — the hero -->
+    <!-- Product UI — theme-aware screenshot -->
     <div class="relative mt-16 md:mt-20">
-      <img
-        src="/assets/screenshots/editor.png"
-        alt="Jelly Editor User Interface showing a clean, lightweight workspace"
-        class="w-full h-auto"
-        width="1920"
-        height="1080"
-      />
+      <picture id="hero-screenshot">
+        <!-- Dark mode (system preference) -->
+        <source
+          srcset="/assets/screenshots/editor-dark.png"
+          media="(prefers-color-scheme: dark)"
+          data-theme="dark"
+        />
+        <!-- Light mode fallback -->
+        <img
+          src="/assets/screenshots/editor-light.png"
+          alt="Jelly Editor User Interface showing a clean, lightweight workspace"
+          class="w-full h-auto"
+          width="1920"
+          height="1080"
+        />
+      </picture>
     </div>
   </div>
 </section>
+
+<script>
+  function updateScreenshot() {
+    const root = document.documentElement;
+    const isDark = root.classList.contains("dark") ||
+      (!root.classList.contains("light") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    const source = document.querySelector<HTMLSourceElement>("#hero-screenshot source");
+    const img = document.querySelector<HTMLImageElement>("#hero-screenshot img");
+    if (!source || !img) return;
+
+    if (isDark) {
+      source.media = "all"; // always match → browser picks source
+      img.src = "/assets/screenshots/editor-dark.png";
+    } else {
+      source.media = "not all"; // never match → browser falls back to img
+      img.src = "/assets/screenshots/editor-light.png";
+    }
+  }
+
+  // Run on load
+  updateScreenshot();
+
+  // React to manual toggle (class change on <html>)
+  new MutationObserver(updateScreenshot).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+</script>
