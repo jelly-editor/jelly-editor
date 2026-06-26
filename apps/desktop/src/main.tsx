@@ -14,6 +14,9 @@ import { checkForUpdates } from "./updater";
 async function boot() {
   const kernel = new Kernel({ ipc });
 
+  // Load persisted settings before extensions activate so they see saved values.
+  await kernel.init();
+
   // Feed Rust → frontend events onto the kernel bus before anything renders,
   // so no early terminal output or file event is missed.
   bridgeCoreEvents(kernel.events);

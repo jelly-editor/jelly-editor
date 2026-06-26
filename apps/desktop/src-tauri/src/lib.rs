@@ -80,6 +80,8 @@ pub fn run() {
             jelly_core::workspace::open_workspace,
             jelly_core::workspace::get_recent_folders,
             jelly_core::workspace::remove_recent_folder,
+            jelly_core::settings::load_settings,
+            jelly_core::settings::save_setting,
             jelly_core::window::open_new_window,
             jelly_fs::commands::read_file,
             jelly_fs::commands::save_file,

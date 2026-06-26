@@ -1,4 +1,4 @@
-import type { FsClient, GitClient, TerminalClient, WorkspaceClient } from "./clients";
+import type { FsClient, GitClient, SettingsClient, TerminalClient, WorkspaceClient } from "./clients";
 
 /**
  * The single typed surface onto the Rust core — the security boundary.
@@ -11,4 +11,5 @@ export interface IpcClient {
   git: GitClient;
   terminal: TerminalClient;
   workspace: WorkspaceClient;
+  settings: SettingsClient;
 }

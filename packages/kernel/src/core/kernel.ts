@@ -95,6 +95,18 @@ export class Kernel {
     }
   }
 
+  /**
+   * Load persisted settings from disk and wire up write-through persistence.
+   * Must be called before loadAll so extensions see saved values on first get().
+   */
+  async init(): Promise<void> {
+    const saved = await this.ipc.settings.load().catch(() => ({} as Record<string, unknown>));
+    this.settings.hydrate(saved);
+    this.settings.setPersistHook((key, value) => {
+      void this.ipc.settings.save(key, value);
+    });
+  }
+
   /** Load then activate a batch, in order. */
   async loadAll(extensions: Extension[]): Promise<void> {
     for (const extension of extensions) this.load(extension);
