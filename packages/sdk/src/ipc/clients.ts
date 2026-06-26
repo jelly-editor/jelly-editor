@@ -32,3 +32,8 @@ export interface WorkspaceClient {
   recent(): Promise<string[]>;
   removeRecent(path: string): Promise<void>;
 }
+
+export interface SettingsClient {
+  load(): Promise<Record<string, unknown>>;
+  save(key: string, value: unknown): Promise<void>;
+}

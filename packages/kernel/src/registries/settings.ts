@@ -1,10 +1,23 @@
 import type { Disposable, SettingsRegistry, SettingsSchema } from "@jelly/sdk";
 import { toDisposable } from "../core/disposable";
 
-/** Kernel-wide settings store. In-memory for now; persistence lands later. */
+/** Kernel-wide settings store with optional disk persistence. */
 export class SettingsStore implements SettingsRegistry {
   private values = new Map<string, unknown>();
   private watchers = new Map<string, Set<(value: unknown) => void>>();
+  private persistHook?: (key: string, value: unknown) => void;
+
+  /** Bulk-load saved values before extensions activate. Skips watchers and persist. */
+  hydrate(saved: Record<string, unknown>): void {
+    for (const [key, value] of Object.entries(saved)) {
+      this.values.set(key, value);
+    }
+  }
+
+  /** Attach a hook that is called on every set() to write through to disk. */
+  setPersistHook(hook: (key: string, value: unknown) => void): void {
+    this.persistHook = hook;
+  }
 
   defineSchema(schema: SettingsSchema): void {
     for (const [key, entry] of Object.entries(schema)) {
@@ -20,6 +33,7 @@ export class SettingsStore implements SettingsRegistry {
 
   set<T = unknown>(key: string, value: T): void {
     this.values.set(key, value);
+    this.persistHook?.(key, value as unknown);
     const set = this.watchers.get(key);
     if (!set) return;
     for (const handler of [...set]) handler(value);

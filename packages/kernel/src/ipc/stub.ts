@@ -40,5 +40,9 @@ export function createStubIpc(): IpcClient {
       recent: fail("workspace.recent"),
       removeRecent: fail("workspace.removeRecent"),
     },
+    settings: {
+      load: fail("settings.load"),
+      save: fail("settings.save"),
+    },
   };
 }

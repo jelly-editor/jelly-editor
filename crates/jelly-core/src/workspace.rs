@@ -26,10 +26,13 @@ pub fn open_workspace(
     let tree = list_dir(&root)?;
     watcher.watch(app, root)?;
 
-    let mut recents = recents.inner.lock().unwrap();
-    recents.retain(|p| p != &path);
-    recents.insert(0, path);
-    recents.truncate(MAX_RECENTS);
+    {
+        let mut inner = recents.inner.lock().unwrap();
+        inner.retain(|p| p != &path);
+        inner.insert(0, path);
+        inner.truncate(MAX_RECENTS);
+    }
+    recents.save();
 
     Ok(tree)
 }
@@ -42,4 +45,5 @@ pub fn get_recent_folders(recents: State<Recents>) -> Vec<String> {
 #[tauri::command]
 pub fn remove_recent_folder(path: String, recents: State<Recents>) {
     recents.inner.lock().unwrap().retain(|p| p != &path);
+    recents.save();
 }
