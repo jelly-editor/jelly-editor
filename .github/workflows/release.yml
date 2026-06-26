@@ -1,0 +1,39 @@
+name: Release
+
+# On every push to main, Changesets either opens/updates a "Version Packages"
+# PR (when changesets are pending) or — once that PR is merged — runs the
+# release script, which tags v<version> and triggers build.yml.
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # PAT so the pushed tag triggers build.yml (the default GITHUB_TOKEN
+          # does not trigger downstream workflows). Falls back to GITHUB_TOKEN
+          # if RELEASE_TOKEN is unset — you'd then push the tag manually.
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Create version PR or tag release
+        uses: changesets/action@v1
+        with:
+          version: bun run version
+          publish: bun run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}

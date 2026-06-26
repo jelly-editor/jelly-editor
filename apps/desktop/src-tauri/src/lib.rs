@@ -11,6 +11,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init());
 
+    // Auto-update (desktop only): plugin-updater fetches/installs signed
+    // releases, plugin-process relaunches the app after an update.
+    #[cfg(desktop)]
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init());
+
     // Fold each feature's managed state into the builder.
     let builder = jelly_core::register(builder);
     let builder = jelly_fs::register(builder);

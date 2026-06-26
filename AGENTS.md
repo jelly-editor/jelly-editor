@@ -46,6 +46,7 @@ sdk  ←  kernel, ui, ipc  ←  extensions  ←  desktop
 | `bun run --filter desktop tauri:build` | Build a distributable |
 | `bun run build` / `typecheck` / `lint` / `test` | Workspace-wide via Turbo |
 | `cargo build` / `cargo test` | Rust crates |
+| `bun run changeset` | Record a user-facing change for release |
 
 Scope any FE task to a package with `--filter <package>` (e.g.
 `bun run --filter @jelly/editor test`).
@@ -53,6 +54,10 @@ Scope any FE task to a package with `--filter <package>` (e.g.
 ## Conventions
 
 - Split files by concern; `index.ts` re-exports only, folders group related code.
+- **Releases:** Changesets versions the `desktop` app only (that's the
+  auto-update version); merging a "Version Packages" PR tags `v<version>`, and
+  CI builds + signs + publishes to GitHub Releases with a Tauri `latest.json`
+  updater manifest. Add a changeset for user-facing changes.
 - Test pure logic (store transitions, reducers) and Rust handlers against real
   temp dirs / git repos — not plumbing.
 - Run `bun run typecheck` and `bun run test` before finishing a change.

@@ -4,6 +4,7 @@ import { Kernel, KernelProvider, Shell } from "@jelly/kernel";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { builtinExtensions } from "./extensions";
+import { checkForUpdates } from "./updater";
 
 /**
  * The thin host: boot the kernel with the real Tauri bridge, attach the native
@@ -27,6 +28,9 @@ async function boot() {
       </KernelProvider>
     </React.StrictMode>,
   );
+
+  // Fire-and-forget: look for a newer signed release in the background.
+  if (import.meta.env.PROD) void checkForUpdates();
 }
 
 void boot();

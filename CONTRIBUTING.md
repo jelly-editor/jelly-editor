@@ -97,6 +97,39 @@ author an extension.
 - **Test logic, not plumbing.** Unit-test pure logic (store transitions,
   reducers) and Rust handlers against real temp dirs / git repos.
 - Run `bun run typecheck` and `bun run test` before opening a pull request.
+- **Add a changeset** for any user-facing change (see below).
+
+## Releasing
+
+Versioning and changelogs are managed with [Changesets](https://github.com/changesets/changesets),
+and releases are built and published by GitHub Actions. Only the `desktop` app
+is versioned — its version is also the auto-update version.
+
+**When you make a user-facing change**, record it:
+
+```bash
+bun run changeset
+```
+
+Select `desktop`, pick a bump (patch/minor/major), and write a short note.
+Commit the generated `.changeset/*.md` file with your PR.
+
+**The release flow** (automated):
+
+1. Merging changesets to `main` makes CI open a **"Version Packages"** PR that
+   bumps the version and updates `apps/desktop/CHANGELOG.md`.
+2. Merging that PR tags `v<version>`, which triggers the build workflow.
+3. The build workflow compiles, **signs**, and publishes the app for macOS,
+   Windows, and Linux to GitHub Releases, along with the `latest.json` updater
+   manifest. Installed apps auto-update via Tauri's updater plugin.
+
+Releases require these repository secrets:
+
+| Secret | Purpose |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | Updater signing key (from `tauri signer generate`) |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for that key |
+| `RELEASE_TOKEN` | PAT (repo + workflow) so the version tag triggers the build; optional — without it, push the `v<version>` tag manually |
 
 ## License
 
