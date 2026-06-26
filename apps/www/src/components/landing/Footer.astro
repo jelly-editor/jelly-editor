@@ -1,8 +1,32 @@
 ---
 const cols = [
-  { h: "Product", l: ["Download", "Changelog", "Roadmap", "Pricing"] },
-  { h: "Resources", l: ["Documentation", "Keybindings", "Themes", "Community"] },
-  { h: "Company", l: ["About", "Blog", "Careers", "Contact"] },
+  {
+    h: "Product",
+    l: [
+      { name: "Download", href: "https://github.com/jelly-editor/jelly-editor/releases/latest" },
+      { name: "Changelog", href: "https://github.com/jelly-editor/jelly-editor/releases" },
+      { name: "Roadmap", href: "#" },
+      { name: "Pricing", href: "#" },
+    ],
+  },
+  {
+    h: "Resources",
+    l: [
+      { name: "Documentation", href: "#" },
+      { name: "Keybindings", href: "#" },
+      { name: "GitHub", href: "https://github.com/jelly-editor/jelly-editor" },
+      { name: "Community", href: "#" },
+    ],
+  },
+  {
+    h: "Company",
+    l: [
+      { name: "About", href: "#" },
+      { name: "Blog", href: "#" },
+      { name: "Careers", href: "#" },
+      { name: "Contact", href: "#" },
+    ],
+  },
 ];
 ---
 
@@ -27,7 +51,7 @@ const cols = [
           <ul class="space-y-2.5 text-[13.5px] text-ink-muted">
             {col.l.map((x) => (
               <li>
-                <a href="#" class="transition-colors hover:text-ink">{x}</a>
+                <a href={x.href} class="transition-colors hover:text-ink">{x.name}</a>
               </li>
             ))}
           </ul>

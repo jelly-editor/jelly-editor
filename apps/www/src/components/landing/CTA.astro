@@ -1,6 +1,8 @@
 ---
 import JellyShape from "@/components/jelly/JellyShape.astro";
 import AppleIcon from "@/components/ui/AppleIcon.astro";
+import pkg from "../../../../../package.json";
+const { version } = pkg;
 ---
 
 <section id="download" class="relative overflow-hidden">
@@ -20,11 +22,11 @@ import AppleIcon from "@/components/ui/AppleIcon.astro";
     </p>
     <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
       <a
-        href="#"
+        href="https://github.com/jelly-editor/jelly-editor/releases/latest"
         class="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-6 text-[14px] font-medium text-background transition-transform hover:-translate-y-px"
       >
         <AppleIcon class="h-3.5 w-3.5" />
-        Download Jelly · 0.9.4
+        Download Jelly · {version}
       </a>
       <a
         href="#"
