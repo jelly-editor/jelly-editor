@@ -1,5 +1,4 @@
 ---
-import JellyShape from "@/components/jelly/JellyShape.astro";
 import Check from "@/components/ui/Check.astro";
 
 const lines = [
@@ -18,7 +17,7 @@ const lines = [
 ---
 
 <section id="craft" class="border-b border-rule/70 bg-surface">
-  <div class="mx-auto grid max-w-[1240px] gap-16 px-6 py-24 md:grid-cols-12 md:py-32">
+  <div class="mx-auto grid max-w-[1240px] items-center gap-16 px-6 py-24 md:grid-cols-12 md:py-32">
     <div class="md:col-span-5">
       <p class="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-faint">
         The workflow
@@ -82,9 +81,6 @@ const lines = [
         </div>
       </div>
 
-      <div class="pointer-events-none absolute -right-6 -bottom-6 hidden md:block">
-        <JellyShape variant="blob" class="h-20 w-20 text-jelly-magenta/15" />
-      </div>
     </div>
   </div>
 </section>
