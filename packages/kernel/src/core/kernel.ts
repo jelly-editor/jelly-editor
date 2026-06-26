@@ -52,11 +52,15 @@ export class Kernel {
 
     // Core commands for driving the workbench layout (used by status-bar items,
     // menus, etc. that want to reveal a panel without owning the layout).
-    this.commands.register("workbench.togglePanel", (id: string) =>
+    this.commands.seedDescriptors([
+      { id: "workbench.togglePanel", title: "Toggle Panel", palette: false },
+      { id: "workbench.showPanel", title: "Show Panel", palette: false },
+    ]);
+    this.commands.register("workbench.togglePanel", (id?: string) =>
       this.workbench.togglePanel(id),
     );
-    this.commands.register("workbench.showPanel", (id: string) =>
-      this.workbench.setActivePanel(id),
+    this.commands.register("workbench.showPanel", (id?: string) =>
+      this.workbench.setActivePanel(id ?? this.workbench.getState().activePanelId ?? "files"),
     );
   }
 
@@ -76,6 +80,10 @@ export class Kernel {
     if (reg.status === "active") return; // double-activate guard
 
     const ctx = createExtensionContext(this, reg.extension);
+    // Seed command titles from manifest so list() works even before the
+    // extension registers its handlers.
+    const manifestCmds = reg.extension.manifest.contributes?.commands ?? [];
+    this.commands.seedDescriptors(manifestCmds);
     // mark active before awaiting so a re-entrant activate() can't slip through
     reg.status = "active";
     reg.context = ctx;

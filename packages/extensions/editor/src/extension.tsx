@@ -11,10 +11,10 @@ export const editorExtension: Extension = {
     version: "1.0.0",
     contributes: {
       commands: [
-        { id: "editor.open", title: "Open File" },
-        { id: "editor.openDiff", title: "Open Diff" },
+        { id: "editor.open", title: "Open File", palette: false },
+        { id: "editor.openDiff", title: "Open Diff", palette: false },
         { id: "editor.closeFile", title: "Close File" },
-        { id: "editor.renameFile", title: "Rename File" },
+        { id: "editor.renameFile", title: "Rename File", palette: false },
       ],
     },
   },
@@ -42,8 +42,8 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.openDiff", (diff: { path: string; workspace: string }) =>
         store.getState().setActiveDiff(diff),
       ),
-      ctx.commands.register("editor.closeFile", (path: string) =>
-        store.getState().closeTab(path),
+      ctx.commands.register("editor.closeFile", (path?: string) =>
+        store.getState().closeTab(path ?? store.getState().activeTabPath ?? ""),
       ),
       ctx.commands.register("editor.renameFile", (from: string, to: string, name: string) =>
         store.getState().renameTab(from, to, name),
