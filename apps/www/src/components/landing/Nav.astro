@@ -1,5 +1,4 @@
 ---
-import DownloadButton from "@/components/ui/DownloadButton.astro";
 ---
 
 <!-- Blocking theme init — runs before paint to prevent flash -->
@@ -26,28 +25,11 @@ import DownloadButton from "@/components/ui/DownloadButton.astro";
     </a>
     <nav class="hidden items-center gap-8 text-[13px] text-ink-muted md:flex">
       <a href="#features" class="transition-colors hover:text-ink">Features</a>
-      <a href="#craft" class="transition-colors hover:text-ink">Craft</a>
       <a href="#specs" class="transition-colors hover:text-ink">Specs</a>
       <a href="/roadmap" class="transition-colors hover:text-ink">Roadmap</a>
       <a href="/docs" class="transition-colors hover:text-ink">Docs</a>
     </nav>
-    <div class="flex items-center justify-end gap-2">
-      <a
-        href="https://github.com/jelly-editor/jelly-editor"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="hidden text-[13px] text-ink-muted transition-colors hover:text-ink sm:inline"
-      >
-        GitHub
-      </a>
-      <DownloadButton
-        id="nav-download-btn"
-        label="Download"
-        size="sm"
-        class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-ink px-3.5 text-[12.5px] font-medium text-background transition-transform hover:-translate-y-px disabled:cursor-wait"
-        showIcon={false}
-      />
-      <!-- Theme toggle -->
+    <div class="flex items-center justify-end">
       <button
         id="theme-toggle"
         type="button"
