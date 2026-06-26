@@ -1,8 +1,17 @@
-import type { Extension, ExtensionContext } from "@jelly/sdk";
+import type { DirEntry, Extension, ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { FileTree } from "./ui/FileTree";
 import { WorkspaceTitle } from "./ui/WorkspaceTitle";
 import { useWorkspaceStore } from "./store";
+
+function flattenFiles(entries: DirEntry[]): DirEntry[] {
+  const out: DirEntry[] = [];
+  for (const e of entries) {
+    if (!e.isDir) out.push(e);
+    if (e.children) out.push(...flattenFiles(e.children));
+  }
+  return out;
+}
 
 function FolderIcon() {
   return (
@@ -20,7 +29,8 @@ export const filesExtension: Extension = {
     contributes: {
       commands: [
         { id: "workspace.open", title: "Open Folder" },
-        { id: "workspace.getPath", title: "Get Workspace Path" },
+        { id: "workspace.getPath", title: "Get Workspace Path", palette: false },
+        { id: "files.list", title: "List Files", palette: false },
       ],
     },
   },
@@ -37,6 +47,7 @@ export const filesExtension: Extension = {
         ctx.events.emit("workspace:opened", { path });
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
+      ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
     );
 
     // Keep the tree highlight in sync with the editor's active file.

@@ -1,9 +1,17 @@
-import type { CommandHandler, CommandRegistry, Disposable } from "@jelly/sdk";
+import type { CommandDescriptor, CommandHandler, CommandRegistry, Disposable } from "@jelly/sdk";
 import { toDisposable } from "../core/disposable";
 
 /** In-memory command bus: register by id, execute by id. */
 export class CommandBus implements CommandRegistry {
   private handlers = new Map<string, CommandHandler>();
+  private titles = new Map<string, string>();
+
+  /** Seed display titles from an extension manifest's contributes.commands list. */
+  seedDescriptors(commands: CommandDescriptor[]): void {
+    for (const cmd of commands) {
+      this.titles.set(cmd.id, cmd.title);
+    }
+  }
 
   register(id: string, handler: CommandHandler): Disposable {
     if (this.handlers.has(id)) {
@@ -24,5 +32,9 @@ export class CommandBus implements CommandRegistry {
 
   has(id: string): boolean {
     return this.handlers.has(id);
+  }
+
+  list(): CommandDescriptor[] {
+    return [...this.titles.entries()].map(([id, title]) => ({ id, title }));
   }
 }

@@ -12,7 +12,6 @@
     },
     "apps/desktop": {
       "name": "desktop",
-      "version": "0.1.0",
       "dependencies": {
         "@codemirror/lang-css": "^6.3.1",
         "@codemirror/lang-html": "^6.4.11",
@@ -24,6 +23,7 @@
         "@codemirror/merge": "^6.12.2",
         "@codemirror/state": "^6.7.0",
         "@codemirror/view": "^6.43.3",
+        "@jelly/command-palette": "workspace:*",
         "@jelly/editor": "workspace:*",
         "@jelly/files": "workspace:*",
         "@jelly/git": "workspace:*",
@@ -72,9 +72,23 @@
         "tailwindcss": "^4.3.1",
       },
     },
+    "packages/extensions/command-palette": {
+      "name": "@jelly/command-palette",
+      "dependencies": {
+        "@jelly/sdk": "workspace:*",
+        "@jelly/ui": "workspace:*",
+        "zustand": "^5.0.14",
+      },
+      "devDependencies": {
+        "@types/react": "^19",
+        "typescript": "~5.8.3",
+      },
+      "peerDependencies": {
+        "react": "^19",
+      },
+    },
     "packages/extensions/editor": {
       "name": "@jelly/editor",
-      "version": "0.1.0",
       "dependencies": {
         "@codemirror/merge": "^6.12.2",
         "@codemirror/state": "^6.7.0",
@@ -95,7 +109,6 @@
     },
     "packages/extensions/files": {
       "name": "@jelly/files",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -112,7 +125,6 @@
     },
     "packages/extensions/git": {
       "name": "@jelly/git",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -129,7 +141,6 @@
     },
     "packages/extensions/settings": {
       "name": "@jelly/settings",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -146,7 +157,6 @@
     },
     "packages/extensions/terminal": {
       "name": "@jelly/terminal",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -165,7 +175,6 @@
     },
     "packages/extensions/welcome": {
       "name": "@jelly/welcome",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -182,7 +191,6 @@
     },
     "packages/ipc": {
       "name": "@jelly/ipc",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/sdk": "workspace:*",
         "@tauri-apps/api": "^2.11.1",
@@ -194,7 +202,6 @@
     },
     "packages/kernel": {
       "name": "@jelly/kernel",
-      "version": "0.1.0",
       "dependencies": {
         "@jelly/sdk": "workspace:*",
       },
@@ -209,7 +216,6 @@
     },
     "packages/sdk": {
       "name": "@jelly/sdk",
-      "version": "0.1.0",
       "devDependencies": {
         "@types/react": "^19",
         "typescript": "~5.8.3",
@@ -220,7 +226,6 @@
     },
     "packages/ui": {
       "name": "@jelly/ui",
-      "version": "0.1.0",
       "dependencies": {
         "@codemirror/lang-css": "^6.3.1",
         "@codemirror/lang-html": "^6.4.11",
@@ -486,6 +491,8 @@
     "@img/sharp-win32-x64": ["@img/sharp-win32-x64@0.34.5", "", { "os": "win32", "cpu": "x64" }, "sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw=="],
 
     "@inquirer/figures": ["@inquirer/figures@1.0.15", "", {}, "sha512-t2IEY+unGHOzAaVM5Xx6DEWKeXlDDcNPeDyUpsRc6CUhBfU3VQOEl+Vssh7VNp1dR8MdUJBWhuObjXCsVpjN5g=="],
+
+    "@jelly/command-palette": ["@jelly/command-palette@workspace:packages/extensions/command-palette"],
 
     "@jelly/editor": ["@jelly/editor@workspace:packages/extensions/editor"],
 

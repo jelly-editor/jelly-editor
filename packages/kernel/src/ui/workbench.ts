@@ -20,6 +20,9 @@ export class Workbench extends Store {
     sidebarWidth: 240,
   };
 
+  // Tracks the last non-null panel so toggle-without-id can reopen it.
+  private lastOpenPanelId: string = "files";
+
   getState = (): WorkbenchState => this.state;
 
   private set(patch: Partial<WorkbenchState>): void {
@@ -35,9 +38,17 @@ export class Workbench extends Store {
     if (this.state.activePanelId !== activePanelId) this.set({ activePanelId });
   }
 
-  /** Toggle a panel: clicking the active one collapses the sidebar. */
-  togglePanel(id: string): void {
-    this.set({ activePanelId: this.state.activePanelId === id ? null : id });
+  /** Toggle a panel. With an id: toggle that specific panel open/closed.
+   *  Without an id: collapse if any panel is open, else reopen the last one. */
+  togglePanel(id?: string): void {
+    if (id === undefined) {
+      const next = this.state.activePanelId ? null : this.lastOpenPanelId;
+      this.set({ activePanelId: next });
+    } else {
+      const next = this.state.activePanelId === id ? null : id;
+      if (next) this.lastOpenPanelId = next;
+      this.set({ activePanelId: next });
+    }
   }
 
   setSidebarWidth(sidebarWidth: number): void {
