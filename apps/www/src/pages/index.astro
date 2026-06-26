@@ -23,6 +23,9 @@ import "../styles/global.css";
     <meta name="description" content="Jelly is a lightweight desktop code editor built for developers who code with AI agents. Inspect code, review structure, and stay in control without the weight of a full IDE." />
     <meta property="og:title" content="Jelly — Lightweight desktop editor for agentic AI coding" />
     <meta property="og:description" content="Jelly is a lightweight desktop code editor built for developers who code with AI agents. Inspect code, review structure, and stay in control without the weight of a full IDE." />
+    {import.meta.env.PROD && (
+      <script defer src="https://analytics.mxv.sh/script.js" data-website-id="4ced3bae-4180-4105-8ca6-ab8c5022d894"></script>
+    )}
   </head>
   <body class="bg-background text-ink selection:bg-jelly-cream/80">
     <div class="min-h-screen bg-background text-ink">
