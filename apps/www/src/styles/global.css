@@ -26,6 +26,7 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: light dark;
 }
 
 body {
@@ -34,4 +35,42 @@ body {
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --color-background:  #0c0c0e;
+    --color-ink:         #f0f0f2;
+    --color-ink-muted:   #9898a4;
+    --color-ink-faint:   #4e4e58;
+    --color-rule:        rgba(255, 255, 255, 0.07);
+    --color-surface:     #131315;
+    --color-surface-2:   #1b1b1f;
+    --color-jelly-cream: #2c2318;
+    --color-jelly-soft:  #191a2c;
+  }
+}
+
+:root.dark {
+  --color-background:  #0c0c0e;
+  --color-ink:         #f0f0f2;
+  --color-ink-muted:   #9898a4;
+  --color-ink-faint:   #4e4e58;
+  --color-rule:        rgba(255, 255, 255, 0.07);
+  --color-surface:     #131315;
+  --color-surface-2:   #1b1b1f;
+  --color-jelly-cream: #2c2318;
+  --color-jelly-soft:  #191a2c;
+}
+
+:root.light {
+  --color-background:  #ffffff;
+  --color-ink:         #0f0f11;
+  --color-ink-muted:   #52525b;
+  --color-ink-faint:   #a1a1aa;
+  --color-rule:        rgba(15, 15, 17, 0.08);
+  --color-surface:     #faf9f6;
+  --color-surface-2:   #f1f0ec;
+  --color-jelly-cream: #fbf5e6;
+  --color-jelly-soft:  #eef2ff;
 }
