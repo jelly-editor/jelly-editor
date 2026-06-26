@@ -1,0 +1,40 @@
+name: Deploy Website
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/www/**'
+      - '.github/workflows/deploy-www.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Website
+        run: bun run --filter www build
+
+      - name: Deploy to Website Repository
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        run: |
+          cd apps/www/dist
+          git init -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy website from jelly-editor/jelly-editor@${{ github.sha }}"
+          git push --force https://x-access-token:${API_TOKEN_GITHUB}@github.com/jelly-editor/jelly-editor.github.io.git main
