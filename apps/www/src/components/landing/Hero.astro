@@ -1,6 +1,6 @@
 ---
 import JellyShape from "@/components/jelly/JellyShape.astro";
-import AppleIcon from "@/components/ui/AppleIcon.astro";
+import DownloadButton from "@/components/ui/DownloadButton.astro";
 import pkg from "../../../../../package.json";
 
 const envVersion = process.env.PUBLIC_VERSION;
@@ -33,13 +33,11 @@ const version = rawVersion.startsWith('v') ? rawVersion.slice(1) : rawVersion;
       </p>
 
       <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="https://github.com/jelly-editor/jelly-editor/releases/latest"
-          class="inline-flex h-10 items-center gap-2 rounded-full bg-ink px-5 text-[13.5px] font-medium text-background transition-transform hover:-translate-y-px"
-        >
-          <AppleIcon class="h-3.5 w-3.5" />
-          Download for macOS
-        </a>
+        <DownloadButton
+          id="hero-download-btn"
+          label="Download for macOS"
+          class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-ink px-5 text-[13.5px] font-medium text-background transition-transform hover:-translate-y-px disabled:cursor-wait"
+        />
         <a
           href="#features"
           class="inline-flex h-10 items-center gap-2 rounded-full border border-rule bg-surface px-5 text-[13.5px] font-medium text-ink transition-colors hover:bg-surface-2"

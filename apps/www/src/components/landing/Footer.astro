@@ -1,11 +1,20 @@
 ---
-const cols = [
+interface NavLink {
+  name: string;
+  href: string;
+  download?: boolean;
+}
+interface Col {
+  h: string;
+  l: NavLink[];
+}
+const cols: Col[] = [
   {
     h: "Product",
     l: [
-      { name: "Download", href: "https://github.com/jelly-editor/jelly-editor/releases/latest" },
+      { name: "Download", href: "#download", download: true },
       { name: "Changelog", href: "https://github.com/jelly-editor/jelly-editor/releases" },
-      { name: "Roadmap", href: "#" },
+      { name: "Roadmap", href: "/roadmap" },
       { name: "Pricing", href: "#" },
     ],
   },
@@ -51,7 +60,17 @@ const cols = [
           <ul class="space-y-2.5 text-[13.5px] text-ink-muted">
             {col.l.map((x) => (
               <li>
-                <a href={x.href} class="transition-colors hover:text-ink">{x.name}</a>
+                {x.download ? (
+                  <button
+                    type="button"
+                    data-download-btn
+                    class="transition-colors hover:text-ink cursor-pointer disabled:cursor-wait"
+                  >
+                    {x.name}
+                  </button>
+                ) : (
+                  <a href={x.href} class="transition-colors hover:text-ink">{x.name}</a>
+                )}
               </li>
             ))}
           </ul>
@@ -60,8 +79,8 @@ const cols = [
     </div>
 
     <div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
-      <span>© 2026 Jelly Software, Inc.</span>
-      <span>Built natively. No tracking.</span>
+      <span>© 2026 Jelly Editor</span>
+      <span>Made for the agentic era.</span>
     </div>
   </div>
 </footer>

@@ -1,0 +1,231 @@
+---
+import Nav from "@/components/landing/Nav.astro";
+import Footer from "@/components/landing/Footer.astro";
+import "../styles/global.css";
+
+/*
+ * Curated roadmap items — a meaningful subset of issues.json
+ * grouped by milestone, trimmed to the highlights that tell the story.
+ */
+const milestones = [
+  {
+    version: "v0.2",
+    label: "Core Editing",
+    status: "in-progress",
+    description:
+      "Everything you need to use Jelly as a daily driver. Fast navigation, search, a polished terminal, and the essentials that make editing feel native.",
+    items: [
+      { title: "Command palette (⌘P)", tag: "ux" },
+      { title: "Quick open — file switcher (⌘O)", tag: "files" },
+      { title: "Find in file (⌘F)", tag: "editor" },
+      { title: "Find across workspace (⌘⇧F)", tag: "editor" },
+      { title: "Split editor panes", tag: "editor" },
+      { title: "Multiple terminal tabs", tag: "terminal" },
+      { title: "File tree context menu", tag: "files" },
+      { title: "Gitignore-aware file tree", tag: "files" },
+      { title: "Keybinding customization", tag: "settings" },
+      { title: "Virtual scroll for large repos", tag: "performance" },
+    ],
+  },
+  {
+    version: "v0.3",
+    label: "Git Workflow",
+    status: "planned",
+    description:
+      "A complete, native git experience — stage files and hunks, commit, push, branch, view history, and resolve conflicts without leaving the editor.",
+    items: [
+      { title: "Stage & unstage files", tag: "git" },
+      { title: "Stage individual hunks", tag: "git" },
+      { title: "Commit with message", tag: "git" },
+      { title: "Push & pull", tag: "git" },
+      { title: "Branch switching & creation", tag: "git" },
+      { title: "Commit history / log view", tag: "git" },
+      { title: "Inline merge conflict resolution", tag: "git" },
+      { title: "Inline blame", tag: "git" },
+      { title: "Stash management", tag: "git" },
+    ],
+  },
+  {
+    version: "v0.4",
+    label: "Extension Ecosystem",
+    status: "planned",
+    description:
+      "Runtime extension loading from disk — third-party features, a sandboxed context, and the scaffolding for a future marketplace.",
+    items: [
+      { title: "Runtime extension loading", tag: "extensions" },
+      { title: "Sandboxed extension context", tag: "extensions" },
+      { title: "Extension manifest & discovery", tag: "extensions" },
+    ],
+  },
+  {
+    version: "v0.5",
+    label: "Quality of Life",
+    status: "planned",
+    description:
+      "The polish and ergonomics that turn a good tool into one you reach for every day.",
+    items: [
+      { title: "Session restore (tabs & workspace)", tag: "ux" },
+      { title: "Toast / notification system", tag: "ux" },
+      { title: "Breadcrumbs bar", tag: "editor" },
+      { title: "Restore scroll & cursor per tab", tag: "editor" },
+      { title: "Word wrap toggle", tag: "editor" },
+      { title: "Go to line (⌘G)", tag: "editor" },
+      { title: "Terminal as editor pane buffer", tag: "terminal" },
+      { title: "Pin buffers & terminals", tag: "editor" },
+      { title: "Indent guides & bracket colorization", tag: "editor" },
+    ],
+  },
+  {
+    version: "v1.0",
+    label: "General Release",
+    status: "horizon",
+    description:
+      "Stable, signed, and shipped. A complete editor that feels complete — fast, extensible, and purpose-built for the agentic coding era.",
+    items: [
+      { title: "Linux & Windows support", tag: "ux" },
+      { title: "Auto-update in-app", tag: "ux" },
+      { title: "Stable extension API", tag: "extensions" },
+      { title: "Performance audit & polish", tag: "performance" },
+    ],
+  },
+];
+
+const tagColors: Record<string, { bg: string; text: string }> = {
+  ux:          { bg: "bg-[#fef2c0]/30",  text: "text-[#a87f00]" },
+  editor:      { bg: "bg-[#c5def5]/30",  text: "text-[#1f6db5]" },
+  files:       { bg: "bg-[#e4e669]/20",  text: "text-[#7a7a00]" },
+  terminal:    { bg: "bg-[#006b75]/15",  text: "text-[#006b75]" },
+  settings:    { bg: "bg-[#f9d0c4]/30",  text: "text-[#b94c27]" },
+  extensions:  { bg: "bg-[#d4c5f9]/30",  text: "text-[#6c3fc5]" },
+  performance: { bg: "bg-[#d4c5f9]/20",  text: "text-[#7b61c2]" },
+  git:         { bg: "bg-[#1d76db]/12",  text: "text-[#1d76db]" },
+};
+
+const statusMeta: Record<string, { label: string; dot: string }> = {
+  "in-progress": { label: "In progress", dot: "bg-jelly-magenta" },
+  "planned":     { label: "Planned",     dot: "bg-ink-muted" },
+  "horizon":     { label: "Horizon",     dot: "bg-jelly-cream" },
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Roadmap — Jelly Editor</title>
+    <meta
+      name="description"
+      content="See what's coming to Jelly. A curated milestone timeline from Core Editing to v1 General Release."
+    />
+    <meta property="og:title" content="Roadmap — Jelly Editor" />
+    <meta
+      property="og:description"
+      content="See what's coming to Jelly. A curated milestone timeline from Core Editing to v1 General Release."
+    />
+  </head>
+  <body class="bg-background text-ink selection:bg-jelly-cream/80">
+    <div class="min-h-screen bg-background text-ink">
+      <Nav />
+      <main>
+
+        <!-- Page header -->
+        <section class="mx-auto max-w-[1240px] px-6 pt-24 pb-16 md:pt-32">
+          <div class="max-w-2xl">
+            <p class="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+              Roadmap
+            </p>
+            <h1 class="text-balance text-[44px] font-semibold leading-[1.04] tracking-[-0.03em] text-ink md:text-[56px]">
+              The road to v1.
+            </h1>
+            <p class="mt-5 max-w-xl text-[16.5px] leading-[1.6] text-ink-muted">
+              A curated view of what we're building and in what order — from the
+              day-to-day essentials to a fully extensible, general-release editor.
+            </p>
+          </div>
+
+          <!-- Legend -->
+          <div class="mt-10 flex flex-wrap items-center gap-5 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            {Object.entries(statusMeta).map(([key, meta]) => (
+              <span class="flex items-center gap-1.5">
+                <span class={`h-1.5 w-1.5 rounded-full ${meta.dot}`}></span>
+                {meta.label}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <!-- Timeline -->
+        <section class="mx-auto max-w-[1240px] px-6 pb-28">
+          <div class="relative">
+
+            <!-- Vertical spine (desktop) -->
+            <div class="absolute left-[7px] top-3 bottom-3 hidden w-px bg-rule md:block" aria-hidden="true"></div>
+
+            <ol class="space-y-16">
+              {milestones.map((ms, i) => {
+                const sm = statusMeta[ms.status];
+                return (
+                  <li class="relative md:pl-10">
+                    <!-- Dot on spine -->
+                    <div
+                      class={`absolute left-0 top-[6px] hidden h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background md:flex ${ms.status === "horizon" ? "bg-ink-faint" : ms.status === "in-progress" ? "bg-jelly-magenta" : "bg-ink-muted"}`}
+                      aria-hidden="true"
+                    ></div>
+
+                    <div class="group rounded-2xl border border-rule/70 bg-surface p-7 transition-shadow hover:shadow-sm md:p-8">
+
+                      <!-- Header row -->
+                      <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div class="mb-1.5 flex items-center gap-3">
+                            <span class="font-mono text-[12px] font-semibold tracking-tight text-ink-muted">
+                              {ms.version}
+                            </span>
+                            <span class={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ${ms.status === "in-progress" ? "bg-jelly-magenta/10 text-jelly-magenta" : ms.status === "horizon" ? "bg-ink-faint/10 text-ink-faint" : "bg-surface-2 text-ink-faint"}`}>
+                              <span class={`h-1 w-1 rounded-full ${sm.dot}`}></span>
+                              {sm.label}
+                            </span>
+                          </div>
+                          <h2 class="text-[22px] font-semibold tracking-[-0.02em] text-ink md:text-[26px]">
+                            {ms.label}
+                          </h2>
+                        </div>
+                      </div>
+
+                      <p class="mb-6 max-w-2xl text-[14.5px] leading-[1.6] text-ink-muted">
+                        {ms.description}
+                      </p>
+
+                      <!-- Items grid -->
+                      <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {ms.items.map((item) => {
+                          const tc = tagColors[item.tag] ?? { bg: "bg-surface-2", text: "text-ink-muted" };
+                          return (
+                            <li class="flex items-center gap-2.5 rounded-lg border border-rule/50 bg-background/50 px-3.5 py-2.5">
+                              <span class={`h-1.5 w-1.5 shrink-0 rounded-full ${tc.bg.replace("/30", "").replace("/20", "").replace("/15", "").replace("/12", "")} border border-current ${tc.text}`}></span>
+                              <span class="text-[13px] text-ink-muted">
+                                {item.title}
+                              </span>
+                              <span class={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] ${tc.bg} ${tc.text}`}>
+                                {item.tag}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>
