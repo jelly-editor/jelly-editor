@@ -20,6 +20,7 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const [files, setFiles] = useState<DirEntry[]>([]);
+  const [workspaceRoot, setWorkspaceRoot] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -30,10 +31,13 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
     setSelected(0);
     setTimeout(() => inputRef.current?.focus(), 0);
     if (mode === "files") {
-      void ctx.commands
-        .execute<DirEntry[]>("files.list")
-        .then(setFiles)
-        .catch(() => setFiles([]));
+      void Promise.all([
+        ctx.commands.execute<DirEntry[]>("files.list").catch(() => []),
+        ctx.commands.execute<string | null>("workspace.getPath").catch(() => null),
+      ]).then(([list, root]) => {
+        setFiles(list);
+        setWorkspaceRoot(root ? root + "/" : "");
+      });
     }
   }, [open, mode]);
 
@@ -172,7 +176,9 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
               >
                 <span className="text-[13px]">{file.name}</span>
                 <span className="text-[11px] text-text-muted opacity-60 truncate max-w-[260px]">
-                  {file.path}
+                  {file.path.startsWith(workspaceRoot)
+                    ? file.path.slice(workspaceRoot.length)
+                    : file.path}
                 </span>
               </button>
             ))
