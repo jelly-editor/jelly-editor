@@ -1,6 +1,4 @@
 ---
-import JellyMark from "@/components/jelly/JellyMark.astro";
-
 const cols = [
   { h: "Product", l: ["Download", "Changelog", "Roadmap", "Pricing"] },
   { h: "Resources", l: ["Documentation", "Keybindings", "Themes", "Community"] },
@@ -13,11 +11,11 @@ const cols = [
     <div class="grid gap-10 md:grid-cols-12">
       <div class="md:col-span-5">
         <div class="flex items-center gap-2.5">
-          <JellyMark class="h-6 w-6 text-jelly-magenta" />
+          <img src="/jelly.png" alt="Jelly Logo" class="h-6 w-6 object-contain" />
           <span class="text-[15px] font-semibold tracking-tight">Jelly</span>
         </div>
         <p class="mt-4 max-w-xs text-[13.5px] leading-relaxed text-ink-muted">
-          A native desktop code editor. Designed and built in Lisbon &amp; Brooklyn.
+          A lightweight desktop editor for agentic coding. Designed and built in Lisbon &amp; Brooklyn.
         </p>
       </div>
 

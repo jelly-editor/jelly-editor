@@ -1,27 +1,20 @@
 ---
 const codeLines = [
-  { num: 1, text: "import Cocoa", type: "keyword" },
-  { num: 2, text: "import JellyKernel", type: "keyword" },
+  { num: 1, text: "use jelly_core::{Kernel, Config};", type: "keyword" },
+  { num: 2, text: "use std::path::PathBuf;", type: "keyword" },
   { num: 3, text: "" },
-  { num: 4, text: "@main", type: "attribute" },
-  { num: 5, text: "class AppDelegate: NSObject, NSApplicationDelegate {", type: "def" },
-  { num: 6, text: "    var window: NSWindow!", type: "decl" },
-  { num: 7, text: "    var editorCore: JellyCore?", type: "decl" },
-  { num: 8, text: "" },
-  { num: 9, text: "    func applicationDidFinishLaunching(_ notification: Notification) {", type: "def" },
-  { num: 10, text: "        // Cold start core in 90ms", type: "comment" },
-  { num: 11, text: "        self.editorCore = JellyCore(options: .quietMode)", type: "call" },
-  { num: 12, text: "        self.setupWindow()", type: "call" },
-  { num: 13, text: "        self.editorCore?.indexProjectInBackground()", type: "call" },
-  { num: 14, text: "    }", type: "punct" },
-  { num: 15, text: "" },
-  { num: 16, text: "    private func setupWindow() {", type: "def" },
-  { num: 17, text: "        let style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]", type: "value" },
-  { num: 18, text: "        window = NSWindow(contentRect: .zero, styleMask: style, backing: .buffered, defer: false)", type: "call" },
-  { num: 19, text: "        window.title = \"Jelly\"", type: "string" },
-  { num: 20, text: "        window.makeKeyAndOrderFront(nil)", type: "call" },
-  { num: 21, text: "    }", type: "punct" },
-  { num: 22, text: "}", type: "punct" },
+  { num: 4, text: "#[tokio::main]", type: "attribute" },
+  { num: 5, text: "async fn main() -> Result<(), Box<dyn std::error::Error>> {", type: "def" },
+  { num: 6, text: "    // Cold start kernel in 90ms", type: "comment" },
+  { num: 7, text: "    let config = Config::builder()", type: "call" },
+  { num: 8, text: "        .quiet_mode(true)", type: "call" },
+  { num: 9, text: "        .build();", type: "call" },
+  { num: 10, text: "" },
+  { num: 11, text: "    let kernel = Kernel::boot(config).await?;", type: "call" },
+  { num: 12, text: "    kernel.watch_project(PathBuf::from(\".\")).await?;", type: "call" },
+  { num: 13, text: "" },
+  { num: 14, text: "    Ok(())", type: "keyword" },
+  { num: 15, text: "}", type: "punct" },
 ];
 ---
 
@@ -35,7 +28,7 @@ const codeLines = [
       <div class="h-3 w-3 rounded-full bg-[#27c93f]"></div>
     </div>
     <div class="font-mono text-[11.5px] tracking-tight text-zinc-400">
-      AppDelegate.swift — Jelly
+      main.rs — Jelly
     </div>
     <div class="w-14"></div> <!-- Spacer to balance window controls -->
   </div>
@@ -51,19 +44,19 @@ const codeLines = [
           <span>▼</span> 📁 <span>src</span>
         </div>
         <div class="flex items-center gap-2 pl-4 text-[#ff2e93] font-medium">
-          <span>📄</span> <span>AppDelegate.swift</span>
+          <span>📄</span> <span>main.rs</span>
         </div>
         <div class="flex items-center gap-2 pl-4">
-          <span>📄</span> <span>EditorView.swift</span>
+          <span>📄</span> <span>kernel.rs</span>
         </div>
         <div class="flex items-center gap-2 pl-4">
-          <span>📄</span> <span>Buffer.swift</span>
+          <span>📄</span> <span>protocol.rs</span>
         </div>
         <div class="flex items-center gap-2">
           <span>▶</span> 📁 <span>packages</span>
         </div>
         <div class="flex items-center gap-2">
-          <span>📄</span> <span>Package.swift</span>
+          <span>📄</span> <span>Cargo.toml</span>
         </div>
         <div class="flex items-center gap-2">
           <span>📄</span> <span>README.md</span>
@@ -76,11 +69,11 @@ const codeLines = [
       <!-- Tab Bar -->
       <div class="flex h-9 border-b border-zinc-800/60 bg-[#0a0a0c]">
         <div class="flex items-center gap-2 border-r border-zinc-800/80 bg-[#0c0c0e] px-4 font-mono text-[12px] text-[#ff2e93] font-medium">
-          <span>AppDelegate.swift</span>
+          <span>main.rs</span>
           <span class="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer">×</span>
         </div>
         <div class="flex items-center gap-2 border-r border-zinc-800/40 px-4 font-mono text-[12px] text-zinc-500 hover:bg-zinc-900/30 cursor-pointer">
-          <span>EditorView.swift</span>
+          <span>kernel.rs</span>
         </div>
       </div>
 
@@ -119,7 +112,7 @@ const codeLines = [
     <div class="flex items-center gap-3">
       <span>UTF-8</span>
       <span>·</span>
-      <span>Swift</span>
+      <span>Rust</span>
       <span class="text-[#27c93f]">● Connected</span>
     </div>
   </div>
