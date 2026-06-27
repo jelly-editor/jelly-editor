@@ -25,7 +25,7 @@ export const editorExtension: Extension = {
     ctx.subscriptions.push(
       ctx.commands.register(
         "editor.open",
-        async (path: string, name: string, opts?: { pin?: boolean }) => {
+        async (path: string, name: string, opts?: { pin?: boolean; line?: number }) => {
           const ed = store.getState();
           if (opts?.pin) ed.openPinned(path, name);
           else ed.openPreview(path, name);
@@ -38,6 +38,11 @@ export const editorExtension: Extension = {
             } catch (e) {
               ed.setSaved(path, `// Could not open file: ${e}`);
             }
+          }
+          // Leave any diff view and jump to the requested line.
+          if (opts?.line !== undefined) {
+            ed.setActiveDiff(null);
+            ed.requestReveal(path, opts.line);
           }
         },
       ),

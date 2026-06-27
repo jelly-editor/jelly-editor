@@ -23,6 +23,8 @@ interface EditorState {
   externallyChanged: Set<string>;
   largeFiles: Set<string>;
   activeDiff: ActiveDiff | null;
+  /** A pending request to scroll/select a line in a file (e.g. from search). */
+  revealTarget: { path: string; line: number; nonce: number } | null;
 
   openPreview: (path: string, name: string) => void;
   openPinned: (path: string, name: string) => void;
@@ -37,6 +39,7 @@ interface EditorState {
   renameTab: (from: string, to: string, name: string) => void;
   getContent: (path: string) => string | undefined;
   setActiveDiff: (diff: ActiveDiff | null) => void;
+  requestReveal: (path: string, line: number) => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -47,6 +50,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   externallyChanged: new Set(),
   largeFiles: new Set(),
   activeDiff: null,
+  revealTarget: null,
 
   openPreview: (path, name) =>
     set((s) => {
@@ -178,4 +182,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   getContent: (path) => get().fileContents.get(path),
 
   setActiveDiff: (activeDiff) => set({ activeDiff }),
+
+  requestReveal: (path, line) =>
+    set((s) => ({ revealTarget: { path, line, nonce: (s.revealTarget?.nonce ?? 0) + 1 } })),
 }));

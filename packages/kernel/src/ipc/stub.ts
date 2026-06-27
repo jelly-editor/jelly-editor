@@ -29,6 +29,10 @@ export function createStubIpc(): IpcClient {
       unstage: fail("git.unstage"),
       commit: fail("git.commit"),
     },
+    search: {
+      start: fail("search.start"),
+      cancel: fail("search.cancel"),
+    },
     terminal: {
       create: fail("terminal.create"),
       input: fail("terminal.input"),

@@ -56,6 +56,7 @@ pub fn run() {
     let builder = jelly_fs::register(builder);
     let builder = jelly_watcher::register(builder);
     let builder = jelly_terminal::register(builder);
+    let builder = jelly_search::register(builder);
 
     builder
         .setup(move |app| {
@@ -151,6 +152,8 @@ pub fn run() {
             jelly_git::commands::git_stage,
             jelly_git::commands::git_unstage,
             jelly_git::commands::git_commit,
+            jelly_search::commands::start_search,
+            jelly_search::commands::cancel_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

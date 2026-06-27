@@ -1,3 +1,5 @@
+import type { SearchDone, SearchFileResult } from "@jelly/sdk";
+
 /**
  * The core events the Rust backend emits to the frontend, with their payloads.
  * The bridge re-emits these onto the kernel EventBus under the same names.
@@ -8,6 +10,8 @@ export interface CoreEventMap {
   "file:saved": string;
   "terminal:output": { id: string; data: string };
   "terminal:exit": { id: string; code?: number };
+  "search:result": SearchFileResult;
+  "search:done": SearchDone;
 }
 
 export type CoreEventName = keyof CoreEventMap;
@@ -17,4 +21,6 @@ export const CORE_EVENT_NAMES: CoreEventName[] = [
   "file:saved",
   "terminal:output",
   "terminal:exit",
+  "search:result",
+  "search:done",
 ];

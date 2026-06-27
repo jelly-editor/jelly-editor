@@ -1,10 +1,9 @@
 import type { ExtensionContext } from "@jelly/sdk";
 import { baseExtensions, useSetting } from "@jelly/ui";
 import { search, searchKeymap } from "@codemirror/search";
-import { keymap } from "@codemirror/view";
-import type { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import CodeMirror from "@uiw/react-codemirror";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FindPanel } from "./FindPanel";
 import { useState } from "react";
 
@@ -14,16 +13,49 @@ interface Props {
   value: string;
   theme: "dark" | "light";
   isLargeFile: boolean;
+  /** 1-based line to scroll to and select, e.g. from a search result */
+  revealLine?: number;
+  /** bumped each time a reveal is requested, so re-revealing the same line works */
+  revealNonce?: number;
   onChange: (value: string) => void;
 }
 
-export function CodeEditor({ ctx, name, value, theme, isLargeFile, onChange }: Props) {
+/** Scroll `line` (1-based) into view and place the cursor at its start. */
+function revealLineInView(view: EditorView, line: number) {
+  const clamped = Math.max(1, Math.min(line, view.state.doc.lines));
+  const pos = view.state.doc.line(clamped).from;
+  view.dispatch({
+    selection: { anchor: pos },
+    effects: EditorView.scrollIntoView(pos, { y: "center" }),
+  });
+  view.focus();
+}
+
+export function CodeEditor({
+  ctx,
+  name,
+  value,
+  theme,
+  isLargeFile,
+  revealLine,
+  revealNonce,
+  onChange,
+}: Props) {
   const dark = theme !== "light";
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
   const wordWrap = useSetting(ctx, "editor.wordWrap", false);
   const viewRef = useRef<EditorView | null>(null);
   const [findOpen, setFindOpen] = useState(false);
+
+  // Apply reveal requests once the view exists (covers both an already-open
+  // file and one that just mounted after loading).
+  useEffect(() => {
+    if (revealLine !== undefined && viewRef.current) {
+      revealLineInView(viewRef.current, revealLine);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealNonce]);
 
   const extensions = useMemo(
     () => [
@@ -59,7 +91,10 @@ export function CodeEditor({ ctx, name, value, theme, isLargeFile, onChange }: P
         height="100%"
         style={{ height: "100%" }}
         extensions={extensions}
-        onCreateEditor={(view) => { viewRef.current = view; }}
+        onCreateEditor={(view) => {
+          viewRef.current = view;
+          if (revealLine !== undefined) revealLineInView(view, revealLine);
+        }}
         basicSetup={{
           highlightActiveLine: true,
           highlightActiveLineGutter: true,

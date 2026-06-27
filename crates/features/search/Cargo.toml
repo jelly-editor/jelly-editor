@@ -1,0 +1,13 @@
+[package]
+name = "jelly-search"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jelly-protocol = { path = "../../jelly-protocol" }
+tauri = { version = "2", features = [] }
+grep-regex = "0.1"
+grep-searcher = "0.1"
+grep-matcher = "0.1"
+ignore = "0.4"
+regex = "1"

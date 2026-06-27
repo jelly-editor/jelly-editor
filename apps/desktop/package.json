@@ -21,6 +21,7 @@
     "@jelly/editor": "workspace:*",
     "@jelly/terminal": "workspace:*",
     "@jelly/git": "workspace:*",
+    "@jelly/search": "workspace:*",
     "@jelly/settings": "workspace:*",
     "@jelly/command-palette": "workspace:*",
     "@codemirror/lang-css": "^6.3.1",

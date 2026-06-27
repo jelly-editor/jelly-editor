@@ -5,6 +5,9 @@ mod events;
 mod fs;
 mod git;
 
-pub use events::{ExitPayload, FileChangedPayload, OutputPayload};
+pub use events::{
+    ExitPayload, FileChangedPayload, OutputPayload, SearchDonePayload, SearchMatch,
+    SearchResultPayload,
+};
 pub use fs::DirEntry;
 pub use git::{GitDiff, GitFile, GitStatus};

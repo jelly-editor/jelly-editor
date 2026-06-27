@@ -6,6 +6,7 @@ members = [
     "crates/features/fs",
     "crates/features/watcher",
     "crates/features/git",
+    "crates/features/search",
     "crates/features/terminal",
     "apps/desktop/src-tauri",
 ]

@@ -30,6 +30,7 @@
         "@jelly/ipc": "workspace:*",
         "@jelly/kernel": "workspace:*",
         "@jelly/sdk": "workspace:*",
+        "@jelly/search": "workspace:*",
         "@jelly/settings": "workspace:*",
         "@jelly/terminal": "workspace:*",
         "@jelly/ui": "workspace:*",
@@ -126,6 +127,22 @@
     },
     "packages/extensions/git": {
       "name": "@jelly/git",
+      "dependencies": {
+        "@jelly/ipc": "workspace:*",
+        "@jelly/sdk": "workspace:*",
+        "@jelly/ui": "workspace:*",
+        "zustand": "^5.0.14",
+      },
+      "devDependencies": {
+        "@types/react": "^19",
+        "typescript": "~5.8.3",
+      },
+      "peerDependencies": {
+        "react": "^19",
+      },
+    },
+    "packages/extensions/search": {
+      "name": "@jelly/search",
       "dependencies": {
         "@jelly/ipc": "workspace:*",
         "@jelly/sdk": "workspace:*",
@@ -506,6 +523,8 @@
     "@jelly/kernel": ["@jelly/kernel@workspace:packages/kernel"],
 
     "@jelly/sdk": ["@jelly/sdk@workspace:packages/sdk"],
+
+    "@jelly/search": ["@jelly/search@workspace:packages/extensions/search"],
 
     "@jelly/settings": ["@jelly/settings@workspace:packages/extensions/settings"],
 

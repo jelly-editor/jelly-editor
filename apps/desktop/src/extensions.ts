@@ -4,6 +4,7 @@ import { filesExtension } from "@jelly/files";
 import { editorExtension } from "@jelly/editor";
 import { terminalExtension } from "@jelly/terminal";
 import { gitExtension } from "@jelly/git";
+import { searchExtension } from "@jelly/search";
 import { settingsExtension } from "@jelly/settings";
 import { commandPaletteExtension } from "@jelly/command-palette";
 
@@ -17,6 +18,7 @@ export const builtinExtensions: Extension[] = [
   editorExtension,
   terminalExtension,
   gitExtension,
+  searchExtension,
   settingsExtension,
   commandPaletteExtension,
 ];

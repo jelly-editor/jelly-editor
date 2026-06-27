@@ -184,6 +184,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const closeTab = useEditorStore((s) => s.closeTab);
   const activeDiff = useEditorStore((s) => s.activeDiff);
   const setActiveDiff = useEditorStore((s) => s.setActiveDiff);
+  const revealTarget = useEditorStore((s) => s.revealTarget);
   const theme = useSetting(ctx, "ui.theme", "dark") as "dark" | "light";
   const [closing, setClosing] = useState<string | null>(null);
 
@@ -260,6 +261,8 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
             value={value}
             theme={theme}
             isLargeFile={isLargeFile}
+            revealLine={revealTarget?.path === activeTabPath ? revealTarget.line : undefined}
+            revealNonce={revealTarget?.path === activeTabPath ? revealTarget.nonce : undefined}
             onChange={(v) => activeTabPath && updateBuffer(activeTabPath, v)}
           />
         )}

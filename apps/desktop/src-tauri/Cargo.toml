@@ -35,3 +35,4 @@ jelly-fs = { path = "../../../crates/features/fs" }
 jelly-watcher = { path = "../../../crates/features/watcher" }
 jelly-terminal = { path = "../../../crates/features/terminal" }
 jelly-git = { path = "../../../crates/features/git" }
+jelly-search = { path = "../../../crates/features/search" }

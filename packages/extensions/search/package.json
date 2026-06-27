@@ -1,0 +1,26 @@
+{
+  "name": "@jelly/search",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jelly/sdk": "workspace:*",
+    "@jelly/ui": "workspace:*",
+    "@jelly/ipc": "workspace:*",
+    "zustand": "^5.0.14"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "~5.8.3"
+  }
+}

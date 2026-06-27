@@ -32,3 +32,38 @@ export interface GitDiffResult {
   original: string;
   modified: string;
 }
+
+export interface SearchOptions {
+  /** absolute workspace root to search under */
+  workspace: string;
+  query: string;
+  caseSensitive: boolean;
+  regex: boolean;
+}
+
+/** One matched line within a file. */
+export interface SearchMatch {
+  /** 1-based line number */
+  line: number;
+  /** the full matched line (trailing newline stripped) */
+  text: string;
+  /** character offset ranges [start, end) of each match within `text` */
+  ranges: [number, number][];
+}
+
+/** A `search:result` event payload — one file's matches. */
+export interface SearchFileResult {
+  searchId: number;
+  /** absolute path, for opening the file */
+  path: string;
+  /** workspace-relative path, for display */
+  relPath: string;
+  matches: SearchMatch[];
+}
+
+/** A `search:done` event payload. */
+export interface SearchDone {
+  searchId: number;
+  /** true if results were truncated because the cap was hit */
+  capped: boolean;
+}

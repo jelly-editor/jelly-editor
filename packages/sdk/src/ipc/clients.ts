@@ -1,4 +1,4 @@
-import type { DirEntry, GitDiffResult, GitStatus } from "./types";
+import type { DirEntry, GitDiffResult, GitStatus, SearchOptions } from "./types";
 
 export interface FsClient {
   read(path: string): Promise<string>;
@@ -24,6 +24,18 @@ export interface TerminalClient {
   input(id: string, data: string): Promise<void>;
   resize(id: string, cols: number, rows: number): Promise<void>;
   close(id: string): Promise<void>;
+}
+
+export interface SearchClient {
+  /**
+   * Begin a streaming workspace search. Matches arrive as `search:result`
+   * events tagged with `searchId`; `search:done` fires when the walk ends.
+   * Rejects if the regex is invalid. The caller supplies `searchId` so it can
+   * ignore events from a superseded search.
+   */
+  start(searchId: number, opts: SearchOptions): Promise<void>;
+  /** Cancel the in-flight search (if any). */
+  cancel(): Promise<void>;
 }
 
 export interface WorkspaceClient {
