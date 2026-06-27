@@ -40,9 +40,9 @@
   --color-text-dim:   oklch(48%    0.0059 78.24);
 
   /* accent */
-  --color-accent:     oklch(65.18% 0.1233 54.05);
-  --color-accent-fg:  oklch(100%   0      0);
-  --color-accent-dim: oklch(24.04% 0.0316 63.29);
+  --color-accent:     oklch(65% 0.25 290);
+  --color-accent-fg:  oklch(100% 0   0);
+  --color-accent-dim: oklch(22%  0.06 290);
 
   /* status */
   --color-danger:  oklch(60.24% 0.1336 21.88);
@@ -77,9 +77,9 @@
   --color-text-dim:   oklch(76.51% 0.0181 84.59);
 
   /* accent */
-  --color-accent:     oklch(60.13% 0.1236 54.87);
-  --color-accent-fg:  oklch(100%   0      0);
-  --color-accent-dim: oklch(92.46% 0.0229 71.78);
+  --color-accent:     oklch(60% 0.24 290);
+  --color-accent-fg:  oklch(100% 0   0);
+  --color-accent-dim: oklch(92%  0.04 290);
 
   /* status */
   --color-danger:  oklch(54.07% 0.1555 23.91);
