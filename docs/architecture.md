@@ -156,6 +156,33 @@ interface CommandRegistry {
 }
 ```
 
+### Keybindings
+
+Keybindings are **data, not listeners**. An extension declares them in its manifest
+(`contributes.keybindings`); on activation the kernel registers each into the central
+`KeybindingStore` (tracked on the extension's subscriptions, so they vanish on
+deactivate). A **single** global dispatcher — `kernel.installKeyDispatch(window)`,
+attached once at boot — matches each keydown against the store and runs the bound
+command. Extensions never add their own `window` keydown listeners for commands.
+
+- **`key`** is one or more space-separated chords (`"mod+k mod+s"`). `mod` is the
+  platform-primary modifier (⌘ on macOS, Ctrl elsewhere); `ctrl` is always the
+  literal Control key, so `"ctrl+\`"` stays Control on a Mac.
+- **`when`** gates a binding on a context key (`"workspaceOpen"`, `"!terminalFocused"`).
+  Context keys live in a small reactive `ContextKeyStore`; the kernel seeds
+  `workspaceOpen` from the workbench. The `when` grammar is intentionally tiny —
+  identifiers, `!`, `&&`, `||`.
+- Because every binding is one inspectable record, `keybindings.list()` powers the
+  **Keyboard Shortcuts** cheat sheet (and key hints in the command palette) for free,
+  and is the foundation for user-customizable keybindings.
+
+```ts
+interface KeybindingRegistry {
+  bind(key: string, commandId: string): Disposable;
+  list(): KeybindingDescriptor[]; // for the cheat sheet / customization UI
+}
+```
+
 ### UI registry & slots
 
 The kernel owns a fixed set of **layout slots**. Extensions mount React nodes into them;

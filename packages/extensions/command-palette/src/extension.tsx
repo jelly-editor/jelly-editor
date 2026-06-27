@@ -11,10 +11,12 @@ export const commandPaletteExtension: Extension = {
       commands: [
         { id: "commandPalette.toggle", title: "Show All Commands" },
         { id: "commandPalette.openFiles", title: "Go to File", palette: false },
+        { id: "commandPalette.shortcuts", title: "Keyboard Shortcuts" },
       ],
       keybindings: [
         { command: "commandPalette.toggle", key: "mod+k" },
         { command: "commandPalette.openFiles", key: "mod+p" },
+        { command: "commandPalette.shortcuts", key: "mod+k mod+s" },
       ],
     },
   },
@@ -27,24 +29,13 @@ export const commandPaletteExtension: Extension = {
       ctx.commands.register("commandPalette.openFiles", () =>
         useCommandPaletteUi.getState().openFiles(),
       ),
+      ctx.commands.register("commandPalette.shortcuts", () =>
+        useCommandPaletteUi.getState().openShortcuts(),
+      ),
     );
 
     ctx.ui.mountSlot("modal", <CommandPalette ctx={ctx} />, {
       id: "command-palette.modal",
     });
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) {
-        if (e.key === "k" && !e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          useCommandPaletteUi.getState().openCommands();
-        } else if (e.key === "p" && !e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          useCommandPaletteUi.getState().openFiles();
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    ctx.subscriptions.push({ dispose: () => window.removeEventListener("keydown", onKey) });
   },
 };

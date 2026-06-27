@@ -1,19 +1,42 @@
-import type { Disposable, KeybindingRegistry } from "@jelly/sdk";
+import type { Disposable, KeybindingDescriptor, KeybindingRegistry } from "@jelly/sdk";
 import { toDisposable } from "../core/disposable";
+import { parseKey, type Chord } from "./keys";
 
-/** Maps key (or chord) strings to command ids. Resolution wiring lands later. */
+/** A binding plus its pre-parsed chord sequence, kept for fast dispatch. */
+export interface ParsedBinding extends KeybindingDescriptor {
+  chords: Chord[];
+}
+
+/**
+ * The single source of truth for key → command bindings. Extensions contribute
+ * declaratively via `contributes.keybindings` (the kernel calls `add` on
+ * activation); `bind` remains for imperative use. The dispatcher reads
+ * `bindings()`, and the cheat sheet / customization UI read `list()`.
+ */
 export class KeybindingStore implements KeybindingRegistry {
-  private bindings = new Map<string, string>();
+  private entries: ParsedBinding[] = [];
 
-  bind(key: string, commandId: string): Disposable {
-    this.bindings.set(key, commandId);
+  /** Register a full descriptor (key, command, optional `when`). */
+  add(desc: KeybindingDescriptor): Disposable {
+    const entry: ParsedBinding = { ...desc, chords: parseKey(desc.key) };
+    this.entries.push(entry);
     return toDisposable(() => {
-      if (this.bindings.get(key) === commandId) this.bindings.delete(key);
+      const i = this.entries.indexOf(entry);
+      if (i >= 0) this.entries.splice(i, 1);
     });
   }
 
-  /** Look up the command bound to a key, if any. */
-  resolve(key: string): string | undefined {
-    return this.bindings.get(key);
+  /** Imperative shorthand: bind a key to a command id. */
+  bind(key: string, commandId: string): Disposable {
+    return this.add({ key, command: commandId });
+  }
+
+  /** The parsed bindings, for the dispatcher. Later entries win on conflict. */
+  bindings(): readonly ParsedBinding[] {
+    return this.entries;
+  }
+
+  list(): KeybindingDescriptor[] {
+    return this.entries.map(({ command, key, when }) => ({ command, key, when }));
   }
 }

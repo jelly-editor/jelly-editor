@@ -28,15 +28,5 @@ export const terminalExtension: Extension = {
     );
 
     ctx.ui.mountSlot("panel.tab", <TerminalPane ctx={ctx} />, { id: "terminal.panel" });
-
-    // Ctrl+` toggles the terminal. Cmd+` is left to macOS for window cycling.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "`" && e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        store.getState().toggleVisible();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    ctx.subscriptions.push({ dispose: () => window.removeEventListener("keydown", onKey) });
   },
 };

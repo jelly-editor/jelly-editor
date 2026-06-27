@@ -36,6 +36,11 @@ sdk  ←  kernel, ui, ipc  ←  extensions  ←  desktop
 - Keep `apps/desktop` thin — feature code belongs in an extension.
 - The Rust backend mirrors the FE split: one crate per feature, each an actor
   with a `register(builder)` fn.
+- **Keybindings are centralized.** Declare them in the manifest
+  (`contributes.keybindings`, with an optional `when` context clause) — the kernel
+  registers them and one global dispatcher runs the bound command. Never add a
+  `window` keydown listener for a command (widget-local keys like Esc/arrows in a
+  focused input are fine).
 
 ## Commands
 

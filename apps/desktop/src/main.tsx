@@ -24,6 +24,10 @@ async function boot() {
   // Activate all extensions (they fill slots) before the first render.
   await kernel.loadAll(builtinExtensions);
 
+  // Now that every extension's manifest keybindings are registered, attach the
+  // single global key dispatcher (replaces per-extension keydown listeners).
+  kernel.installKeyDispatch(window);
+
   // If this window was opened via `jelly <path>`, open that folder.
   const initialPath = await getInitialPath();
   if (initialPath) {

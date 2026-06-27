@@ -1,14 +1,17 @@
 import type { CommandDescriptor } from "@jelly/sdk";
+import { formatKeybinding } from "@jelly/ui";
 
 interface Props {
   commands: CommandDescriptor[];
   selected: number;
   query: string;
+  /** key spec bound to a command id, if any — shown as a hint */
+  keyFor: (id: string) => string | undefined;
   onSelect: (id: string) => void;
   onHover: (i: number) => void;
 }
 
-export function CommandList({ commands, selected, query, onSelect, onHover }: Props) {
+export function CommandList({ commands, selected, query, keyFor, onSelect, onHover }: Props) {
   if (commands.length === 0) {
     return (
       <div className="px-4 py-6 text-center text-[12px] text-text-muted">
@@ -31,7 +34,13 @@ export function CommandList({ commands, selected, query, onSelect, onHover }: Pr
           onMouseEnter={() => onHover(i)}
         >
           <span className="text-[13px]">{cmd.title}</span>
-          <span className="text-[11px] text-text-muted opacity-60">{cmd.id}</span>
+          {keyFor(cmd.id) ? (
+            <kbd className="text-[11px] text-text-muted font-sans tabular-nums">
+              {formatKeybinding(keyFor(cmd.id)!)}
+            </kbd>
+          ) : (
+            <span className="text-[11px] text-text-muted opacity-60">{cmd.id}</span>
+          )}
         </button>
       ))}
     </>

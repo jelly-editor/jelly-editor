@@ -49,17 +49,6 @@ export const searchExtension: Extension = {
       ),
     );
 
-    // ⌘⇧F from anywhere opens the panel. (The declarative keybinding above is
-    // the source of truth; this listener is the live wiring, as elsewhere.)
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        focusSearch();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    ctx.subscriptions.push({ dispose: () => window.removeEventListener("keydown", onKey) });
-
     ctx.ui.contributeActivityBarItem({
       id: "search",
       order: 15,

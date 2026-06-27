@@ -4,6 +4,7 @@ import { useCommandPaletteUi } from "../store";
 import { CommandList } from "./CommandList";
 import { FileList } from "./FileList";
 import { PaletteInput } from "./PaletteInput";
+import { ShortcutsList, type ShortcutRow } from "./ShortcutsList";
 import { fuzzyMatch } from "../utils/fuzzyMatch";
 
 export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
@@ -19,17 +20,36 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const commands: CommandDescriptor[] = ctx.commands
-    .list()
-    .filter((cmd) => cmd.palette !== false);
+  const allCommands = ctx.commands.list();
+  const bindings = ctx.keybindings.list();
+  const keyFor = (id: string) => bindings.find((b) => b.command === id)?.key;
 
+  const commands: CommandDescriptor[] = allCommands.filter((cmd) => cmd.palette !== false);
   const filteredCommands = commands.filter(
     (cmd) => fuzzyMatch(query, cmd.title) || fuzzyMatch(query, cmd.id),
   );
   const filteredFiles = files.filter(
     (f) => fuzzyMatch(query, f.name) || fuzzyMatch(query, f.path),
   );
-  const count = mode === "commands" ? filteredCommands.length : filteredFiles.length;
+
+  // Every bound key, joined to its command's title — the cheat sheet.
+  const titleFor = new Map(allCommands.map((c) => [c.id, c.title]));
+  const shortcuts: ShortcutRow[] = bindings.map((b) => ({
+    command: b.command,
+    title: titleFor.get(b.command) ?? b.command,
+    key: b.key,
+    when: b.when,
+  }));
+  const filteredShortcuts = shortcuts.filter(
+    (s) => fuzzyMatch(query, s.title) || fuzzyMatch(query, s.key) || fuzzyMatch(query, s.command),
+  );
+
+  const count =
+    mode === "commands"
+      ? filteredCommands.length
+      : mode === "files"
+        ? filteredFiles.length
+        : filteredShortcuts.length;
 
   useEffect(() => {
     if (!open) return;
@@ -73,15 +93,18 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
         if (mode === "commands") {
           const cmd = filteredCommands[selected];
           if (cmd) executeCommand(cmd.id);
-        } else {
+        } else if (mode === "files") {
           const file = filteredFiles[selected];
           if (file) openFile(file);
+        } else {
+          const sc = filteredShortcuts[selected];
+          if (sc) executeCommand(sc.command);
         }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, mode, filteredCommands, filteredFiles, selected, count]);
+  }, [open, mode, filteredCommands, filteredFiles, filteredShortcuts, selected, count]);
 
   function executeCommand(id: string) {
     setOpen(false);
@@ -106,7 +129,13 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
       >
         <PaletteInput
           inputRef={inputRef}
-          placeholder={mode === "files" ? "Search files…" : "Type a command…"}
+          placeholder={
+            mode === "files"
+              ? "Search files…"
+              : mode === "shortcuts"
+                ? "Search keyboard shortcuts…"
+                : "Type a command…"
+          }
           query={query}
           onChange={(v) => { setQuery(v); setSelected(0); }}
         />
@@ -116,16 +145,25 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
               commands={filteredCommands}
               selected={selected}
               query={query}
+              keyFor={keyFor}
               onSelect={executeCommand}
               onHover={setSelected}
             />
-          ) : (
+          ) : mode === "files" ? (
             <FileList
               files={filteredFiles}
               selected={selected}
               query={query}
               workspaceRoot={workspaceRoot}
               onSelect={openFile}
+              onHover={setSelected}
+            />
+          ) : (
+            <ShortcutsList
+              shortcuts={filteredShortcuts}
+              selected={selected}
+              query={query}
+              onSelect={executeCommand}
               onHover={setSelected}
             />
           )}

@@ -1,30 +1,13 @@
 import type { ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { useSetting } from "@jelly/ui";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useEditorStore } from "../store";
+import { saveTab } from "../save";
 import { CodeEditor } from "./CodeEditor";
 import { DiffView } from "./DiffView";
 
-const { save: saveFile, read: readFile } = ipc.fs;
-
-/** Save a specific tab's buffer to disk. */
-async function saveTab(path: string) {
-  const ed = useEditorStore.getState();
-  const content = ed.getContent(path);
-  if (content === undefined) return;
-  try {
-    await saveFile(path, content);
-    ed.setSaved(path, content);
-  } catch {
-    /* ignore — surfaced elsewhere */
-  }
-}
-
-function saveActive() {
-  const path = useEditorStore.getState().activeTabPath;
-  if (path) saveTab(path);
-}
+const { read: readFile } = ipc.fs;
 
 function TabBar({ onRequestClose }: { onRequestClose: (path: string) => void }) {
   const { tabs, activeTabPath, setActiveTab, pinTab, setActiveDiff } = useEditorStore();
@@ -185,35 +168,12 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const activeDiff = useEditorStore((s) => s.activeDiff);
   const setActiveDiff = useEditorStore((s) => s.setActiveDiff);
   const revealTarget = useEditorStore((s) => s.revealTarget);
+  const closingPath = useEditorStore((s) => s.closingPath);
+  const requestClose = useEditorStore((s) => s.requestClose);
+  const cancelClose = useEditorStore((s) => s.cancelClose);
   const theme = useSetting(ctx, "ui.theme", "dark") as "dark" | "light";
-  const [closing, setClosing] = useState<string | null>(null);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        saveActive();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "w") {
-        e.preventDefault();
-        const { activeTabPath, tabs, closeTab } = useEditorStore.getState();
-        if (!activeTabPath) return;
-        const tab = tabs.find((t) => t.path === activeTabPath);
-        if (tab?.isDirty) setClosing(activeTabPath);
-        else closeTab(activeTabPath);
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  function requestClose(path: string) {
-    const tab = useEditorStore.getState().tabs.find((t) => t.path === path);
-    if (tab?.isDirty) setClosing(path);
-    else closeTab(path);
-  }
-
-  const closingTab = closing ? tabs.find((t) => t.path === closing) : undefined;
+  const closingTab = closingPath ? tabs.find((t) => t.path === closingPath) : undefined;
   const activeTab = tabs.find((t) => t.path === activeTabPath);
   const value = activeTabPath ? getContent(activeTabPath) : undefined;
   const showBanner = activeTabPath ? externallyChanged.has(activeTabPath) : false;
@@ -268,20 +228,20 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
         )}
       </div>
 
-      {closing && closingTab && (
+      {closingPath && closingTab && (
         <UnsavedDialog
           name={closingTab.name}
           onSave={async () => {
-            const path = closing;
-            setClosing(null);
+            const path = closingPath;
+            cancelClose();
             await saveTab(path);
             closeTab(path);
           }}
           onDiscard={() => {
-            closeTab(closing);
-            setClosing(null);
+            closeTab(closingPath);
+            cancelClose();
           }}
-          onCancel={() => setClosing(null)}
+          onCancel={cancelClose}
         />
       )}
     </div>

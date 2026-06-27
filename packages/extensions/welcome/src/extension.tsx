@@ -34,15 +34,5 @@ export const welcomeExtension: Extension = {
     );
 
     ctx.ui.mountSlot("welcome", <WelcomeView ctx={ctx} />, { id: "welcome.view" });
-
-    // ⌘⇧N opens a fresh window (works from welcome or the editor).
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toUpperCase() === "N") {
-        e.preventDefault();
-        openEditorWindow();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    ctx.subscriptions.push({ dispose: () => window.removeEventListener("keydown", onKey) });
   },
 };

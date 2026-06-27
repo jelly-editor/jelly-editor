@@ -25,6 +25,8 @@ interface EditorState {
   activeDiff: ActiveDiff | null;
   /** A pending request to scroll/select a line in a file (e.g. from search). */
   revealTarget: { path: string; line: number; nonce: number } | null;
+  /** Tab awaiting an unsaved-changes confirmation before it closes. */
+  closingPath: string | null;
 
   openPreview: (path: string, name: string) => void;
   openPinned: (path: string, name: string) => void;
@@ -40,6 +42,12 @@ interface EditorState {
   getContent: (path: string) => string | undefined;
   setActiveDiff: (diff: ActiveDiff | null) => void;
   requestReveal: (path: string, line: number) => void;
+  /** Close a tab, prompting first if it has unsaved changes. */
+  requestClose: (path: string) => void;
+  /** Close the active tab, prompting first if it is dirty. */
+  requestCloseActive: () => void;
+  /** Dismiss the unsaved-changes prompt without closing. */
+  cancelClose: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -51,6 +59,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   largeFiles: new Set(),
   activeDiff: null,
   revealTarget: null,
+  closingPath: null,
 
   openPreview: (path, name) =>
     set((s) => {
@@ -185,4 +194,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   requestReveal: (path, line) =>
     set((s) => ({ revealTarget: { path, line, nonce: (s.revealTarget?.nonce ?? 0) + 1 } })),
+
+  requestClose: (path) => {
+    const s = get();
+    const tab = s.tabs.find((t) => t.path === path);
+    if (!tab) return;
+    if (tab.isDirty) set({ closingPath: path });
+    else s.closeTab(path);
+  },
+
+  requestCloseActive: () => {
+    const { activeTabPath, requestClose } = get();
+    if (activeTabPath) requestClose(activeTabPath);
+  },
+
+  cancelClose: () => set({ closingPath: null }),
 }));

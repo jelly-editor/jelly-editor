@@ -66,15 +66,5 @@ export const settingsExtension: Extension = {
     });
 
     ctx.ui.mountSlot("modal", <SettingsModal ctx={ctx} />, { id: "settings.modal" });
-
-    // ⌘, / Ctrl+, opens settings from anywhere (welcome or editor).
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        useSettingsUi.getState().toggle();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    ctx.subscriptions.push({ dispose: () => window.removeEventListener("keydown", onKey) });
   },
 };

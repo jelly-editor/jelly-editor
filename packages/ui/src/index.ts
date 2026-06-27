@@ -7,3 +7,4 @@ export * from "./icons";
 export * from "./codemirror";
 export * from "./terminal";
 export * from "./hooks";
+export * from "./keys";

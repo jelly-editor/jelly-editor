@@ -1,8 +1,10 @@
-import type { Extension, ExtensionContext, IpcClient } from "@jelly/sdk";
+import type { Disposable, Extension, ExtensionContext, IpcClient } from "@jelly/sdk";
 import { CommandBus } from "../registries/commands";
+import { ContextKeyStore } from "../registries/context-keys";
 import { Emitter } from "../registries/events";
 import { KeybindingStore } from "../registries/keybindings";
 import { SettingsStore } from "../registries/settings";
+import { KeyDispatcher } from "./key-dispatch";
 import { ActivityBarStore } from "../ui/activity-bar-store";
 import { KernelUIRegistry } from "../ui/registry";
 import { SlotStore } from "../ui/slot-store";
@@ -38,6 +40,7 @@ export class Kernel {
   readonly ui = new KernelUIRegistry(this.slots, this.activityBar);
   readonly settings = new SettingsStore();
   readonly keybindings = new KeybindingStore();
+  readonly contextKeys = new ContextKeyStore();
   readonly ipc: IpcClient;
 
   private registrations = new Map<string, Registration>();
@@ -49,6 +52,13 @@ export class Kernel {
     // toggle the layout directly.
     this.events.on("workspace:opened", () => this.workbench.setWorkspaceOpen(true));
     this.events.on("workspace:closed", () => this.workbench.setWorkspaceOpen(false));
+
+    // Mirror layout state into context keys so keybindings can gate on it
+    // (e.g. ⌘S / ⌘W only act when a workspace/editor is open).
+    this.contextKeys.set("workspaceOpen", this.workbench.getState().workspaceOpen);
+    this.workbench.subscribe(() =>
+      this.contextKeys.set("workspaceOpen", this.workbench.getState().workspaceOpen),
+    );
 
     // Core commands for driving the workbench layout (used by status-bar items,
     // menus, etc. that want to reveal a panel without owning the layout).
@@ -82,8 +92,13 @@ export class Kernel {
     const ctx = createExtensionContext(this, reg.extension);
     // Seed command titles from manifest so list() works even before the
     // extension registers its handlers.
-    const manifestCmds = reg.extension.manifest.contributes?.commands ?? [];
-    this.commands.seedDescriptors(manifestCmds);
+    const contributes = reg.extension.manifest.contributes;
+    this.commands.seedDescriptors(contributes?.commands ?? []);
+    // Register declared keybindings into the central store, tracked on the
+    // extension's subscriptions so they're removed on deactivate.
+    for (const kb of contributes?.keybindings ?? []) {
+      ctx.subscriptions.push(this.keybindings.add(kb));
+    }
     // mark active before awaiting so a re-entrant activate() can't slip through
     reg.status = "active";
     reg.context = ctx;
@@ -113,6 +128,15 @@ export class Kernel {
     this.settings.setPersistHook((key, value) => {
       void this.ipc.settings.save(key, value);
     });
+  }
+
+  /**
+   * Attach the global key dispatcher to a window. Call once after extensions
+   * load so manifest keybindings are already registered. Returns a Disposable
+   * that detaches the listener.
+   */
+  installKeyDispatch(target: Window): Disposable {
+    return new KeyDispatcher(this.keybindings, this.commands, this.contextKeys).attach(target);
   }
 
   /** Load then activate a batch, in order. */

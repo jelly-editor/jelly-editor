@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type PaletteMode = "commands" | "files";
+export type PaletteMode = "commands" | "files" | "shortcuts";
 
 interface CommandPaletteState {
   open: boolean;
@@ -9,6 +9,7 @@ interface CommandPaletteState {
   setOpen: (open: boolean) => void;
   openCommands: () => void;
   openFiles: () => void;
+  openShortcuts: () => void;
 }
 
 export const useCommandPaletteUi = create<CommandPaletteState>((set) => ({
@@ -18,4 +19,5 @@ export const useCommandPaletteUi = create<CommandPaletteState>((set) => ({
   setOpen: (open) => set({ open }),
   openCommands: () => set({ open: true, mode: "commands" }),
   openFiles: () => set({ open: true, mode: "files" }),
+  openShortcuts: () => set({ open: true, mode: "shortcuts" }),
 }));

@@ -3,6 +3,7 @@ import { ipc } from "@jelly/ipc";
 import { EditorPane } from "./ui/EditorPane";
 import { EditorEncoding, EditorIndent, EditorPath } from "./ui/StatusItems";
 import { useEditorStore } from "./store";
+import { saveActive } from "./save";
 
 export const editorExtension: Extension = {
   manifest: {
@@ -13,8 +14,14 @@ export const editorExtension: Extension = {
       commands: [
         { id: "editor.open", title: "Open File", palette: false },
         { id: "editor.openDiff", title: "Open Diff", palette: false },
+        { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
+        { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
         { id: "editor.renameFile", title: "Rename File", palette: false },
+      ],
+      keybindings: [
+        { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
+        { command: "editor.closeActiveTab", key: "mod+w", when: "workspaceOpen" },
       ],
     },
   },
@@ -49,6 +56,8 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.openDiff", (diff: { path: string; workspace: string }) =>
         store.getState().setActiveDiff(diff),
       ),
+      ctx.commands.register("editor.save", () => saveActive()),
+      ctx.commands.register("editor.closeActiveTab", () => store.getState().requestCloseActive()),
       ctx.commands.register("editor.closeFile", (path?: string) =>
         store.getState().closeTab(path ?? store.getState().activeTabPath ?? ""),
       ),
