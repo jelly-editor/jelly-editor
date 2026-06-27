@@ -1,1 +1,2 @@
-export { openEditorWindow } from "./window";
+export { openEditorWindow, getInitialPath, installShellCommand } from "./window";
+export type { InstallResult } from "./window";

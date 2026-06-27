@@ -10,9 +10,39 @@ pub fn run() {
     #[cfg(target_os = "macos")]
     let _ = fix_path_env::fix();
 
+    // Resolve the first CLI argument (if any) as the path to open. We do this
+    // before building the app so we can act on it inside `.setup()`.
+    let cli_path: Option<String> = {
+        let args: Vec<String> = std::env::args().collect();
+        // args[0] is the binary; args[1] might be a path.
+        args.get(1).cloned()
+    };
+
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        // When a second `jelly` process is launched while one is already running,
+        // forward its arguments to the existing instance and exit the new one.
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            // args[0] = binary path; args[1] = optional folder path
+            let path = args.get(1).map(|p| {
+                if std::path::Path::new(p).is_absolute() {
+                    p.clone()
+                } else {
+                    // Resolve relative to the new instance's working directory.
+                    std::path::Path::new(&cwd).join(p).to_string_lossy().to_string()
+                }
+            });
+
+            if let Some(p) = path {
+                let _ = jelly_core::window::open_window_for_path(app, &p);
+            } else {
+                // No path — just bring any existing window to the front.
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.set_focus();
+                }
+            }
+        }));
 
     // Auto-update (desktop only): plugin-updater fetches/installs signed
     // releases, plugin-process relaunches the app after an update.
@@ -28,7 +58,7 @@ pub fn run() {
     let builder = jelly_terminal::register(builder);
 
     builder
-        .setup(|app| {
+        .setup(move |app| {
             let win = app.get_webview_window("main").unwrap();
 
             #[cfg(target_os = "macos")]
@@ -74,15 +104,37 @@ pub fn run() {
                 app.set_menu(menu)?;
             }
 
+            // If a path was passed on the CLI, open it in the main window by
+            // queuing it as the initial path for that window label ("main").
+            if let Some(path) = cli_path {
+                let resolved = if std::path::Path::new(&path).is_absolute() {
+                    path.clone()
+                } else {
+                    std::env::current_dir()
+                        .ok()
+                        .map(|cwd| cwd.join(&path).to_string_lossy().to_string())
+                        .unwrap_or(path)
+                };
+
+                if let Ok(abs) = std::fs::canonicalize(&resolved) {
+                    if let Some(state) = app.try_state::<jelly_core::InitialPaths>() {
+                        state.0.lock().unwrap()
+                            .insert("main".to_string(), abs.to_string_lossy().to_string());
+                    }
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            jelly_core::cli::install_shell_command,
             jelly_core::workspace::open_workspace,
             jelly_core::workspace::get_recent_folders,
             jelly_core::workspace::remove_recent_folder,
             jelly_core::settings::load_settings,
             jelly_core::settings::save_setting,
             jelly_core::window::open_new_window,
+            jelly_core::window::get_initial_path_for,
             jelly_fs::commands::read_file,
             jelly_fs::commands::save_file,
             jelly_fs::commands::list_dir,

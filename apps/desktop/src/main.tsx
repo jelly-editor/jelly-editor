@@ -1,5 +1,5 @@
 import "./index.css";
-import { bridgeCoreEvents, ipc } from "@jelly/ipc";
+import { bridgeCoreEvents, getInitialPath, ipc } from "@jelly/ipc";
 import { Kernel, KernelProvider, Shell } from "@jelly/kernel";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -23,6 +23,12 @@ async function boot() {
 
   // Activate all extensions (they fill slots) before the first render.
   await kernel.loadAll(builtinExtensions);
+
+  // If this window was opened via `jelly <path>`, open that folder.
+  const initialPath = await getInitialPath();
+  if (initialPath) {
+    void kernel.commands.execute("workspace.open", initialPath);
+  }
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>

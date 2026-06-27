@@ -8,4 +8,5 @@
 export { ipc, fs, git, terminal, workspace, settings } from "./client";
 export { CORE_EVENT_NAMES, bridgeCoreEvents, type CoreEventMap, type CoreEventName } from "./events";
 export { confirm, pickFolder } from "./dialog";
-export { openEditorWindow } from "./window";
+export { openEditorWindow, getInitialPath, installShellCommand } from "./window";
+export type { InstallResult } from "./window";
