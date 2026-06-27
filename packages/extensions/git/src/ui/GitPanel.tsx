@@ -37,7 +37,7 @@ function FileRow({
 
   return (
     <div
-      className={`group flex items-center gap-2 h-[24px] pl-3 pr-2 cursor-pointer text-[13px] hover:bg-bg-hover ${
+      className={`group relative flex items-center gap-2 h-[24px] pl-3 pr-2 cursor-pointer text-[13px] hover:bg-bg-hover ${
         isActive ? "bg-bg-active text-text" : "text-text-muted"
       }`}
       onClick={() => onOpenDiff(file)}
@@ -45,11 +45,11 @@ function FileRow({
     >
       <FileIcon name={name} isDir={false} />
       <span className="flex-1 flex items-baseline gap-[6px] min-w-0">
-        <span className="text-text truncate min-w-0">{name}</span>
-        {dir && <span className="text-[11px] text-text-dim truncate min-w-0">{dir}</span>}
+        <span className="text-text truncate shrink-0 max-w-full">{name}</span>
+        {dir && <span className="text-[11px] text-text-muted truncate min-w-0 flex-1">{dir}</span>}
       </span>
       <button
-        className="flex items-center justify-center w-[18px] h-[18px] rounded-[3px] text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-active hover:text-text"
+        className="absolute right-[24px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-bg-active text-text-muted opacity-0 group-hover:opacity-100 hover:text-text"
         onClick={(e) => {
           e.stopPropagation();
           onAction(file);
