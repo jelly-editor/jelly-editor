@@ -70,11 +70,11 @@ Scope any FE task to a package with `--filter <package>` (e.g.
 - Run `bun run typecheck` and `bun run test` before finishing a change.
 - **Keep docs in sync.** When you change the architecture, dependency rules,
   structure, commands, or the extension API, update the relevant docs in the
-  same change — `docs/architecture.md`, `docs/extensions.md`, this file, and
-  `CONTRIBUTING.md` / `README.md` where applicable.
+  same change — the relevant file in `docs/architecture/`, `docs/extensions.md`,
+  this file, and `CONTRIBUTING.md` / `README.md` where applicable.
 
 ## Read first
 
-- [`docs/architecture.md`](./docs/architecture.md) — full design + dependency rules
+- [`docs/architecture/`](./docs/architecture/README.md) — full design + dependency rules
 - [`docs/extensions.md`](./docs/extensions.md) — extension authoring guide
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — setup, dev, build

@@ -54,7 +54,7 @@ bun run --filter desktop tauri:dev
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, dev, and build details, plus
-[`docs/architecture.md`](./docs/architecture.md) for the design and
+[`docs/architecture/`](./docs/architecture/README.md) for the design and
 [`docs/extensions.md`](./docs/extensions.md) to author an extension.
 
 ## License

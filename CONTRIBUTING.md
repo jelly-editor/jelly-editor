@@ -83,7 +83,7 @@ crates/              Rust workspace (core + per-feature crates)
 docs/                architecture and extension authoring guides
 ```
 
-Before diving in, read [`docs/architecture.md`](./docs/architecture.md) for the
+Before diving in, read [`docs/architecture/`](./docs/architecture/README.md) for the
 design and dependency rules, and [`docs/extensions.md`](./docs/extensions.md) to
 author an extension.
 
@@ -91,7 +91,7 @@ author an extension.
 
 - **Respect the dependency graph.** Extensions may import only `sdk`, `ui`, and
   `ipc` — never another extension. Cross-feature interaction goes through the
-  command and event buses by id. See `docs/architecture.md` for the full rule.
+  command and event buses by id. See `docs/architecture/` for the full rule.
 - **Keep the host thin.** Feature code belongs in an extension, not in
   `apps/desktop`.
 - **Test logic, not plumbing.** Unit-test pure logic (store transitions,
