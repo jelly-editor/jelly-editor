@@ -33,6 +33,9 @@ export const editorExtension: Extension = {
         "editor.open",
         async (path: string, name: string, opts?: { pin?: boolean; line?: number }) => {
           const ed = store.getState();
+          // Always leave any diff view when opening a standard file.
+          ed.setActiveDiff(null);
+
           if (opts?.pin) ed.openPinned(path, name);
           else ed.openPreview(path, name);
           if (ed.getContent(path) === undefined) {
@@ -45,9 +48,7 @@ export const editorExtension: Extension = {
               ed.setSaved(path, `// Could not open file: ${e}`);
             }
           }
-          // Leave any diff view and jump to the requested line.
           if (opts?.line !== undefined) {
-            ed.setActiveDiff(null);
             ed.requestReveal(path, opts.line);
           }
         },
