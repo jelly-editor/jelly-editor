@@ -93,6 +93,27 @@ ctx.ui.contributePanelTab({ id: "myfeature.panel", title: "My Panel", render: My
 Available slots: `titlebar`, `activitybar`, `sidebar.panel`, `editor.surface`,
 `panel.tab`, `statusbar.left`, `statusbar.right`, `modal`, `context-menu`.
 
+### `ctx.dialog` — in-app modal dialogs
+
+The themed replacement for native `alert`/`confirm`. The host renders it; you
+just await the choice.
+
+```ts
+const ok = await ctx.dialog.confirm("Delete file?", { danger: true, confirmLabel: "Delete" });
+
+const choice = await ctx.dialog.show({
+  title: "Name already exists",
+  message: `"${name}" already exists here.`,
+  kind: "warning",
+  buttons: [
+    { id: "cancel", label: "Cancel" },
+    { id: "duplicate", label: "Keep Both" },
+    { id: "overwrite", label: "Replace", variant: "danger" },
+  ],
+});
+// → resolves with the chosen button id ("cancel" on Esc/backdrop)
+```
+
 ### `ctx.events` — react without coupling
 
 Subscribe to core and cross-extension events by name. This is how git refreshes on save

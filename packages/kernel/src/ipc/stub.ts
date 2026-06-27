@@ -20,6 +20,7 @@ export function createStubIpc(): IpcClient {
       create: fail("fs.create"),
       createDir: fail("fs.createDir"),
       rename: fail("fs.rename"),
+      copy: fail("fs.copy"),
       delete: fail("fs.delete"),
     },
     git: {
