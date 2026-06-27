@@ -67,3 +67,18 @@ export interface SearchDone {
   /** true if results were truncated because the cap was hit */
   capped: boolean;
 }
+
+export interface ReplaceOptions {
+  /** absolute path of the file to edit */
+  path: string;
+  query: string;
+  replacement: string;
+  caseSensitive: boolean;
+  /** when true, `replacement` may reference capture groups ($1, ${name}) */
+  regex: boolean;
+  /**
+   * 1-based line numbers to restrict the replacement to (e.g. a single result
+   * row). `null` replaces every match in the file.
+   */
+  lines: number[] | null;
+}

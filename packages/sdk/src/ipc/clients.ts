@@ -1,4 +1,4 @@
-import type { DirEntry, GitDiffResult, GitStatus, SearchOptions } from "./types";
+import type { DirEntry, GitDiffResult, GitStatus, ReplaceOptions, SearchOptions } from "./types";
 
 export interface FsClient {
   read(path: string): Promise<string>;
@@ -36,6 +36,8 @@ export interface SearchClient {
   start(searchId: number, opts: SearchOptions): Promise<void>;
   /** Cancel the in-flight search (if any). */
   cancel(): Promise<void>;
+  /** Replace matches in one file; resolves with the number of replacements. */
+  replace(opts: ReplaceOptions): Promise<number>;
 }
 
 export interface WorkspaceClient {

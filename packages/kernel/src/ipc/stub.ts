@@ -32,6 +32,7 @@ export function createStubIpc(): IpcClient {
     search: {
       start: fail("search.start"),
       cancel: fail("search.cancel"),
+      replace: fail("search.replace"),
     },
     terminal: {
       create: fail("terminal.create"),

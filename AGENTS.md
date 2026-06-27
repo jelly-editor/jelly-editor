@@ -18,8 +18,8 @@ packages/sdk/        the extension contract (types only, depends on nothing)
 packages/kernel/     registry, command/event buses, layout slots, <Shell/>
 packages/ui/         design system, theme tokens, primitives, icons
 packages/ipc/        the ONLY module that talks to @tauri-apps/api
-packages/extensions/ first-party extensions (files, editor, terminal, git, settings, welcome)
-crates/              Rust workspace: jelly-core, jelly-protocol, crates/features/{fs,watcher,git,terminal}
+packages/extensions/ first-party extensions (files, editor, terminal, git, search, settings, welcome)
+crates/              Rust workspace: jelly-core, jelly-protocol, crates/features/{fs,watcher,git,search,terminal}
 docs/                architecture.md, extensions.md, product.md
 ```
 

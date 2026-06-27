@@ -64,6 +64,7 @@ jelly/
 │       ├── editor/    @jelly/editor
 │       ├── terminal/  @jelly/terminal
 │       ├── git/       @jelly/git
+│       ├── search/    @jelly/search
 │       ├── settings/  @jelly/settings
 │       └── welcome/   @jelly/welcome
 │
@@ -74,6 +75,7 @@ jelly/
 │       ├── fs/         jelly-fs
 │       ├── watcher/    jelly-watcher
 │       ├── git/        jelly-git
+│       ├── search/     jelly-search
 │       └── terminal/   jelly-terminal
 │
 ├── docs/
@@ -256,12 +258,13 @@ import { filesExtension }    from "@jelly/files";
 import { editorExtension }   from "@jelly/editor";
 import { terminalExtension } from "@jelly/terminal";
 import { gitExtension }      from "@jelly/git";
+import { searchExtension }   from "@jelly/search";
 import { settingsExtension } from "@jelly/settings";
 import { welcomeExtension }  from "@jelly/welcome";
 
 export const builtinExtensions = [
   welcomeExtension, filesExtension, editorExtension,
-  terminalExtension, gitExtension, settingsExtension,
+  terminalExtension, gitExtension, searchExtension, settingsExtension,
 ];
 ```
 
@@ -281,6 +284,7 @@ crates/
     fs/        FileManager actor + #[tauri::command] handlers
     watcher/   FileWatcher actor (notify crate)
     git/       GitActor (git2 crate)
+    search/    SearchManager — streaming find/replace (grep + ignore crates)
     terminal/  TerminalActor (portable-pty crate)
 ```
 

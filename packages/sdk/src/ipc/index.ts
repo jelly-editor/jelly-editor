@@ -4,6 +4,7 @@ export type {
   GitDiffResult,
   GitFile,
   GitStatus,
+  ReplaceOptions,
   SearchDone,
   SearchFileResult,
   SearchMatch,

@@ -154,6 +154,7 @@ pub fn run() {
             jelly_git::commands::git_commit,
             jelly_search::commands::start_search,
             jelly_search::commands::cancel_search,
+            jelly_search::commands::replace_in_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

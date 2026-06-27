@@ -3,6 +3,9 @@ import { create } from "zustand";
 
 interface SearchState {
   query: string;
+  replacement: string;
+  showReplace: boolean;
+  replacing: boolean;
   caseSensitive: boolean;
   regex: boolean;
   workspacePath: string | null;
@@ -19,6 +22,9 @@ interface SearchState {
   focusNonce: number;
 
   setQuery: (query: string) => void;
+  setReplacement: (replacement: string) => void;
+  toggleShowReplace: () => void;
+  setReplacing: (replacing: boolean) => void;
   toggleCase: () => void;
   toggleRegex: () => void;
   setWorkspacePath: (path: string | null) => void;
@@ -34,6 +40,9 @@ interface SearchState {
 
 export const useSearchStore = create<SearchState>((set) => ({
   query: "",
+  replacement: "",
+  showReplace: false,
+  replacing: false,
   caseSensitive: false,
   regex: false,
   workspacePath: null,
@@ -47,6 +56,9 @@ export const useSearchStore = create<SearchState>((set) => ({
   focusNonce: 0,
 
   setQuery: (query) => set({ query }),
+  setReplacement: (replacement) => set({ replacement }),
+  toggleShowReplace: () => set((s) => ({ showReplace: !s.showReplace })),
+  setReplacing: (replacing) => set({ replacing }),
   toggleCase: () => set((s) => ({ caseSensitive: !s.caseSensitive })),
   toggleRegex: () => set((s) => ({ regex: !s.regex })),
   setWorkspacePath: (workspacePath) => set({ workspacePath }),

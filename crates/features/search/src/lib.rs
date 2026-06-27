@@ -5,6 +5,7 @@
 
 pub mod commands;
 mod manager;
+mod replace;
 
 use tauri::{Builder, Wry};
 
