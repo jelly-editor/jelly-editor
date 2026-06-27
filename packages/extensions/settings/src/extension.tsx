@@ -16,7 +16,31 @@ const SCHEMA: SettingsSchema = {
 };
 
 function applyTheme(theme: unknown) {
+  // Disable transitions temporarily to prevent flicker on active sidebar items/buttons
+  const css = document.createElement("style");
+  css.appendChild(
+    document.createTextNode(
+      `* {
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -o-transition: none !important;
+        -ms-transition: none !important;
+        transition: none !important;
+      }`
+    )
+  );
+  document.head.appendChild(css);
+
   document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "");
+
+  // Force reflow to ensure the styles are applied before transitions are re-enabled
+  void document.documentElement.offsetHeight;
+
+  setTimeout(() => {
+    if (css.parentNode) {
+      css.parentNode.removeChild(css);
+    }
+  }, 0);
 }
 
 export const settingsExtension: Extension = {
