@@ -110,6 +110,8 @@
     font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   /* keep root at 16px so rem-based spacing utilities resolve correctly;
@@ -117,6 +119,14 @@
   body,
   #root {
     font-size: 13px;
+  }
+
+  /* re-enable selection inside the code editor and form inputs */
+  .cm-editor,
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   ::-webkit-scrollbar {

@@ -67,7 +67,7 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
       </button>
       <div className="flex flex-col items-start gap-9 w-full max-w-[320px]">
         <div className="flex flex-col gap-[5px]">
-          <span className="text-[22px] font-semibold text-text tracking-[-0.3px]">jelly</span>
+          <img src="/jelly.svg" alt="jelly" className="w-[48px] h-[48px]" draggable={false} />
           <span className="text-[12px] text-text-muted">a minimal editor</span>
         </div>
 
