@@ -337,7 +337,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           onDragEnd={onDragEnd}
         />
 
-        {draft && draft.parentPath === root && (
+        {draft && !draft.renaming && draft.parentPath === root && (
           <DraftRow draft={draft} onCommit={commitDraft} onCancel={() => setDraft(null)} />
         )}
       </div>
