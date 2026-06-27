@@ -3,6 +3,7 @@ import { ipc } from "@jelly/ipc";
 import { useEffect, useState } from "react";
 import { refreshGitStatus } from "../refresh";
 import { useGitStore, type FileStatus, type GitFile } from "../store";
+import { FileIcon } from "@jelly/ui";
 
 const { stage: gitStage, unstage: gitUnstage, commit: gitCommit } = ipc.git;
 
@@ -27,8 +28,9 @@ function FileRow({
 }) {
   const activeDiffPath = useGitStore((s) => s.activeDiffPath);
   const isActive = activeDiffPath === file.path;
-  const name = file.path.split("/").pop() ?? file.path;
-  const dir = file.path.slice(0, file.path.length - name.length - 1);
+  const lastSlashIndex = file.path.lastIndexOf("/");
+  const name = lastSlashIndex !== -1 ? file.path.slice(lastSlashIndex + 1) : file.path;
+  const dir = lastSlashIndex !== -1 ? file.path.slice(0, lastSlashIndex) : "";
   const badge = BADGE[file.status];
 
   return (
@@ -39,9 +41,10 @@ function FileRow({
       onClick={() => onOpenDiff(file)}
       title={file.path}
     >
-      <span className="flex-1 flex items-baseline gap-[6px] truncate">
-        <span className="text-text truncate">{name}</span>
-        {dir && <span className="text-[11px] text-text-dim truncate">{dir}</span>}
+      <FileIcon name={name} isDir={false} />
+      <span className="flex-1 flex items-baseline gap-[6px] min-w-0">
+        <span className="text-text truncate min-w-0">{name}</span>
+        {dir && <span className="text-[11px] text-text-dim truncate min-w-0">{dir}</span>}
       </span>
       <button
         className="flex items-center justify-center w-[18px] h-[18px] rounded-[3px] text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-active hover:text-text"
