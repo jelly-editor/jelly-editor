@@ -3,3 +3,4 @@ export { KernelUIRegistry } from "./registry";
 export { ActivityBarStore } from "./activity-bar-store";
 export { Workbench, type WorkbenchState } from "./workbench";
 export { DialogStore, type PendingDialog } from "./dialog-store";
+export { NotificationStore, type ActiveNotification } from "./notification-store";

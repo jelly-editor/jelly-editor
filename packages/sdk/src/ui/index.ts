@@ -8,3 +8,11 @@ export type {
 } from "./items";
 export type { UIRegistry } from "./registry";
 export type { DialogButton, DialogKind, DialogRequest, DialogService } from "./dialog";
+export type {
+  NotificationAction,
+  NotificationHandle,
+  NotificationKind,
+  NotificationOptions,
+  NotificationRequest,
+  NotificationService,
+} from "./notification";

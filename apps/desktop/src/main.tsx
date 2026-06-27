@@ -4,6 +4,7 @@ import { Kernel, KernelProvider, Shell } from "@jelly/kernel";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { DialogHost } from "./DialogHost";
+import { NotificationHost } from "./NotificationHost";
 import { builtinExtensions } from "./extensions";
 import { checkForUpdates } from "./updater";
 
@@ -40,6 +41,7 @@ async function boot() {
       <KernelProvider kernel={kernel}>
         <Shell />
         <DialogHost />
+        <NotificationHost />
       </KernelProvider>
     </React.StrictMode>,
   );

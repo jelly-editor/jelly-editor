@@ -4,6 +4,7 @@ export { Slot, type SlotProps } from "./Slot";
 export {
   useActivityBarItems,
   useCurrentDialog,
+  useNotifications,
   useSlotContributions,
   useWorkbenchState,
 } from "./hooks";

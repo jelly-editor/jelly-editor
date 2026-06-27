@@ -7,6 +7,7 @@ export interface KernelServices {
   commands: ExtensionContext["commands"];
   ui: ExtensionContext["ui"];
   dialog: ExtensionContext["dialog"];
+  notifications: ExtensionContext["notifications"];
   events: ExtensionContext["events"];
   settings: ExtensionContext["settings"];
   keybindings: ExtensionContext["keybindings"];
@@ -56,6 +57,7 @@ export function createExtensionContext(
     commands: autoTrack(services.commands, subscriptions),
     ui: autoTrack(services.ui, subscriptions),
     dialog: services.dialog,
+    notifications: services.notifications,
     events: autoTrack(services.events, subscriptions),
     settings: autoTrack(services.settings, subscriptions),
     keybindings: autoTrack(services.keybindings, subscriptions),

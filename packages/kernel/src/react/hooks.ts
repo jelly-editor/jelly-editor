@@ -1,6 +1,7 @@
 import type { ActivityBarItem, SlotId } from "@jelly/sdk";
 import { useSyncExternalStore } from "react";
 import type { PendingDialog } from "../ui/dialog-store";
+import type { ActiveNotification } from "../ui/notification-store";
 import type { SlotContribution } from "../ui/slot-store";
 import type { WorkbenchState } from "../ui/workbench";
 import { useKernel } from "./kernel-context";
@@ -27,4 +28,10 @@ export function useSlotContributions(slot: SlotId): readonly SlotContribution[] 
 export function useCurrentDialog(): PendingDialog | null {
   const kernel = useKernel();
   return useSyncExternalStore(kernel.dialog.subscribe, kernel.dialog.current);
+}
+
+/** Reactive list of active notifications, oldest first. */
+export function useNotifications(): readonly ActiveNotification[] {
+  const kernel = useKernel();
+  return useSyncExternalStore(kernel.notifications.subscribe, kernel.notifications.list);
 }
