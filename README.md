@@ -1,4 +1,19 @@
-# Jelly
+<p align="center">
+  <img src="apps/www/public/jelly.png" alt="Drivebase" width="80" />
+</p>
+
+<h2 align="center">Jelly Editor</h2>
+
+<p align="center">
+  A fast, minimal desktop code editor.
+</p>
+
+---
+
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/5070920b-8ba9-4a60-8554-f65dc551bdd2" />
+
+<br/>
+<br/>
 
 A fast, minimal desktop code editor. Open a folder and start writing code — no
 indexing, no language-server spin-up, no setup. Just an editor that opens
@@ -27,6 +42,12 @@ instantly and gets out of your way.
 - **Git panel** — view changed files, stage and unstage, inspect diffs, and
   commit with a message.
 - **Settings** — adjust font, font size, tab size, word wrap, and theme.
+
+## Roadmap
+
+Jelly is in active development — pre-v1, rough edges expected.
+
+Track what's planned, in progress, and shipped on the [public project board](https://github.com/orgs/jelly-editor/projects).
 
 ## Building from source
 
