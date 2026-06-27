@@ -329,6 +329,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
             e.stopPropagation();
             setMenu({ x: e.clientX, y: e.clientY, entry });
           }}
+          onRename={startRename}
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
           onDragStart={onDragStart}
@@ -396,6 +397,7 @@ interface RowsProps {
   onToggle: (entry: DirEntry) => void;
   onOpen: (entry: DirEntry, pin: boolean) => void;
   onContext: (e: React.MouseEvent, entry: DirEntry) => void;
+  onRename: (entry: DirEntry, depth: number) => void;
   onCommitDraft: (name: string) => void;
   onCancelDraft: () => void;
   onDragStart: (e: React.DragEvent, entry: DirEntry) => void;
@@ -433,12 +435,20 @@ function Rows(props: RowsProps) {
             ) : (
               <div
                 draggable
-                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] ${
+                tabIndex={0}
+                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
                   isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}
                 onClick={() => (entry.isDir ? props.onToggle(entry) : props.onOpen(entry, false))}
                 onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (entry.isDir) props.onToggle(entry);
+                    else props.onRename(entry, depth);
+                  }
+                }}
                 onContextMenu={(e) => props.onContext(e, entry)}
                 onDragStart={(e) => props.onDragStart(e, entry)}
                 onDragOver={(e) => props.onDragOver(e, entry)}
