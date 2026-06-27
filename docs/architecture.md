@@ -173,13 +173,22 @@ command. Extensions never add their own `window` keydown listeners for commands.
   `workspaceOpen` from the workbench. The `when` grammar is intentionally tiny —
   identifiers, `!`, `&&`, `||`.
 - Because every binding is one inspectable record, `keybindings.list()` powers the
-  **Keyboard Shortcuts** cheat sheet (and key hints in the command palette) for free,
-  and is the foundation for user-customizable keybindings.
+  **Keyboard Shortcuts** cheat sheet (and key hints in the command palette) for free.
+- **User overrides** layer on top of the manifest defaults. The Settings modal's
+  *Keybindings* tab calls `setUserBinding(command, key)` / `resetBinding(command)`;
+  the store persists the override map to `~/.jelly/keybindings.json` (via
+  `ipc.keybindings`) and `kernel.init()` hydrates it on boot — *before* extensions
+  activate, since overrides reference commands by id, not the default entries.
+  `list()`/`bindings()` always return the **effective** set (overrides applied, `""`
+  = unbound); `infos()` adds provenance (`defaultKey`, `source`) for the editor UI.
 
 ```ts
 interface KeybindingRegistry {
   bind(key: string, commandId: string): Disposable;
-  list(): KeybindingDescriptor[]; // for the cheat sheet / customization UI
+  list(): KeybindingDescriptor[];      // effective bindings, for the cheat sheet
+  infos(): KeybindingInfo[];           // effective + provenance, for the editor UI
+  setUserBinding(command: string, key: string): void; // "" unbinds; persisted
+  resetBinding(command: string): void; // drop the override, restore the default
 }
 ```
 
@@ -263,10 +272,12 @@ work behind `ctx.ipc` is what makes the future sandbox real.
 
 ```ts
 interface IpcClient {
-  fs:       { read, save, list, create, createDir, rename, delete };
-  git:      { status, diff, stage, unstage, commit };
-  terminal: { create, input, resize, close };
-  workspace:{ open, recent, removeRecent };
+  fs:          { read, save, list, create, createDir, rename, delete };
+  git:         { status, diff, stage, unstage, commit };
+  terminal:    { create, input, resize, close };
+  workspace:   { open, recent, removeRecent };
+  settings:    { load, save };               // → ~/.jelly/settings.json
+  keybindings: { load, save };               // → ~/.jelly/keybindings.json
 }
 ```
 

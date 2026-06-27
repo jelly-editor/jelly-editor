@@ -76,6 +76,29 @@ function formatChord(part: string): string {
   return parts.join("+");
 }
 
+/**
+ * Build a kernel key spec (e.g. "mod+shift+f") from a recorded keydown event,
+ * mirroring the kernel's platform rules: on mac ⌘→`mod` and ⌃→`ctrl`; elsewhere
+ * Ctrl→`mod`. Returns `""` while only modifiers are held, so a recorder can wait
+ * for a real key.
+ */
+export function eventToSpec(e: KeyboardEvent): string {
+  const k = e.key;
+  if (k === "Shift" || k === "Control" || k === "Alt" || k === "Meta") return "";
+
+  const tokens: string[] = [];
+  if (isMac) {
+    if (e.metaKey) tokens.push("mod");
+    if (e.ctrlKey) tokens.push("ctrl");
+  } else if (e.ctrlKey) {
+    tokens.push("mod");
+  }
+  if (e.altKey) tokens.push("alt");
+  if (e.shiftKey) tokens.push("shift");
+  tokens.push(k === " " ? "space" : k.toLowerCase());
+  return tokens.join("+");
+}
+
 /** Format a full key spec (chords separated by spaces) for display. */
 export function formatKeybinding(spec: string): string {
   return spec

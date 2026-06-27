@@ -2,6 +2,7 @@
 //! `register` loads both from ~/.jelly and attaches them as managed state.
 
 pub mod cli;
+pub mod keybindings;
 mod persist;
 mod recents;
 pub mod settings;
@@ -10,6 +11,7 @@ pub mod workspace;
 
 use tauri::{Builder, Wry};
 
+pub use keybindings::Keybindings;
 pub use recents::Recents;
 pub use settings::Settings;
 pub use window::InitialPaths;
@@ -19,5 +21,6 @@ pub fn register(builder: Builder<Wry>) -> Builder<Wry> {
     builder
         .manage(Recents::load())
         .manage(Settings::load())
+        .manage(Keybindings::load())
         .manage(InitialPaths(std::sync::Mutex::new(std::collections::HashMap::new())))
 }

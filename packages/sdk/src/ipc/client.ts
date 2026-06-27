@@ -1,6 +1,7 @@
 import type {
   FsClient,
   GitClient,
+  KeybindingsClient,
   SearchClient,
   SettingsClient,
   TerminalClient,
@@ -20,4 +21,5 @@ export interface IpcClient {
   terminal: TerminalClient;
   workspace: WorkspaceClient;
   settings: SettingsClient;
+  keybindings: KeybindingsClient;
 }

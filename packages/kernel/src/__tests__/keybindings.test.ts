@@ -49,6 +49,63 @@ describe("KeybindingStore", () => {
     sub.dispose();
     expect(store.list()).toEqual([]);
   });
+
+  test("a user override replaces the default key but keeps its when clause", () => {
+    const store = new KeybindingStore();
+    store.add({ command: "editor.save", key: "mod+s", when: "workspaceOpen" });
+
+    store.setUserBinding("editor.save", "mod+shift+s");
+
+    expect(store.list()).toEqual([
+      { command: "editor.save", key: "mod+shift+s", when: "workspaceOpen" },
+    ]);
+    const info = store.infos().find((i) => i.command === "editor.save");
+    expect(info).toEqual({
+      command: "editor.save",
+      key: "mod+shift+s",
+      defaultKey: "mod+s",
+      when: "workspaceOpen",
+      source: "user",
+    });
+  });
+
+  test("an empty override unbinds the command", () => {
+    const store = new KeybindingStore();
+    store.add({ command: "editor.save", key: "mod+s" });
+    store.setUserBinding("editor.save", "");
+    expect(store.list()).toEqual([]);
+    expect(store.infos()[0].source).toBe("user");
+  });
+
+  test("resetBinding restores the default", () => {
+    const store = new KeybindingStore();
+    store.add({ command: "editor.save", key: "mod+s" });
+    store.setUserBinding("editor.save", "mod+shift+s");
+    store.resetBinding("editor.save");
+    expect(store.list()).toEqual([{ command: "editor.save", key: "mod+s", when: undefined }]);
+    expect(store.infos()[0].source).toBe("default");
+  });
+
+  test("a user override can bind a command that had no default", () => {
+    const store = new KeybindingStore();
+    store.setUserBinding("custom.thing", "mod+j");
+    expect(store.list()).toEqual([{ command: "custom.thing", key: "mod+j", when: undefined }]);
+    const info = store.infos()[0];
+    expect(info.defaultKey).toBeUndefined();
+    expect(info.source).toBe("user");
+  });
+
+  test("hydrateOverrides applies saved overrides and feeds the persist hook", () => {
+    const store = new KeybindingStore();
+    store.add({ command: "editor.save", key: "mod+s" });
+    store.hydrateOverrides({ "editor.save": "mod+shift+s" });
+    expect(store.list()).toEqual([{ command: "editor.save", key: "mod+shift+s", when: undefined }]);
+
+    let saved: Record<string, string> | undefined;
+    store.setPersistHook((all) => (saved = all));
+    store.setUserBinding("editor.find", "mod+f");
+    expect(saved).toEqual({ "editor.save": "mod+shift+s", "editor.find": "mod+f" });
+  });
 });
 
 describe("ContextKeyStore", () => {
