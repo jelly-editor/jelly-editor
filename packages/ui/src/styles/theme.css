@@ -36,8 +36,8 @@
 
   /* text */
   --color-text:       oklch(89.93% 0.0121 79.78);
-  --color-text-muted: oklch(46.94% 0.0108 78.22);
-  --color-text-dim:   oklch(32.21% 0.0059 78.24);
+  --color-text-muted: oklch(68%    0.0108 78.22);
+  --color-text-dim:   oklch(48%    0.0059 78.24);
 
   /* accent */
   --color-accent:     oklch(65.18% 0.1233 54.05);
