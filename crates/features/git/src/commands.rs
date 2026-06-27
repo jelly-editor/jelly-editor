@@ -7,6 +7,11 @@ use std::path::Path;
 use git2::{Repository, Status, StatusOptions};
 use jelly_protocol::{GitDiff, GitFile, GitStatus};
 
+/// Cap untracked entries sent to the front end so an unignored `node_modules`
+/// can't flood the IPC payload or the panel. The warning prompts the user to
+/// add a `.gitignore`; until then we just stop collecting past this point.
+const MAX_UNTRACKED: usize = 5000;
+
 fn open(workspace: &str) -> Result<Repository, String> {
     Repository::discover(workspace).map_err(|e| e.to_string())
 }
@@ -70,7 +75,9 @@ pub fn git_status(workspace: String) -> Result<GitStatus, String> {
 
         // Working-tree side
         if s.contains(Status::WT_NEW) {
-            untracked.push(GitFile { path: path.clone(), status: "untracked".into() });
+            if untracked.len() < MAX_UNTRACKED {
+                untracked.push(GitFile { path: path.clone(), status: "untracked".into() });
+            }
         } else if s.contains(Status::WT_MODIFIED) || s.contains(Status::WT_TYPECHANGE) {
             modified.push(GitFile { path: path.clone(), status: "modified".into() });
         } else if s.contains(Status::WT_DELETED) {

@@ -7,6 +7,8 @@ import { FileIcon } from "@jelly/ui";
 
 const { stage: gitStage, unstage: gitUnstage, commit: gitCommit } = ipc.git;
 
+const RENDER_LIMIT = 500;
+
 const BADGE: Record<FileStatus, { letter: string; cls: string }> = {
   modified: { letter: "M", cls: "text-warning" },
   added: { letter: "A", cls: "text-success" },
@@ -96,6 +98,38 @@ function Section({
       </div>
       {children}
     </div>
+  );
+}
+
+function CappedRows({
+  files,
+  staged,
+  onAction,
+  onOpenDiff,
+}: {
+  files: GitFile[];
+  staged: boolean;
+  onAction: (file: GitFile) => void;
+  onOpenDiff: (file: GitFile) => void;
+}) {
+  const shown = files.length > RENDER_LIMIT ? files.slice(0, RENDER_LIMIT) : files;
+  return (
+    <>
+      {shown.map((f) => (
+        <FileRow
+          key={`${staged ? "s" : "u"}:${f.path}`}
+          file={f}
+          staged={staged}
+          onAction={onAction}
+          onOpenDiff={onOpenDiff}
+        />
+      ))}
+      {files.length > RENDER_LIMIT && (
+        <div className="pl-3 pr-2 h-[24px] flex items-center text-[11px] text-text-dim">
+          {files.length - RENDER_LIMIT} more not shown
+        </div>
+      )}
+    </>
   );
 }
 
@@ -200,9 +234,7 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
               count={staged.length}
               action={{ label: "−", onClick: unstageAll, title: "Unstage all" }}
             >
-              {staged.map((f) => (
-                <FileRow key={`s:${f.path}`} file={f} staged onAction={unstage} onOpenDiff={openDiff} />
-              ))}
+              <CappedRows files={staged} staged onAction={unstage} onOpenDiff={openDiff} />
             </Section>
 
             <Section
@@ -210,9 +242,12 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
               count={unstagedFiles.length}
               action={{ label: "+", onClick: stageAll, title: "Stage all" }}
             >
-              {unstagedFiles.map((f) => (
-                <FileRow key={`u:${f.path}`} file={f} staged={false} onAction={stage} onOpenDiff={openDiff} />
-              ))}
+              <CappedRows
+                files={unstagedFiles}
+                staged={false}
+                onAction={stage}
+                onOpenDiff={openDiff}
+              />
             </Section>
 
             {staged.length === 0 && unstagedFiles.length === 0 && (

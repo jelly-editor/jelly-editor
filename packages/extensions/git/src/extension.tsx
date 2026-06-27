@@ -1,6 +1,7 @@
 import type { Extension, ExtensionContext } from "@jelly/sdk";
 import { GitPanel } from "./ui/GitPanel";
 import { StatusBranch } from "./ui/StatusBranch";
+import { createIgnoreWarningChecker } from "./ignoreWarning";
 import { refreshGitStatus } from "./refresh";
 import { useGitStore } from "./store";
 
@@ -46,7 +47,10 @@ export const gitExtension: Extension = {
       })
       .catch(() => {});
 
+    const checkIgnoreWarning = createIgnoreWarningChecker(ctx);
+
     ctx.subscriptions.push(
+      { dispose: store.subscribe(checkIgnoreWarning) },
       ctx.commands.register("git.refresh", () => refreshGitStatus()),
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => {
         store.getState().setWorkspacePath(path);

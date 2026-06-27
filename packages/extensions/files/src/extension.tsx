@@ -14,6 +14,18 @@ function flattenFiles(entries: DirEntry[]): DirEntry[] {
   return out;
 }
 
+/** Whether `dir`'s children are already loaded into the tree (root counts). */
+function isDirLoaded(nodes: DirEntry[], root: string, dir: string): boolean {
+  if (dir === root) return true;
+  for (const n of nodes) {
+    if (n.path === dir) return n.children !== undefined;
+    if (n.isDir && n.children && dir.startsWith(n.path + "/")) {
+      return isDirLoaded(n.children, root, dir);
+    }
+  }
+  return false;
+}
+
 function FolderIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -32,6 +44,7 @@ export const filesExtension: Extension = {
         { id: "workspace.open", title: "Open Folder" },
         { id: "workspace.getPath", title: "Get Workspace Path", palette: false },
         { id: "files.list", title: "List Files", palette: false },
+        { id: "files.refresh", title: "Refresh Explorer", palette: false },
       ],
     },
   },
@@ -49,6 +62,13 @@ export const filesExtension: Extension = {
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
+      ctx.commands.register("files.refresh", async (dir?: string) => {
+        const root = store.getState().path;
+        if (!root) return;
+        const target = dir ?? root;
+        const children = await ipc.fs.list(target);
+        store.getState().setChildren(target, children);
+      }),
 
       // "Go to File" — the default (prefix-less) palette source.
       ctx.palette.registerProvider({
@@ -74,6 +94,34 @@ export const filesExtension: Extension = {
       ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) =>
         store.getState().setActiveFilePath(path),
       ),
+    );
+
+    // Reflect external changes (e.g. a .gitignore written by another feature)
+    // by re-listing each affected, already-loaded directory. Coalesced since
+    // file events can arrive in bursts.
+    const pendingDirs = new Set<string>();
+    let extTimer: ReturnType<typeof setTimeout> | undefined;
+    const flushExternal = () => {
+      const { path: root, tree } = store.getState();
+      if (root) {
+        for (const dir of pendingDirs) {
+          if (isDirLoaded(tree, root, dir)) {
+            ipc.fs
+              .list(dir)
+              .then((children) => store.getState().setChildren(dir, children))
+              .catch(() => {});
+          }
+        }
+      }
+      pendingDirs.clear();
+    };
+    ctx.subscriptions.push(
+      ctx.events.on<{ path: string }>("file:changed_externally", ({ path }) => {
+        pendingDirs.add(path.slice(0, path.lastIndexOf("/")));
+        clearTimeout(extTimer);
+        extTimer = setTimeout(flushExternal, 150);
+      }),
+      { dispose: () => clearTimeout(extTimer) },
     );
 
     ctx.ui.contributeActivityBarItem({
