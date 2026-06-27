@@ -1,81 +1,99 @@
-import type { CommandDescriptor, DirEntry, ExtensionContext } from "@jelly/sdk";
+import type { ExtensionContext, PaletteItem, PaletteProvider } from "@jelly/sdk";
 import { useEffect, useRef, useState } from "react";
 import { useCommandPaletteUi } from "../store";
-import { CommandList } from "./CommandList";
-import { FileList } from "./FileList";
 import { PaletteInput } from "./PaletteInput";
-import { ShortcutsList, type ShortcutRow } from "./ShortcutsList";
-import { fuzzyMatch } from "../utils/fuzzyMatch";
+
+/** Pick the active provider: a typed prefix wins, else the opened provider. */
+function resolveProvider(providers: PaletteProvider[], providerId: string, query: string) {
+  const byPrefix = providers.find((p) => p.prefix && query.startsWith(p.prefix));
+  if (byPrefix) return { provider: byPrefix, q: query.slice(byPrefix.prefix!.length) };
+  const active = providers.find((p) => p.id === providerId) ?? providers[0];
+  return { provider: active, q: query };
+}
+
+function PaletteRow({
+  item,
+  active,
+  onSelect,
+  onHover,
+}: {
+  item: PaletteItem;
+  active: boolean;
+  onSelect: () => void;
+  onHover: () => void;
+}) {
+  return (
+    <button
+      className={`flex items-center justify-between gap-3 px-4 h-[34px] text-left cursor-pointer shrink-0 ${
+        active ? "bg-bg-active text-text" : "text-text-muted hover:bg-bg-active hover:text-text"
+      }`}
+      onClick={onSelect}
+      onMouseEnter={onHover}
+    >
+      <span className="text-[13px] truncate">{item.label}</span>
+      {item.hint ? (
+        <kbd className="shrink-0 text-[11px] text-text-muted font-sans tabular-nums">{item.hint}</kbd>
+      ) : item.detail ? (
+        <span className="shrink-0 text-[11px] text-text-muted opacity-60 truncate max-w-[55%]">
+          {item.detail}
+        </span>
+      ) : null}
+    </button>
+  );
+}
 
 export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
   const open = useCommandPaletteUi((s) => s.open);
-  const mode = useCommandPaletteUi((s) => s.mode);
+  const providerId = useCommandPaletteUi((s) => s.providerId);
   const setOpen = useCommandPaletteUi((s) => s.setOpen);
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
-  const [files, setFiles] = useState<DirEntry[]>([]);
-  const [workspaceRoot, setWorkspaceRoot] = useState("");
+  const [items, setItems] = useState<PaletteItem[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const allCommands = ctx.commands.list();
-  const bindings = ctx.keybindings.list();
-  const keyFor = (id: string) => bindings.find((b) => b.command === id)?.key;
+  const providers = ctx.palette.list();
+  const { provider, q } = resolveProvider(providers, providerId, query);
 
-  const commands: CommandDescriptor[] = allCommands.filter((cmd) => cmd.palette !== false);
-  const filteredCommands = commands.filter(
-    (cmd) => fuzzyMatch(query, cmd.title) || fuzzyMatch(query, cmd.id),
-  );
-  const filteredFiles = files.filter(
-    (f) => fuzzyMatch(query, f.name) || fuzzyMatch(query, f.path),
-  );
-
-  // Every bound key, joined to its command's title — the cheat sheet.
-  const titleFor = new Map(allCommands.map((c) => [c.id, c.title]));
-  const shortcuts: ShortcutRow[] = bindings.map((b) => ({
-    command: b.command,
-    title: titleFor.get(b.command) ?? b.command,
-    key: b.key,
-    when: b.when,
-  }));
-  const filteredShortcuts = shortcuts.filter(
-    (s) => fuzzyMatch(query, s.title) || fuzzyMatch(query, s.key) || fuzzyMatch(query, s.command),
-  );
-
-  const count =
-    mode === "commands"
-      ? filteredCommands.length
-      : mode === "files"
-        ? filteredFiles.length
-        : filteredShortcuts.length;
-
+  // Reset the query/selection each time the palette opens.
   useEffect(() => {
     if (!open) return;
     setQuery("");
     setSelected(0);
     setTimeout(() => inputRef.current?.focus(), 0);
-    if (mode === "files") {
-      void Promise.all([
-        ctx.commands.execute<DirEntry[]>("files.list").catch(() => []),
-        ctx.commands.execute<string | null>("workspace.getPath").catch(() => null),
-      ]).then(([list, root]) => {
-        setFiles(list);
-        setWorkspaceRoot(root ? root + "/" : "");
-      });
+  }, [open]);
+
+  // Ask the active provider for items whenever it or the query changes.
+  useEffect(() => {
+    if (!open || !provider) {
+      setItems([]);
+      return;
     }
-  }, [open, mode]);
+    let alive = true;
+    Promise.resolve(provider.getItems(q))
+      .then((next) => {
+        if (!alive) return;
+        setItems(next);
+        setSelected(0);
+      })
+      .catch(() => alive && setItems([]));
+    return () => {
+      alive = false;
+    };
+  }, [open, provider?.id, q]);
 
   useEffect(() => {
-    setSelected((s) => Math.min(s, Math.max(0, count - 1)));
-  }, [count]);
+    setSelected((s) => Math.min(s, Math.max(0, items.length - 1)));
+  }, [items.length]);
 
   useEffect(() => {
-    const item = listRef.current?.children[selected] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: "nearest" });
+    const el = listRef.current?.children[selected] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
   }, [selected]);
 
+  // Widget-local navigation (Esc / arrows / Enter) while the palette is open.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -84,36 +102,23 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
         setOpen(false);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelected((s) => Math.min(s + 1, count - 1));
+        setSelected((s) => Math.min(s + 1, items.length - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelected((s) => Math.max(s - 1, 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (mode === "commands") {
-          const cmd = filteredCommands[selected];
-          if (cmd) executeCommand(cmd.id);
-        } else if (mode === "files") {
-          const file = filteredFiles[selected];
-          if (file) openFile(file);
-        } else {
-          const sc = filteredShortcuts[selected];
-          if (sc) executeCommand(sc.command);
-        }
+        accept(items[selected]);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, mode, filteredCommands, filteredFiles, filteredShortcuts, selected, count]);
+  }, [open, items, selected]);
 
-  function executeCommand(id: string) {
+  function accept(item: PaletteItem | undefined) {
+    if (!item) return;
     setOpen(false);
-    void ctx.commands.execute(id).catch(() => {});
-  }
-
-  function openFile(file: DirEntry) {
-    setOpen(false);
-    void ctx.commands.execute("editor.open", file.path, file.name).catch(() => {});
+    item.onAccept();
   }
 
   if (!open) return null;
@@ -129,43 +134,28 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
       >
         <PaletteInput
           inputRef={inputRef}
-          placeholder={
-            mode === "files"
-              ? "Search files…"
-              : mode === "shortcuts"
-                ? "Search keyboard shortcuts…"
-                : "Type a command…"
-          }
+          placeholder={provider?.placeholder ?? "Type a command…"}
           query={query}
-          onChange={(v) => { setQuery(v); setSelected(0); }}
+          onChange={(v) => {
+            setQuery(v);
+            setSelected(0);
+          }}
         />
         <div ref={listRef} className="flex flex-col overflow-y-auto py-1">
-          {mode === "commands" ? (
-            <CommandList
-              commands={filteredCommands}
-              selected={selected}
-              query={query}
-              keyFor={keyFor}
-              onSelect={executeCommand}
-              onHover={setSelected}
-            />
-          ) : mode === "files" ? (
-            <FileList
-              files={filteredFiles}
-              selected={selected}
-              query={query}
-              workspaceRoot={workspaceRoot}
-              onSelect={openFile}
-              onHover={setSelected}
-            />
+          {items.length === 0 ? (
+            <div className="px-4 py-6 text-center text-[12px] text-text-muted">
+              {query ? "No matches" : "Type to search"}
+            </div>
           ) : (
-            <ShortcutsList
-              shortcuts={filteredShortcuts}
-              selected={selected}
-              query={query}
-              onSelect={executeCommand}
-              onHover={setSelected}
-            />
+            items.map((item, i) => (
+              <PaletteRow
+                key={item.id}
+                item={item}
+                active={i === selected}
+                onSelect={() => accept(item)}
+                onHover={() => setSelected(i)}
+              />
+            ))
           )}
         </div>
       </div>

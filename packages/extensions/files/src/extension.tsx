@@ -1,5 +1,6 @@
-import type { DirEntry, Extension, ExtensionContext } from "@jelly/sdk";
+import type { DirEntry, Extension, ExtensionContext, PaletteItem } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
+import { fuzzyMatch } from "@jelly/ui";
 import { FileTree } from "./ui/FileTree";
 import { WorkspaceTitle } from "./ui/WorkspaceTitle";
 import { useWorkspaceStore } from "./store";
@@ -48,6 +49,24 @@ export const filesExtension: Extension = {
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
+
+      // "Go to File" — the default (prefix-less) palette source.
+      ctx.palette.registerProvider({
+        id: "files",
+        placeholder: "Search files by name…",
+        getItems: (q): PaletteItem[] => {
+          const { tree, path } = store.getState();
+          const root = path ? path + "/" : "";
+          return flattenFiles(tree)
+            .filter((f) => fuzzyMatch(q, f.name) || fuzzyMatch(q, f.path))
+            .map((f) => ({
+              id: f.path,
+              label: f.name,
+              detail: f.path.startsWith(root) ? f.path.slice(root.length) : f.path,
+              onAccept: () => void ctx.commands.execute("editor.open", f.path, f.name).catch(() => {}),
+            }));
+        },
+      }),
     );
 
     // Keep the tree highlight in sync with the editor's active file.

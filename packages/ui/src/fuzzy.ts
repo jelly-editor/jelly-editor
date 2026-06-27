@@ -1,3 +1,7 @@
+/**
+ * Subsequence fuzzy match: every character of `query` appears in `target` in
+ * order (case-insensitive). Shared by palette providers for filtering.
+ */
 export function fuzzyMatch(query: string, target: string): boolean {
   if (!query) return true;
   const q = query.toLowerCase();

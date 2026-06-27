@@ -147,7 +147,7 @@ export interface Disposable { dispose(): void; }
 
 Commands decouple *intent* from *implementation* and from *keybindings*. Anything
 invocable is a named command (`"files.reveal"`, `"git.commit"`). The activity bar, the
-command palette (future), and keybindings all dispatch by id.
+command palette, and keybindings all dispatch by id.
 
 ```ts
 interface CommandRegistry {
@@ -182,6 +182,35 @@ interface KeybindingRegistry {
   list(): KeybindingDescriptor[]; // for the cheat sheet / customization UI
 }
 ```
+
+### Palette providers
+
+The command palette has **no per-source branching**. It's a generic shell that
+routes the query to a **provider** and renders whatever items come back. Each
+source — go-to-file, commands, keyboard shortcuts — is a `PaletteProvider`
+contributed via `ctx.palette.registerProvider(...)`, exactly like commands or
+panels are contributed. Adding a new source (git branches, symbols, …) means
+registering a provider; the palette never changes.
+
+```ts
+interface PaletteProvider {
+  id: string;
+  prefix?: string;       // non-empty prefix that switches to it when typed (">", "?")
+  placeholder?: string;
+  getItems(query: string): PaletteItem[] | Promise<PaletteItem[]>;
+}
+interface PaletteItem {
+  id: string; label: string;
+  detail?: string;       // right-aligned secondary text (path, command id)
+  hint?: string;         // right-aligned keybinding hint
+  onAccept(): void;      // run on Enter; the palette closes afterward
+}
+```
+
+Ownership follows the feature: the **files** provider lives in `@jelly/files`,
+the **commands** and **shortcuts** providers in `@jelly/command-palette`. A typed
+prefix (`>` commands, `?` shortcuts) switches provider mid-query; otherwise the
+palette opens to whichever provider the triggering command selected.
 
 ### UI registry & slots
 

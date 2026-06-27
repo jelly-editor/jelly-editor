@@ -9,6 +9,7 @@ export interface KernelServices {
   events: ExtensionContext["events"];
   settings: ExtensionContext["settings"];
   keybindings: ExtensionContext["keybindings"];
+  palette: ExtensionContext["palette"];
   ipc: IpcClient;
 }
 
@@ -56,6 +57,7 @@ export function createExtensionContext(
     events: autoTrack(services.events, subscriptions),
     settings: autoTrack(services.settings, subscriptions),
     keybindings: autoTrack(services.keybindings, subscriptions),
+    palette: autoTrack(services.palette, subscriptions),
     ipc: services.ipc,
     storage: new MemoryKeyValueStore(),
     log: new PrefixedLogger(extension.manifest.id),

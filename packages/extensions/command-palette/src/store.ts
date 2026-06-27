@@ -1,12 +1,11 @@
 import { create } from "zustand";
 
-export type PaletteMode = "commands" | "files" | "shortcuts";
-
 interface CommandPaletteState {
   open: boolean;
-  mode: PaletteMode;
-  toggle: () => void;
+  /** the provider the palette opens to (a typed prefix can switch within it) */
+  providerId: string;
   setOpen: (open: boolean) => void;
+  openProvider: (id: string) => void;
   openCommands: () => void;
   openFiles: () => void;
   openShortcuts: () => void;
@@ -14,10 +13,10 @@ interface CommandPaletteState {
 
 export const useCommandPaletteUi = create<CommandPaletteState>((set) => ({
   open: false,
-  mode: "commands",
-  toggle: () => set((s) => ({ open: !s.open })),
+  providerId: "commands",
   setOpen: (open) => set({ open }),
-  openCommands: () => set({ open: true, mode: "commands" }),
-  openFiles: () => set({ open: true, mode: "files" }),
-  openShortcuts: () => set({ open: true, mode: "shortcuts" }),
+  openProvider: (providerId) => set({ open: true, providerId }),
+  openCommands: () => set({ open: true, providerId: "commands" }),
+  openFiles: () => set({ open: true, providerId: "files" }),
+  openShortcuts: () => set({ open: true, providerId: "shortcuts" }),
 }));

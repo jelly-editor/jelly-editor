@@ -1,6 +1,7 @@
 import type { CommandRegistry } from "../contributions/commands";
 import type { EventBus } from "../contributions/events";
 import type { KeybindingRegistry } from "../contributions/keybindings";
+import type { PaletteRegistry } from "../contributions/palette";
 import type { SettingsRegistry } from "../contributions/settings";
 import type { Disposable } from "../core/disposable";
 import type { Logger } from "../core/logger";
@@ -16,6 +17,7 @@ export interface ExtensionContext {
   ipc: IpcClient;
   settings: SettingsRegistry;
   keybindings: KeybindingRegistry;
+  palette: PaletteRegistry;
   storage: KeyValueStore;
   log: Logger;
   /** anything pushed here is auto-disposed on deactivate */

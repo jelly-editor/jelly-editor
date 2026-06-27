@@ -3,6 +3,7 @@ import { CommandBus } from "../registries/commands";
 import { ContextKeyStore } from "../registries/context-keys";
 import { Emitter } from "../registries/events";
 import { KeybindingStore } from "../registries/keybindings";
+import { PaletteStore } from "../registries/palette";
 import { SettingsStore } from "../registries/settings";
 import { KeyDispatcher } from "./key-dispatch";
 import { ActivityBarStore } from "../ui/activity-bar-store";
@@ -40,6 +41,7 @@ export class Kernel {
   readonly ui = new KernelUIRegistry(this.slots, this.activityBar);
   readonly settings = new SettingsStore();
   readonly keybindings = new KeybindingStore();
+  readonly palette = new PaletteStore();
   readonly contextKeys = new ContextKeyStore();
   readonly ipc: IpcClient;
 
