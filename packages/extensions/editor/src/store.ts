@@ -21,6 +21,7 @@ interface EditorState {
   fileContents: Map<string, string>;
   savedContents: Map<string, string>;
   externallyChanged: Set<string>;
+  largeFiles: Set<string>;
   activeDiff: ActiveDiff | null;
 
   openPreview: (path: string, name: string) => void;
@@ -32,6 +33,7 @@ interface EditorState {
   setSaved: (path: string, content: string) => void;
   markExternalChange: (path: string) => void;
   clearExternalChange: (path: string) => void;
+  markLargeFile: (path: string) => void;
   renameTab: (from: string, to: string, name: string) => void;
   getContent: (path: string) => string | undefined;
   setActiveDiff: (diff: ActiveDiff | null) => void;
@@ -43,6 +45,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   fileContents: new Map(),
   savedContents: new Map(),
   externallyChanged: new Set(),
+  largeFiles: new Set(),
   activeDiff: null,
 
   openPreview: (path, name) =>
@@ -95,7 +98,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       savedContents.delete(path);
       const externallyChanged = new Set(s.externallyChanged);
       externallyChanged.delete(path);
-      return { tabs, activeTabPath: active, fileContents, savedContents, externallyChanged };
+      const largeFiles = new Set(s.largeFiles);
+      largeFiles.delete(path);
+      return { tabs, activeTabPath: active, fileContents, savedContents, externallyChanged, largeFiles };
     }),
 
   setActiveTab: (activeTabPath) => set({ activeTabPath }),
@@ -142,6 +147,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const externallyChanged = new Set(s.externallyChanged);
       externallyChanged.delete(path);
       return { externallyChanged };
+    }),
+
+  markLargeFile: (path) =>
+    set((s) => {
+      const largeFiles = new Set(s.largeFiles);
+      largeFiles.add(path);
+      return { largeFiles };
     }),
 
   renameTab: (from, to, name) =>

@@ -68,17 +68,18 @@ export interface EditorOptions {
   fontSize?: number;
   tabSize?: number;
   wordWrap?: boolean;
+  largeFile?: boolean;
 }
 
 /** Theme + syntax highlighting + language, shared by editor and diff views. */
 export function baseExtensions(name: string, dark: boolean, opts: EditorOptions = {}): Extension[] {
-  const { fontSize = 13, tabSize = 2, wordWrap = false } = opts;
+  const { fontSize = 13, tabSize = 2, wordWrap = false, largeFile = false } = opts;
   const exts: Extension[] = [
     jellyTheme(dark, fontSize),
     syntaxHighlighting(highlightStyle),
     EditorState.tabSize.of(tabSize),
     indentUnit.of(" ".repeat(tabSize)),
-    ...languageFor(name),
+    ...(largeFile ? [] : languageFor(name)),
   ];
   if (wordWrap) exts.push(EditorView.lineWrapping);
   return exts;

@@ -32,6 +32,8 @@ export const editorExtension: Extension = {
           if (ed.getContent(path) === undefined) {
             try {
               const content = await ipc.fs.read(path);
+              const threshold = ctx.settings.get<number>("editor.largeFileThreshold") ?? 1_048_576;
+              if (content.length > threshold) ed.markLargeFile(path);
               ed.setSaved(path, content);
             } catch (e) {
               ed.setSaved(path, `// Could not open file: ${e}`);

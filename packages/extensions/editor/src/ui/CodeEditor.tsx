@@ -13,10 +13,11 @@ interface Props {
   name: string;
   value: string;
   theme: "dark" | "light";
+  isLargeFile: boolean;
   onChange: (value: string) => void;
 }
 
-export function CodeEditor({ ctx, name, value, theme, onChange }: Props) {
+export function CodeEditor({ ctx, name, value, theme, isLargeFile, onChange }: Props) {
   const dark = theme !== "light";
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
@@ -26,7 +27,7 @@ export function CodeEditor({ ctx, name, value, theme, onChange }: Props) {
 
   const extensions = useMemo(
     () => [
-      ...baseExtensions(name, dark, { fontSize, tabSize, wordWrap }),
+      ...baseExtensions(name, dark, { fontSize, tabSize, wordWrap, largeFile: isLargeFile }),
       search({ top: true }),
       keymap.of(
         searchKeymap.filter(
@@ -43,7 +44,7 @@ export function CodeEditor({ ctx, name, value, theme, onChange }: Props) {
         },
       ]),
     ],
-    [dark, name, fontSize, tabSize, wordWrap],
+    [dark, name, fontSize, tabSize, wordWrap, isLargeFile],
   );
 
   return (

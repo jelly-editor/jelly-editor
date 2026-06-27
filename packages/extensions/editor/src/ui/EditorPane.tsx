@@ -73,6 +73,14 @@ function TabBar({ onRequestClose }: { onRequestClose: (path: string) => void }) 
   );
 }
 
+function LargeFileBanner() {
+  return (
+    <div className="flex items-center gap-3 px-3 h-[30px] bg-warning/15 border-b border-warning/30 text-[12px] text-text shrink-0">
+      <span className="text-warning">Syntax highlighting disabled for large files.</span>
+    </div>
+  );
+}
+
 function ReloadBanner({ path }: { path: string }) {
   const { setSaved, clearExternalChange } = useEditorStore();
 
@@ -170,6 +178,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const tabs = useEditorStore((s) => s.tabs);
   const activeTabPath = useEditorStore((s) => s.activeTabPath);
   const externallyChanged = useEditorStore((s) => s.externallyChanged);
+  const largeFiles = useEditorStore((s) => s.largeFiles);
   const updateBuffer = useEditorStore((s) => s.updateBuffer);
   const getContent = useEditorStore((s) => s.getContent);
   const closeTab = useEditorStore((s) => s.closeTab);
@@ -207,6 +216,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const activeTab = tabs.find((t) => t.path === activeTabPath);
   const value = activeTabPath ? getContent(activeTabPath) : undefined;
   const showBanner = activeTabPath ? externallyChanged.has(activeTabPath) : false;
+  const isLargeFile = activeTabPath ? largeFiles.has(activeTabPath) : false;
 
   if (activeDiff) {
     const name = activeDiff.path.split("/").pop() ?? activeDiff.path;
@@ -232,6 +242,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
     <div className="flex flex-col flex-1 overflow-hidden bg-bg">
       {tabs.length > 0 && <TabBar onRequestClose={requestClose} />}
       {showBanner && activeTabPath && <ReloadBanner path={activeTabPath} />}
+      {isLargeFile && <LargeFileBanner />}
       <div className="flex-1 overflow-hidden">
         {!activeTab ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-text-dim text-[12px]">
@@ -248,6 +259,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
             name={activeTab.name}
             value={value}
             theme={theme}
+            isLargeFile={isLargeFile}
             onChange={(v) => activeTabPath && updateBuffer(activeTabPath, v)}
           />
         )}

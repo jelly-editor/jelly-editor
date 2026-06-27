@@ -8,6 +8,11 @@ const SCHEMA: SettingsSchema = {
   "editor.fontSize": { type: "number", default: 13 },
   "editor.tabSize": { type: "number", default: 2 },
   "editor.wordWrap": { type: "boolean", default: false },
+  "editor.largeFileThreshold": {
+    type: "number",
+    default: 1_048_576,
+    description: "Files larger than this size (in bytes) open without syntax highlighting.",
+  },
 };
 
 function applyTheme(theme: unknown) {
