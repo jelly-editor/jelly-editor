@@ -7,3 +7,4 @@ export type {
   StatusBarItem,
 } from "./items";
 export type { UIRegistry } from "./registry";
+export type { DialogButton, DialogKind, DialogRequest, DialogService } from "./dialog";

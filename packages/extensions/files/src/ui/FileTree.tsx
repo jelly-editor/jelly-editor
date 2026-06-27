@@ -1,5 +1,5 @@
 import type { DirEntry, ExtensionContext } from "@jelly/sdk";
-import { confirm, ipc } from "@jelly/ipc";
+import { ipc } from "@jelly/ipc";
 import { FileIcon } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
@@ -23,6 +23,17 @@ function parentOf(path: string) {
 }
 function joinPath(dir: string, name: string) {
   return `${dir}/${name}`;
+}
+
+/** A non-colliding variant of `name` for `taken`: "file.ts" → "file copy.ts" → "file copy 2.ts". */
+function uniqueName(name: string, taken: Set<string>): string {
+  if (!taken.has(name)) return name;
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  let candidate = `${base} copy${ext}`;
+  for (let i = 2; taken.has(candidate); i++) candidate = `${base} copy ${i}${ext}`;
+  return candidate;
 }
 
 async function refreshDir(dirPath: string) {
@@ -122,6 +133,15 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     });
   }
 
+  function alertError(message: string, title: string) {
+    return ctx.dialog.show({
+      title,
+      message,
+      kind: "error",
+      buttons: [{ id: "ok", label: "OK", variant: "primary" }],
+    });
+  }
+
   async function commitDraft(name: string) {
     const d = draft;
     setDraft(null);
@@ -140,15 +160,15 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       }
       await refreshDir(d.parentPath);
     } catch (e) {
-      await confirm(`${e}`, { title: "Operation failed", kind: "error" });
+      await alertError(`${e}`, "Operation failed");
     }
   }
 
   async function remove(entry: DirEntry) {
     setMenu(null);
-    const ok = await confirm(
-      `Delete ${entry.isDir ? "folder" : "file"} "${entry.name}"?`,
-      { title: "Confirm delete", kind: "warning" },
+    const ok = await ctx.dialog.confirm(
+      `Delete ${entry.isDir ? "folder" : "file"} "${entry.name}"? This cannot be undone.`,
+      { title: "Confirm delete", kind: "warning", confirmLabel: "Delete", danger: true },
     );
     if (!ok) return;
     try {
@@ -156,7 +176,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       void ctx.commands.execute("editor.closeFile", entry.path);
       await refreshDir(parentOf(entry.path));
     } catch (e) {
-      await confirm(`${e}`, { title: "Delete failed", kind: "error" });
+      await alertError(`${e}`, "Delete failed");
     }
   }
 
@@ -220,16 +240,31 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // Move (rename) or copy `from` into `destDir`, refreshing the affected dirs.
   async function transfer(from: string, destDir: string, asCopy: boolean) {
     const name = from.slice(from.lastIndexOf("/") + 1);
-    const target = joinPath(destDir, name);
+    const verb = asCopy ? "Copy" : "Move";
     try {
       const siblings = await listDir(destDir);
-      if (siblings.some((c) => c.name === name)) {
-        await confirm(`A file named "${name}" already exists in this folder.`, {
-          title: asCopy ? "Copy failed" : "Move failed",
-          kind: "error",
+      const taken = new Set(siblings.map((c) => c.name));
+
+      let target = joinPath(destDir, name);
+      let overwrite = false;
+      if (taken.has(name)) {
+        const choice = await ctx.dialog.show({
+          title: `${verb} — name already exists`,
+          message: `"${name}" already exists in this folder.`,
+          kind: "warning",
+          dismissId: "cancel",
+          buttons: [
+            { id: "cancel", label: "Cancel" },
+            { id: "duplicate", label: "Keep Both" },
+            { id: "overwrite", label: "Replace", variant: "danger" },
+          ],
         });
-        return;
+        if (choice === "cancel") return;
+        if (choice === "duplicate") target = joinPath(destDir, uniqueName(name, taken));
+        else overwrite = true;
       }
+
+      if (overwrite) await deletePath(target);
       if (asCopy) {
         await copyPath(from, target);
       } else {
@@ -240,7 +275,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       setExpanded(destDir, true);
       await refreshDir(destDir);
     } catch (e) {
-      await confirm(`${e}`, { title: asCopy ? "Copy failed" : "Move failed", kind: "error" });
+      await alertError(`${e}`, `${verb} failed`);
     }
   }
 
@@ -379,20 +414,25 @@ function Rows(props: RowsProps) {
         const expanded = entry.isDir && expandedDirs.has(entry.path);
         const isActive = entry.path === activeFilePath;
         return (
-          <div key={entry.path}>
+          <div
+            key={entry.path}
+            // Folders register their whole block (row + children) as the drop
+            // target, so the highlight encloses the entire folder.
+            ref={
+              entry.isDir
+                ? (el) => {
+                    if (el) props.rowEls.set(entry.path, el);
+                    else props.rowEls.delete(entry.path);
+                  }
+                : undefined
+            }
+            className="rounded-[4px]"
+          >
             {draft?.renaming === entry.path ? (
               <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />
             ) : (
               <div
                 draggable
-                ref={
-                  entry.isDir
-                    ? (el) => {
-                        if (el) props.rowEls.set(entry.path, el);
-                        else props.rowEls.delete(entry.path);
-                      }
-                    : undefined
-                }
                 className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] ${
                   isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}

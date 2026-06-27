@@ -3,6 +3,7 @@ import { bridgeCoreEvents, getInitialPath, ipc } from "@jelly/ipc";
 import { Kernel, KernelProvider, Shell } from "@jelly/kernel";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { DialogHost } from "./DialogHost";
 import { builtinExtensions } from "./extensions";
 import { checkForUpdates } from "./updater";
 
@@ -38,6 +39,7 @@ async function boot() {
     <React.StrictMode>
       <KernelProvider kernel={kernel}>
         <Shell />
+        <DialogHost />
       </KernelProvider>
     </React.StrictMode>,
   );

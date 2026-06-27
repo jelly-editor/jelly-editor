@@ -6,6 +6,7 @@ import { MemoryKeyValueStore } from "../registries/storage";
 export interface KernelServices {
   commands: ExtensionContext["commands"];
   ui: ExtensionContext["ui"];
+  dialog: ExtensionContext["dialog"];
   events: ExtensionContext["events"];
   settings: ExtensionContext["settings"];
   keybindings: ExtensionContext["keybindings"];
@@ -54,6 +55,7 @@ export function createExtensionContext(
   return {
     commands: autoTrack(services.commands, subscriptions),
     ui: autoTrack(services.ui, subscriptions),
+    dialog: services.dialog,
     events: autoTrack(services.events, subscriptions),
     settings: autoTrack(services.settings, subscriptions),
     keybindings: autoTrack(services.keybindings, subscriptions),

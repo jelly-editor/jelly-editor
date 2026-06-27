@@ -1,5 +1,6 @@
 import type { ActivityBarItem, SlotId } from "@jelly/sdk";
 import { useSyncExternalStore } from "react";
+import type { PendingDialog } from "../ui/dialog-store";
 import type { SlotContribution } from "../ui/slot-store";
 import type { WorkbenchState } from "../ui/workbench";
 import { useKernel } from "./kernel-context";
@@ -20,4 +21,10 @@ export function useActivityBarItems(): readonly ActivityBarItem[] {
 export function useSlotContributions(slot: SlotId): readonly SlotContribution[] {
   const kernel = useKernel();
   return useSyncExternalStore(kernel.slots.subscribe, () => kernel.slots.get(slot));
+}
+
+/** The dialog currently requested by an extension, or null. */
+export function useCurrentDialog(): PendingDialog | null {
+  const kernel = useKernel();
+  return useSyncExternalStore(kernel.dialog.subscribe, kernel.dialog.current);
 }

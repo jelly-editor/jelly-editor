@@ -7,6 +7,7 @@ import { PaletteStore } from "../registries/palette";
 import { SettingsStore } from "../registries/settings";
 import { KeyDispatcher } from "./key-dispatch";
 import { ActivityBarStore } from "../ui/activity-bar-store";
+import { DialogStore } from "../ui/dialog-store";
 import { KernelUIRegistry } from "../ui/registry";
 import { SlotStore } from "../ui/slot-store";
 import { Workbench } from "../ui/workbench";
@@ -39,6 +40,7 @@ export class Kernel {
   readonly activityBar = new ActivityBarStore();
   readonly workbench = new Workbench();
   readonly ui = new KernelUIRegistry(this.slots, this.activityBar);
+  readonly dialog = new DialogStore();
   readonly settings = new SettingsStore();
   readonly keybindings = new KeybindingStore();
   readonly palette = new PaletteStore();
