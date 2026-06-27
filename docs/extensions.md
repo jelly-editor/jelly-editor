@@ -133,6 +133,9 @@ await ctx.storage.set("lastUsed", Date.now());      // per-extension persisted K
 const n = await ctx.storage.get<number>("lastUsed");
 
 ctx.keybindings.bind("mod+k mod+t", "myfeature.run");
+// User overrides (from the Settings → Keybindings tab) layer on top of manifest
+// defaults and persist to ~/.jelly/keybindings.json; list()/infos() read the
+// effective set. Prefer declaring defaults in the manifest over bind().
 ctx.log.info("activated");
 ```
 

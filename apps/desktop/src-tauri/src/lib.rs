@@ -134,6 +134,8 @@ pub fn run() {
             jelly_core::workspace::remove_recent_folder,
             jelly_core::settings::load_settings,
             jelly_core::settings::save_setting,
+            jelly_core::keybindings::load_keybindings,
+            jelly_core::keybindings::save_keybindings,
             jelly_core::window::open_new_window,
             jelly_core::window::get_initial_path_for,
             jelly_fs::commands::read_file,

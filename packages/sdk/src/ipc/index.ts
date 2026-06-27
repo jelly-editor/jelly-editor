@@ -13,6 +13,7 @@ export type {
 export type {
   FsClient,
   GitClient,
+  KeybindingsClient,
   SearchClient,
   SettingsClient,
   TerminalClient,

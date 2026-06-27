@@ -1,13 +1,17 @@
 import type { ExtensionContext } from "@jelly/sdk";
 import { useSetting } from "@jelly/ui";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSettingsUi } from "../store";
+import { KeybindingsTab } from "./KeybindingsTab";
+
+type Tab = "general" | "keybindings";
 
 /** Centered settings dialog. Opened with ⌘, — closed on Esc or backdrop click.
  *  Reads and writes the shared kernel settings via ctx. */
 export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
   const open = useSettingsUi((s) => s.open);
   const setOpen = useSettingsUi((s) => s.setOpen);
+  const [tab, setTab] = useState<Tab>("general");
 
   const theme = useSetting(ctx, "ui.theme", "dark");
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
@@ -33,11 +37,23 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
       onClick={() => setOpen(false)}
     >
       <div
-        className="flex flex-col w-[380px] bg-bg-elevated border border-border rounded-[10px] shadow-2xl overflow-hidden"
+        className="flex flex-col w-[480px] h-[460px] bg-bg-elevated border border-border rounded-[10px] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 h-[44px] border-b border-border shrink-0">
-          <span className="text-[13px] font-semibold text-text">Settings</span>
+          <div className="flex items-center gap-1">
+            {(["general", "keybindings"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                className={`h-[24px] px-2.5 rounded-[5px] text-[12px] capitalize ${
+                  tab === t ? "bg-bg-active text-text font-medium" : "text-text-muted hover:text-text"
+                }`}
+                onClick={() => setTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
           <button
             className="flex items-center justify-center w-[20px] h-[20px] rounded-[4px] text-text-muted text-[15px] leading-none hover:bg-bg-active hover:text-text"
             onClick={() => setOpen(false)}
@@ -47,7 +63,10 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
           </button>
         </div>
 
-        <div className="flex flex-col p-5 gap-1">
+        {tab === "keybindings" ? (
+          <KeybindingsTab ctx={ctx} />
+        ) : (
+          <div className="flex flex-col p-5 gap-1">
           <Row label="Theme">
             <Segmented
               value={theme}
@@ -78,7 +97,8 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
           <Row label="Word Wrap">
             <Toggle value={wordWrap} onChange={(v) => set("editor.wordWrap", v)} />
           </Row>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

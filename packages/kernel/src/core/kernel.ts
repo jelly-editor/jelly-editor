@@ -130,6 +130,17 @@ export class Kernel {
     this.settings.setPersistHook((key, value) => {
       void this.ipc.settings.save(key, value);
     });
+
+    // User keybinding overrides overlay manifest defaults. They reference
+    // commands by id (not the not-yet-registered default entries), so loading
+    // them here — before extensions activate — is safe.
+    const overrides = await this.ipc.keybindings
+      .load()
+      .catch(() => ({} as Record<string, string>));
+    this.keybindings.hydrateOverrides(overrides);
+    this.keybindings.setPersistHook((all) => {
+      void this.ipc.keybindings.save(all);
+    });
   }
 
   /**

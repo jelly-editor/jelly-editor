@@ -51,3 +51,10 @@ export interface SettingsClient {
   load(): Promise<Record<string, unknown>>;
   save(key: string, value: unknown): Promise<void>;
 }
+
+export interface KeybindingsClient {
+  /** the saved user overrides: command id → key spec (`""` = unbound) */
+  load(): Promise<Record<string, string>>;
+  /** persist the full override map, replacing whatever was on disk */
+  save(overrides: Record<string, string>): Promise<void>;
+}

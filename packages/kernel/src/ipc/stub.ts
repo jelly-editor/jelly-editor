@@ -49,5 +49,9 @@ export function createStubIpc(): IpcClient {
       load: fail("settings.load"),
       save: fail("settings.save"),
     },
+    keybindings: {
+      load: fail("keybindings.load"),
+      save: fail("keybindings.save"),
+    },
   };
 }
