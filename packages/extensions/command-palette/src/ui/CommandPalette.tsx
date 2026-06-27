@@ -63,7 +63,10 @@ export function CommandPalette({ ctx }: { ctx: ExtensionContext }) {
     setQuery("");
     setSelected(0);
     setTimeout(() => inputRef.current?.focus(), 0);
-  }, [open]);
+    // Keyed on providerId too: selecting a command that opens another provider
+    // (e.g. "Keyboard Shortcuts") keeps `open` true the whole time, so without
+    // providerId here the stale query would linger and filter the new source.
+  }, [open, providerId]);
 
   // Ask the active provider for items whenever it or the query changes.
   useEffect(() => {
