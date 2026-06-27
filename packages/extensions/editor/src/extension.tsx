@@ -17,7 +17,6 @@ export const editorExtension: Extension = {
         { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
         { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
-        { id: "editor.renameFile", title: "Rename File", palette: false },
       ],
       keybindings: [
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
@@ -61,8 +60,13 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.closeFile", (path?: string) =>
         store.getState().closeTab(path ?? store.getState().activeTabPath ?? ""),
       ),
-      ctx.commands.register("editor.renameFile", (from: string, to: string, name: string) =>
-        store.getState().renameTab(from, to, name),
+    );
+
+    // A file or folder was renamed/moved in the tree — remap any open tabs so
+    // their paths (and the diffs/buffers keyed by them) follow the change.
+    ctx.subscriptions.push(
+      ctx.events.on<{ from: string; to: string }>("files:renamed", ({ from, to }) =>
+        store.getState().applyRename(from, to),
       ),
     );
 

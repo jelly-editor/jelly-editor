@@ -7,6 +7,7 @@ export interface FsClient {
   create(path: string): Promise<void>;
   createDir(path: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
+  copy(from: string, to: string): Promise<void>;
   delete(path: string): Promise<void>;
 }
 

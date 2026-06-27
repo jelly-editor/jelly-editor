@@ -8,5 +8,6 @@ export const fs: FsClient = {
   create: (path) => invoke<void>("create_file", { path }),
   createDir: (path) => invoke<void>("create_dir", { path }),
   rename: (from, to) => invoke<void>("rename", { from, to }),
+  copy: (from, to) => invoke<void>("copy", { from, to }),
   delete: (path) => invoke<void>("delete", { path }),
 };

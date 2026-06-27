@@ -144,6 +144,7 @@ pub fn run() {
             jelly_fs::commands::create_file,
             jelly_fs::commands::create_dir,
             jelly_fs::commands::rename,
+            jelly_fs::commands::copy,
             jelly_fs::commands::delete,
             jelly_terminal::commands::create_terminal,
             jelly_terminal::commands::terminal_input,

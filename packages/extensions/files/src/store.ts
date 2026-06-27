@@ -3,14 +3,27 @@ import { create } from "zustand";
 
 export type { DirEntry };
 
-/** Immutably attach `children` to the directory node at `parentPath`. */
+/** Re-list of a directory only returns one level, so carry over the already
+ *  loaded `children` of any subfolder that still exists (matched by path).
+ *  Without this, refreshing a dir collapses every expanded folder beneath it. */
+function mergeChildren(prev: DirEntry[] | undefined, next: DirEntry[]): DirEntry[] {
+  if (!prev?.length) return next;
+  const prevByPath = new Map(prev.map((n) => [n.path, n]));
+  return next.map((n) => {
+    const old = prevByPath.get(n.path);
+    return n.isDir && old?.children !== undefined ? { ...n, children: old.children } : n;
+  });
+}
+
+/** Immutably attach `children` to the directory node at `parentPath`,
+ *  preserving any loaded subtrees that survive the refresh. */
 function attachChildren(
   nodes: DirEntry[],
   parentPath: string,
   children: DirEntry[],
 ): DirEntry[] {
   return nodes.map((node) => {
-    if (node.path === parentPath) return { ...node, children };
+    if (node.path === parentPath) return { ...node, children: mergeChildren(node.children, children) };
     if (node.isDir && node.children && parentPath.startsWith(node.path + "/")) {
       return { ...node, children: attachChildren(node.children, parentPath, children) };
     }
@@ -46,7 +59,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setChildren: (parentPath, children) =>
     set((s) =>
       parentPath === s.path
-        ? { tree: children }
+        ? { tree: mergeChildren(s.tree, children) }
         : { tree: attachChildren(s.tree, parentPath, children) },
     ),
 

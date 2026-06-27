@@ -52,6 +52,13 @@ pub async fn rename(from: String, to: String, files: State<'_, FileManagerHandle
 }
 
 #[tauri::command]
+pub async fn copy(from: String, to: String, files: State<'_, FileManagerHandle>) -> Result<(), String> {
+    let from = PathBuf::from(from);
+    let to = PathBuf::from(to);
+    files.send(|reply| FileManagerMsg::Copy { from, to, reply }).await
+}
+
+#[tauri::command]
 pub async fn delete(path: String, files: State<'_, FileManagerHandle>) -> Result<(), String> {
     let path = PathBuf::from(path);
     files.send(|reply| FileManagerMsg::Delete { path, reply }).await

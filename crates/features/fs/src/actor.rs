@@ -16,6 +16,7 @@ pub enum FileManagerMsg {
     CreateFile { path: PathBuf, reply: Reply<()> },
     CreateDir { path: PathBuf, reply: Reply<()> },
     Rename { from: PathBuf, to: PathBuf, reply: Reply<()> },
+    Copy { from: PathBuf, to: PathBuf, reply: Reply<()> },
     Delete { path: PathBuf, reply: Reply<()> },
 }
 
@@ -78,6 +79,9 @@ pub fn spawn() -> FileManagerHandle {
                 FileManagerMsg::Rename { from, to, reply } => {
                     let _ = reply.send(std::fs::rename(&from, &to).map_err(|e| e.to_string()));
                 }
+                FileManagerMsg::Copy { from, to, reply } => {
+                    let _ = reply.send(copy_path(&from, &to));
+                }
                 FileManagerMsg::Delete { path, reply } => {
                     let res = if path.is_dir() {
                         std::fs::remove_dir_all(&path)
@@ -91,6 +95,20 @@ pub fn spawn() -> FileManagerHandle {
     });
 
     FileManagerHandle { tx }
+}
+
+/// Recursively copy a file or directory tree from `from` to `to`.
+fn copy_path(from: &Path, to: &Path) -> Result<(), String> {
+    if from.is_dir() {
+        std::fs::create_dir_all(to).map_err(|e| e.to_string())?;
+        for entry in std::fs::read_dir(from).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            copy_path(&entry.path(), &to.join(entry.file_name()))?;
+        }
+        Ok(())
+    } else {
+        std::fs::copy(from, to).map(|_| ()).map_err(|e| e.to_string())
+    }
 }
 
 fn read_file(path: &Path) -> Result<String, String> {

@@ -38,7 +38,9 @@ interface EditorState {
   markExternalChange: (path: string) => void;
   clearExternalChange: (path: string) => void;
   markLargeFile: (path: string) => void;
-  renameTab: (from: string, to: string, name: string) => void;
+  /** Remap open tabs after a file/folder is renamed or moved on disk.
+   *  Handles a folder move by remapping every descendant tab's path prefix. */
+  applyRename: (from: string, to: string) => void;
   getContent: (path: string) => string | undefined;
   setActiveDiff: (diff: ActiveDiff | null) => void;
   requestReveal: (path: string, line: number) => void;
@@ -169,22 +171,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return { largeFiles };
     }),
 
-  renameTab: (from, to, name) =>
+  applyRename: (from, to) =>
     set((s) => {
-      if (!s.tabs.some((t) => t.path === from)) return {};
-      const move = (m: Map<string, string>) => {
-        const next = new Map(m);
-        if (next.has(from)) {
-          next.set(to, next.get(from)!);
-          next.delete(from);
-        }
+      // Matches the renamed path itself and, for a folder, every descendant.
+      const matches = (p: string) => p === from || p.startsWith(from + "/");
+      if (!s.tabs.some((t) => matches(t.path))) return {};
+      const remap = (p: string) => (matches(p) ? to + p.slice(from.length) : p);
+      const basename = (p: string) => p.slice(p.lastIndexOf("/") + 1);
+      const moveMap = (m: Map<string, string>) => {
+        const next = new Map<string, string>();
+        for (const [k, v] of m) next.set(remap(k), v);
         return next;
       };
+      const moveSet = (set: Set<string>) => new Set(Array.from(set, remap));
       return {
-        tabs: s.tabs.map((t) => (t.path === from ? { ...t, path: to, name } : t)),
-        activeTabPath: s.activeTabPath === from ? to : s.activeTabPath,
-        fileContents: move(s.fileContents),
-        savedContents: move(s.savedContents),
+        tabs: s.tabs.map((t) =>
+          matches(t.path) ? { ...t, path: remap(t.path), name: basename(remap(t.path)) } : t,
+        ),
+        activeTabPath: s.activeTabPath ? remap(s.activeTabPath) : s.activeTabPath,
+        fileContents: moveMap(s.fileContents),
+        savedContents: moveMap(s.savedContents),
+        externallyChanged: moveSet(s.externallyChanged),
+        largeFiles: moveSet(s.largeFiles),
       };
     }),
 

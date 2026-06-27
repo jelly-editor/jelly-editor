@@ -4,10 +4,19 @@ import { FileIcon } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 
-const { list: listDir, create: createFile, createDir, rename: renamePath, delete: deletePath } =
-  ipc.fs;
+const {
+  list: listDir,
+  create: createFile,
+  createDir,
+  rename: renamePath,
+  copy: copyPath,
+  delete: deletePath,
+} = ipc.fs;
 
 const INDENT = 12;
+const DRAG_MIME = "application/x-jelly-path";
+// Drop-target ring, toggled directly on DOM nodes (no React re-render mid-drag).
+const HIGHLIGHT = ["bg-accent/15", "shadow-[inset_0_0_0_1px]", "shadow-accent/50"];
 
 function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
@@ -19,6 +28,19 @@ function joinPath(dir: string, name: string) {
 async function refreshDir(dirPath: string) {
   const children = await listDir(dirPath);
   useWorkspaceStore.getState().setChildren(dirPath, children);
+}
+
+/** A small name-only pill used as the drag image (instead of the full row). */
+function makeDragBadge(entry: DirEntry): HTMLElement {
+  const badge = document.createElement("div");
+  badge.textContent = entry.name;
+  badge.className =
+    "fixed -top-[1000px] left-0 px-2 h-[22px] flex items-center rounded-[5px] " +
+    "bg-bg-elevated border border-border text-text text-[12px] shadow-lg pointer-events-none";
+  document.body.appendChild(badge);
+  // Remove once the browser has snapshotted it for the drag cursor.
+  setTimeout(() => badge.remove(), 0);
+  return badge;
 }
 
 interface Draft {
@@ -39,6 +61,11 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const { path: root, tree, expandedDirs, setExpanded, setChildren } = useWorkspaceStore();
   const [menu, setMenu] = useState<ContextMenu | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Drag-and-drop is driven entirely through refs/DOM so dragging over a large
+  // tree never re-renders React (the old `useState` highlight was the lag).
+  const dragging = useRef<string | null>(null); // path being dragged
+  const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
+  const highlightedDir = useRef<string | null>(null);
 
   useEffect(() => {
     if (!menu) return;
@@ -104,7 +131,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       if (d.renaming) {
         if (target !== d.renaming) {
           await renamePath(d.renaming, target);
-          void ctx.commands.execute("editor.renameFile", d.renaming, target, name.trim());
+          ctx.events.emit("files:renamed", { from: d.renaming, to: target });
         }
       } else if (d.isDir) {
         await createDir(target);
@@ -133,6 +160,90 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     }
   }
 
+  // The directory a drop on `entry` targets: a folder receives into itself, a
+  // file into its parent. With no entry (empty space) the drop targets the root.
+  function dropDirOf(entry: DirEntry | null): string {
+    if (!entry) return root!;
+    return entry.isDir ? entry.path : parentOf(entry.path);
+  }
+
+  function canDrop(src: string | null, destDir: string): boolean {
+    if (!src) return false;
+    if (parentOf(src) === destDir) return false; // already lives here
+    return destDir !== src && !destDir.startsWith(src + "/"); // not into self/descendant
+  }
+
+  // Toggle the drop-target ring directly on the destination's DOM node.
+  function highlight(destDir: string | null) {
+    if (highlightedDir.current === destDir) return;
+    const prev = highlightedDir.current;
+    if (prev) rowEls.current.get(prev)?.classList.remove(...HIGHLIGHT);
+    if (destDir) rowEls.current.get(destDir)?.classList.add(...HIGHLIGHT);
+    highlightedDir.current = destDir;
+  }
+
+  function onDragStart(e: React.DragEvent, entry: DirEntry) {
+    dragging.current = entry.path;
+    e.dataTransfer.setData(DRAG_MIME, entry.path);
+    e.dataTransfer.effectAllowed = "copyMove"; // move by default, copy with Option
+    e.dataTransfer.setDragImage(makeDragBadge(entry), 12, 12);
+  }
+
+  function onDragOver(e: React.DragEvent, entry: DirEntry | null) {
+    const destDir = dropDirOf(entry);
+    if (!canDrop(dragging.current, destDir)) {
+      highlight(null);
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = e.altKey ? "copy" : "move";
+    highlight(destDir);
+  }
+
+  function onDrop(e: React.DragEvent, entry: DirEntry | null) {
+    e.preventDefault();
+    e.stopPropagation();
+    const src = e.dataTransfer.getData(DRAG_MIME) || dragging.current;
+    const destDir = dropDirOf(entry);
+    const asCopy = e.altKey;
+    highlight(null);
+    dragging.current = null;
+    if (canDrop(src, destDir)) void transfer(src!, destDir, asCopy);
+  }
+
+  function onDragEnd() {
+    dragging.current = null;
+    highlight(null);
+  }
+
+  // Move (rename) or copy `from` into `destDir`, refreshing the affected dirs.
+  async function transfer(from: string, destDir: string, asCopy: boolean) {
+    const name = from.slice(from.lastIndexOf("/") + 1);
+    const target = joinPath(destDir, name);
+    try {
+      const siblings = await listDir(destDir);
+      if (siblings.some((c) => c.name === name)) {
+        await confirm(`A file named "${name}" already exists in this folder.`, {
+          title: asCopy ? "Copy failed" : "Move failed",
+          kind: "error",
+        });
+        return;
+      }
+      if (asCopy) {
+        await copyPath(from, target);
+      } else {
+        await renamePath(from, target);
+        ctx.events.emit("files:renamed", { from, to: target });
+        await refreshDir(parentOf(from));
+      }
+      setExpanded(destDir, true);
+      await refreshDir(destDir);
+    } catch (e) {
+      await confirm(`${e}`, { title: asCopy ? "Copy failed" : "Move failed", kind: "error" });
+    }
+  }
+
   const rootName = root.split("/").pop() ?? root;
 
   return (
@@ -158,17 +269,24 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
         </div>
       </div>
       <div
-        className="flex flex-col flex-1 overflow-y-auto pb-1 select-none"
+        ref={(el) => {
+          if (el) rowEls.current.set(root, el);
+          else rowEls.current.delete(root);
+        }}
+        className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY, entry: null });
         }}
+        onDragOver={(e) => onDragOver(e, null)}
+        onDrop={(e) => onDrop(e, null)}
       >
         <Rows
           nodes={tree}
           depth={0}
           expandedDirs={expandedDirs}
           draft={draft}
+          rowEls={rowEls.current}
           onToggle={toggleDir}
           onOpen={openFile}
           onContext={(e, entry) => {
@@ -178,6 +296,10 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           }}
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onDragEnd={onDragEnd}
         />
 
         {draft && draft.parentPath === root && (
@@ -235,11 +357,16 @@ interface RowsProps {
   depth: number;
   expandedDirs: Set<string>;
   draft: Draft | null;
+  rowEls: Map<string, HTMLElement>;
   onToggle: (entry: DirEntry) => void;
   onOpen: (entry: DirEntry, pin: boolean) => void;
   onContext: (e: React.MouseEvent, entry: DirEntry) => void;
   onCommitDraft: (name: string) => void;
   onCancelDraft: () => void;
+  onDragStart: (e: React.DragEvent, entry: DirEntry) => void;
+  onDragOver: (e: React.DragEvent, entry: DirEntry) => void;
+  onDrop: (e: React.DragEvent, entry: DirEntry) => void;
+  onDragEnd: () => void;
 }
 
 function Rows(props: RowsProps) {
@@ -257,13 +384,26 @@ function Rows(props: RowsProps) {
               <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />
             ) : (
               <div
-                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover ${
+                draggable
+                ref={
+                  entry.isDir
+                    ? (el) => {
+                        if (el) props.rowEls.set(entry.path, el);
+                        else props.rowEls.delete(entry.path);
+                      }
+                    : undefined
+                }
+                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] ${
                   isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}
                 onClick={() => (entry.isDir ? props.onToggle(entry) : props.onOpen(entry, false))}
                 onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
                 onContextMenu={(e) => props.onContext(e, entry)}
+                onDragStart={(e) => props.onDragStart(e, entry)}
+                onDragOver={(e) => props.onDragOver(e, entry)}
+                onDrop={(e) => props.onDrop(e, entry)}
+                onDragEnd={props.onDragEnd}
               >
                 {entry.isDir && <Chevron expanded={expanded} />}
                 {!entry.isDir && <span className="w-[10px] shrink-0" />}
