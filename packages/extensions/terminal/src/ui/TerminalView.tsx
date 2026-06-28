@@ -29,6 +29,13 @@ interface Session {
 // panes (which unmounts/remounts the host) without losing its PTY or scrollback.
 const sessions = new Map<string, Session>();
 
+// A starting cwd for a not-yet-mounted terminal, keyed by its view id (set by
+// "Open in Terminal"). Consumed once when the session is created.
+const pendingCwd = new Map<string, string>();
+export function setTerminalCwd(id: string, cwd: string) {
+  pendingCwd.set(id, cwd);
+}
+
 function themeOf(ctx: ExtensionContext) {
   return (ctx.settings.get<"dark" | "light">("ui.theme") ?? "dark") as "dark" | "light";
 }
@@ -62,7 +69,9 @@ function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Se
     if (p.id === id) void ctx.commands.execute("editor.closeView", "terminal", id);
   });
 
-  void createTerminal(id, useTerminalStore.getState().cwd, term.cols, term.rows);
+  const cwd = pendingCwd.get(id) ?? useTerminalStore.getState().cwd;
+  pendingCwd.delete(id);
+  void createTerminal(id, cwd, term.cols, term.rows);
   const session: Session = { el, term, fit, offOut, offExit };
   sessions.set(id, session);
   return session;

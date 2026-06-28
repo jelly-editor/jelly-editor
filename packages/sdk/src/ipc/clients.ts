@@ -14,6 +14,8 @@ export interface FsClient {
   delete(path: string): Promise<void>;
   /** Broadcast that `path` changed, so every window re-lists its parent dir. */
   notifyChanged(path: string): Promise<void>;
+  /** Reveal `path` in the OS file manager (Finder / Explorer), selecting it. */
+  reveal(path: string): Promise<void>;
 }
 
 /** A pending file clipboard entry, shared across all windows by the host. */

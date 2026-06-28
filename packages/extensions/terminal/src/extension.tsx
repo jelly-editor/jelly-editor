@@ -1,5 +1,5 @@
 import type { Extension, ExtensionContext } from "@jelly/sdk";
-import { disposeSession, TerminalView } from "./ui/TerminalView";
+import { disposeSession, setTerminalCwd, TerminalView } from "./ui/TerminalView";
 import { useTerminalStore } from "./store";
 
 export const terminalExtension: Extension = {
@@ -11,6 +11,7 @@ export const terminalExtension: Extension = {
       commands: [
         { id: "terminal.new", title: "New Terminal" },
         { id: "terminal.toggle", title: "Toggle Terminal" },
+        { id: "terminal.openAt", title: "Open in Terminal", palette: false },
       ],
       keybindings: [
         { command: "terminal.new", key: "ctrl+`" },
@@ -22,8 +23,9 @@ export const terminalExtension: Extension = {
   activate(ctx: ExtensionContext) {
     const store = useTerminalStore;
     let counter = 0;
-    const openTerminal = () => {
+    const openTerminal = (cwd?: string) => {
       const id = crypto.randomUUID();
+      if (cwd) setTerminalCwd(id, cwd);
       void ctx.commands.execute("editor.openView", "terminal", id, `Terminal ${++counter}`, "group-bottom");
     };
 
@@ -41,7 +43,8 @@ export const terminalExtension: Extension = {
 
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => store.getState().setCwd(path)),
-      ctx.commands.register("terminal.new", openTerminal),
+      ctx.commands.register("terminal.new", () => openTerminal()),
+      ctx.commands.register("terminal.openAt", (path: string) => openTerminal(path)),
       ctx.commands.register("terminal.toggle", async () => {
         const toggled = await ctx.commands.execute<boolean>("editor.toggleViewType", "terminal");
         if (!toggled) openTerminal();

@@ -15,6 +15,12 @@ const {
   delete: deletePath,
 } = ipc.fs;
 
+const REVEAL_LABEL = /mac/i.test(navigator.platform)
+  ? "Reveal in Finder"
+  : /win/i.test(navigator.platform)
+  ? "Reveal in Explorer"
+  : "Reveal in File Manager";
+
 function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
 }
@@ -329,6 +335,8 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
             onPaste: paste,
             onRename: startRename,
             onDelete: remove,
+            onReveal: (path) => void ipc.fs.reveal(path),
+            onOpenTerminal: (dir) => void ctx.commands.execute("terminal.openAt", dir),
           })}
         />
       )}
@@ -382,6 +390,8 @@ function fileMenuItems(
     onPaste: (dir: string) => void;
     onRename: (entry: DirEntry, depth: number) => void;
     onDelete: (entry: DirEntry) => void;
+    onReveal: (path: string) => void;
+    onOpenTerminal: (dir: string) => void;
   },
 ): ContextMenuEntry[] {
   const targetDir = !entry ? rootPath : entry.isDir ? entry.path : parentOf(entry.path);
@@ -409,6 +419,11 @@ function fileMenuItems(
       { label: "Rename", onSelect: () => handlers.onRename(entry, depthOf(entry.path, rootPath)) },
       { label: "Delete", danger: true, onSelect: () => handlers.onDelete(entry) },
     );
+  }
+
+  items.push({ type: "separator" }, { label: REVEAL_LABEL, onSelect: () => handlers.onReveal(entry?.path ?? rootPath) });
+  if (!entry || entry.isDir) {
+    items.push({ label: "Open in Terminal", onSelect: () => handlers.onOpenTerminal(targetDir) });
   }
   return items;
 }

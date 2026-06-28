@@ -13,4 +13,5 @@ export const fs: FsClient = {
   copy: (from, to) => invoke<void>("copy", { from, to }),
   delete: (path) => invoke<void>("delete", { path }),
   notifyChanged: (path) => emit("file:changed_externally", { path }),
+  reveal: (path) => invoke<void>("plugin:opener|reveal_item_in_dir", { paths: [path] }),
 };
