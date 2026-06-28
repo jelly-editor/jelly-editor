@@ -165,13 +165,21 @@ export const editorExtension: Extension = {
     let restoring = false;
     let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
+    // `dirty` holds the unsaved buffer for a modified tab so edits survive a
+    // restart; it's omitted for clean tabs (reopened from disk).
+    type SavedTab = { path: string; name: string; dirty?: string };
+
     const saveTabs = () => {
       if (!workspacePath || restoring) return;
       const ws = workspacePath;
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         const s = store.getState();
-        const tabs = s.tabs.map((t) => ({ path: t.path, name: t.name }));
+        const tabs: SavedTab[] = s.tabs.map((t) => ({
+          path: t.path,
+          name: t.name,
+          dirty: t.isDirty ? s.getContent(t.path) : undefined,
+        }));
         void ctx.storage.set(`tabs:${ws}`, { tabs, active: s.activeTabPath });
       }, 300);
     };
@@ -179,7 +187,7 @@ export const editorExtension: Extension = {
     const restoreTabs = async (ws: string) => {
       workspacePath = ws;
       const saved = await ctx.storage
-        .get<{ tabs: { path: string; name: string }[]; active: string | null }>(`tabs:${ws}`)
+        .get<{ tabs: SavedTab[]; active: string | null }>(`tabs:${ws}`)
         .catch(() => undefined);
       if (!saved?.tabs?.length) return;
       restoring = true;
@@ -191,6 +199,8 @@ export const editorExtension: Extension = {
             continue;
           }
           await ctx.commands.execute("editor.open", t.path, t.name, { pin: true });
+          // Re-apply unsaved edits on top of the on-disk content.
+          if (t.dirty !== undefined) store.getState().updateBuffer(t.path, t.dirty);
         }
         if (saved.active) store.getState().setActiveTab(saved.active);
       } finally {
