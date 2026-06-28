@@ -116,19 +116,30 @@ impl FileWatcher {
             let mut watched = HashSet::new();
             add_watches(debouncer.watcher(), &mut watched, &root);
 
+            // The working-tree walk skips `.git`; watch it separately so staging
+            // and commits from outside the app refresh the Git panel.
+            let git_dir = root.join(".git");
+            if git_dir.is_dir() {
+                let _ = debouncer
+                    .watcher()
+                    .watch(&git_dir, RecursiveMode::Recursive);
+            }
+
             // recv_timeout polls the stop flag while idle; events still arrive
             // immediately whenever the channel has data.
             while !stop.load(Ordering::Relaxed) {
                 match rx.recv_timeout(Duration::from_millis(500)) {
                     Ok(Ok(events)) => {
                         for event in events {
-                            if event.path.is_dir() && !watched.contains(&event.path) {
+                            let in_git = event.path.starts_with(&git_dir);
+                            if !in_git && event.path.is_dir() && !watched.contains(&event.path) {
                                 add_watches(debouncer.watcher(), &mut watched, &event.path);
                             }
                             let payload = FileChangedPayload {
                                 path: event.path.to_string_lossy().to_string(),
                             };
-                            let _ = app.emit("file:changed_externally", payload);
+                            let topic = if in_git { "git:changed" } else { "file:changed_externally" };
+                            let _ = app.emit(topic, payload);
                         }
                     }
                     Ok(Err(e)) => {

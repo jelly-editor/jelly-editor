@@ -58,6 +58,7 @@ export const gitExtension: Extension = {
       }),
       ctx.events.on("file:saved", refreshSoon),
       ctx.events.on("file:changed_externally", refreshSoon),
+      ctx.events.on("git:changed", refreshSoon),
       ctx.events.on<{ path: string | null }>("editor:diff_changed", ({ path }) =>
         store.getState().setActiveDiffPath(path),
       ),
