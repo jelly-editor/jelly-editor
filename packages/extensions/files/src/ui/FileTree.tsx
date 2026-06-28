@@ -54,7 +54,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     ctx,
     root: root ?? "",
     treeRef,
-    rowEls,
     highlightEls,
     canDrop,
     transferAll,
@@ -333,6 +332,8 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           })}
         />
       )}
+
+      {dnd.overlay}
     </div>
   );
 }

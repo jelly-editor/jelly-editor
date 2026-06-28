@@ -43,6 +43,11 @@ export function jellyTheme(dark: boolean, fontSize = 13): Extension {
         backgroundColor: "transparent",
         color: "var(--color-text-dim)",
         border: "none",
+        userSelect: "none",
+      },
+      ".cm-lineNumbers .cm-gutterElement": {
+        minWidth: "4ch",
+        textAlign: "right",
       },
       ".cm-activeLine": { backgroundColor: "color-mix(in oklch, var(--color-bg-elevated) 55%, transparent)" },
       ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--color-text-muted)" },

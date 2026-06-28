@@ -48,7 +48,7 @@ export function Rows(props: RowsProps) {
     <>
       {nodes.map((entry) => {
         const expanded = entry.isDir && expandedDirs.has(entry.path);
-        const isActive = entry.path === activeFilePath;
+        const isActive = entry.path === activeFilePath && selected.size === 0;
         const isSelected = selected.has(entry.path);
         const statusColor = entry.isDir ? "" : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
         return (
@@ -76,19 +76,16 @@ export function Rows(props: RowsProps) {
                 tabIndex={0}
                 data-path={entry.path}
                 data-dir={entry.isDir ? "1" : "0"}
-                className={`group flex w-full box-border items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
-                  isSelected ? "bg-accent/20 text-text" : isActive ? "bg-bg-active text-text" : "text-text-muted"
+                className={`group flex w-full box-border items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] rounded-[2px] outline-none focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
+                  isSelected
+                    ? "bg-accent/20 text-text"
+                    : isActive
+                    ? "bg-bg-active text-text"
+                    : "text-text-muted hover:bg-bg-hover focus-visible:bg-bg-hover"
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}
                 onClick={(e) => props.onClick(e, entry)}
-                onPointerDown={(e) => {
-                  try {
-                    e.currentTarget.setPointerCapture(e.pointerId);
-                  } catch {
-                    /* pointer may already be captured by the platform */
-                  }
-                  props.onPointerDownRow(e, entry);
-                }}
+                onPointerDown={(e) => props.onPointerDownRow(e, entry)}
                 onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
                 onDragStart={(e) => e.preventDefault()}
                 onDragOver={(e) => e.preventDefault()}
