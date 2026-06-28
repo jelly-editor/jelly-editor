@@ -43,6 +43,8 @@ interface WorkspaceState {
   activeFilePath: string | null;
   /** absolute path → git status, from the git extension's `git:status_changed`. */
   gitStatuses: Record<string, FileStatus>;
+  /** Explorer selection — the set of highlighted entries (Cmd-click to extend). */
+  selected: Set<string>;
 
   setWorkspace: (path: string, tree: DirEntry[]) => void;
   setAllFiles: (files: DirEntry[]) => void;
@@ -51,6 +53,9 @@ interface WorkspaceState {
   setChildren: (parentPath: string, children: DirEntry[]) => void;
   setExpanded: (path: string, expanded: boolean) => void;
   setActiveFilePath: (path: string | null) => void;
+  setSelection: (paths: string[]) => void;
+  toggleSelection: (path: string) => void;
+  clearSelection: () => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -60,15 +65,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   expandedDirs: new Set(),
   activeFilePath: null,
   gitStatuses: {},
+  selected: new Set(),
 
-  setWorkspace: (path, tree) => set({ path, tree, allFiles: [], expandedDirs: new Set() }),
+  setWorkspace: (path, tree) =>
+    set({ path, tree, allFiles: [], expandedDirs: new Set(), selected: new Set() }),
 
   setAllFiles: (allFiles) => set({ allFiles }),
 
   setGitStatuses: (gitStatuses) => set({ gitStatuses }),
 
   clearWorkspace: () =>
-    set({ path: null, tree: [], allFiles: [], expandedDirs: new Set(), gitStatuses: {} }),
+    set({ path: null, tree: [], allFiles: [], expandedDirs: new Set(), gitStatuses: {}, selected: new Set() }),
 
   setChildren: (parentPath, children) =>
     set((s) =>
@@ -85,4 +92,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     }),
 
   setActiveFilePath: (activeFilePath) => set({ activeFilePath }),
+
+  setSelection: (paths) => set({ selected: new Set(paths) }),
+
+  toggleSelection: (path) =>
+    set((s) => {
+      const next = new Set(s.selected);
+      next.has(path) ? next.delete(path) : next.add(path);
+      return { selected: next };
+    }),
+
+  clearSelection: () => set({ selected: new Set() }),
 }));

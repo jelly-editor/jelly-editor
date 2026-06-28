@@ -50,9 +50,9 @@ async function refreshDir(dirPath: string) {
 }
 
 /** A small name-only pill used as the drag image (instead of the full row). */
-function makeDragBadge(entry: DirEntry): HTMLElement {
+function makeDragBadge(entry: DirEntry, count: number): HTMLElement {
   const badge = document.createElement("div");
-  badge.textContent = entry.name;
+  badge.textContent = count > 1 ? `${count} items` : entry.name;
   badge.className =
     "fixed -top-[1000px] left-0 px-2 h-[22px] flex items-center rounded-[5px] " +
     "bg-bg-elevated border border-border text-text text-[12px] shadow-lg pointer-events-none";
@@ -71,7 +71,8 @@ interface Draft {
 }
 
 export function FileTree({ ctx }: { ctx: ExtensionContext }) {
-  const { path: root, tree, expandedDirs, setExpanded, setChildren } = useWorkspaceStore();
+  const { path: root, tree, expandedDirs, setExpanded, setChildren, setSelection, toggleSelection, clearSelection } =
+    useWorkspaceStore();
   // Right-click target: a tree entry, or null for the empty area (= root).
   const menu = useContextMenu<DirEntry | null>();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -80,7 +81,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const [canPaste, setCanPaste] = useState(false);
   // Drag-and-drop is driven entirely through refs/DOM so dragging over a large
   // tree never re-renders React (the old `useState` highlight was the lag).
-  const dragging = useRef<string | null>(null); // path being dragged
+  const dragging = useRef<string[]>([]); // paths being dragged
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
 
@@ -90,6 +91,16 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
 
   function openFile(entry: DirEntry, pin: boolean) {
     void ctx.commands.execute("editor.open", entry.path, entry.name, { pin });
+  }
+
+  function onRowClick(e: React.MouseEvent, entry: DirEntry) {
+    if (e.metaKey || e.ctrlKey) {
+      toggleSelection(entry.path);
+      return;
+    }
+    setSelection([entry.path]);
+    if (entry.isDir) void toggleDir(entry);
+    else openFile(entry, false);
   }
 
   async function toggleDir(entry: DirEntry) {
@@ -157,34 +168,51 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     }
   }
 
+  // The entries an action operates on: the whole selection when the target is
+  // part of it, otherwise just the target itself.
+  function actionTargets(entry: DirEntry): string[] {
+    const selected = useWorkspaceStore.getState().selected;
+    return selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
+  }
+
   async function remove(entry: DirEntry) {
-    const ok = await ctx.dialog.confirm(
-      `Delete ${entry.isDir ? "folder" : "file"} "${entry.name}"? This cannot be undone.`,
-      { title: "Confirm delete", kind: "warning", confirmLabel: "Delete", danger: true },
-    );
+    const paths = actionTargets(entry);
+    const label = paths.length > 1 ? `${paths.length} items` : `${entry.isDir ? "folder" : "file"} "${entry.name}"`;
+    const ok = await ctx.dialog.confirm(`Delete ${label}? This cannot be undone.`, {
+      title: "Confirm delete",
+      kind: "warning",
+      confirmLabel: "Delete",
+      danger: true,
+    });
     if (!ok) return;
+    const parents = new Set<string>();
     try {
-      await deletePath(entry.path);
-      void ctx.commands.execute("editor.closeFile", entry.path);
-      await refreshDir(parentOf(entry.path));
+      for (const path of paths) {
+        await deletePath(path);
+        void ctx.commands.execute("editor.closeFile", path);
+        parents.add(parentOf(path));
+      }
+      clearSelection();
+      for (const dir of parents) await refreshDir(dir);
     } catch (e) {
       await alertError(`${e}`, "Delete failed");
     }
   }
 
   function openMenu(e: React.MouseEvent, entry: DirEntry | null) {
+    if (entry && !useWorkspaceStore.getState().selected.has(entry.path)) setSelection([entry.path]);
     menu.open(e, entry);
     void ipc.clipboard.read().then((c) => setCanPaste(!!c?.paths.length));
   }
 
   function clip(entry: DirEntry, cut: boolean) {
-    void ipc.clipboard.write([entry.path], cut);
+    void ipc.clipboard.write(actionTargets(entry), cut);
   }
 
   async function paste(destDir: string) {
     const entry = await ipc.clipboard.read();
     if (!entry?.paths.length) return;
-    for (const from of entry.paths) await transfer(from, destDir, !entry.cut);
+    await transferAll(entry.paths, destDir, !entry.cut);
     if (entry.cut) await ipc.clipboard.clear();
   }
 
@@ -195,10 +223,11 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     return entry.isDir ? entry.path : parentOf(entry.path);
   }
 
-  function canDrop(src: string | null, destDir: string): boolean {
-    if (!src) return false;
-    if (parentOf(src) === destDir) return false; // already lives here
-    return destDir !== src && !destDir.startsWith(src + "/"); // not into self/descendant
+  function canDrop(srcs: string[], destDir: string, asCopy: boolean): boolean {
+    if (!srcs.length) return false;
+    if (srcs.some((s) => destDir === s || destDir.startsWith(s + "/"))) return false; // not into self/descendant
+    if (!asCopy && srcs.every((s) => parentOf(s) === destDir)) return false; // already lives here
+    return true;
   }
 
   // Toggle the drop-target ring directly on the destination's DOM node.
@@ -211,19 +240,22 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function onDragStart(e: React.DragEvent, entry: DirEntry) {
-    dragging.current = entry.path;
-    e.dataTransfer.setData(DRAG_MIME, entry.path);
-    // Files also advertise an open payload so editor panes can accept the drop.
-    if (!entry.isDir) {
+    const selected = useWorkspaceStore.getState().selected;
+    const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
+    if (!selected.has(entry.path)) setSelection([entry.path]);
+    dragging.current = paths;
+    e.dataTransfer.setData(DRAG_MIME, JSON.stringify(paths));
+    // A single file also advertises an open payload so editor panes accept it.
+    if (paths.length === 1 && !entry.isDir) {
       e.dataTransfer.setData("application/x-jelly-file", JSON.stringify({ path: entry.path, name: entry.name }));
     }
     e.dataTransfer.effectAllowed = "copyMove"; // move by default, copy with Option
-    e.dataTransfer.setDragImage(makeDragBadge(entry), 12, 12);
+    e.dataTransfer.setDragImage(makeDragBadge(entry, paths.length), 12, 12);
   }
 
   function onDragOver(e: React.DragEvent, entry: DirEntry | null) {
     const destDir = dropDirOf(entry);
-    if (!canDrop(dragging.current, destDir)) {
+    if (!canDrop(dragging.current, destDir, e.altKey)) {
       highlight(null);
       return;
     }
@@ -236,17 +268,22 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   function onDrop(e: React.DragEvent, entry: DirEntry | null) {
     e.preventDefault();
     e.stopPropagation();
-    const src = e.dataTransfer.getData(DRAG_MIME) || dragging.current;
+    const raw = e.dataTransfer.getData(DRAG_MIME);
+    const srcs = raw ? (JSON.parse(raw) as string[]) : dragging.current;
     const destDir = dropDirOf(entry);
     const asCopy = e.altKey;
     highlight(null);
-    dragging.current = null;
-    if (canDrop(src, destDir)) void transfer(src!, destDir, asCopy);
+    dragging.current = [];
+    if (canDrop(srcs, destDir, asCopy)) void transferAll(srcs, destDir, asCopy);
   }
 
   function onDragEnd() {
-    dragging.current = null;
+    dragging.current = [];
     highlight(null);
+  }
+
+  async function transferAll(froms: string[], destDir: string, asCopy: boolean) {
+    for (const from of froms) await transfer(from, destDir, asCopy);
   }
 
   // Move (rename) or copy `from` into `destDir`, refreshing the affected dirs.
@@ -326,6 +363,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           else rowEls.current.delete(root);
         }}
         className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
+        onClick={(e) => e.target === e.currentTarget && clearSelection()}
         onContextMenu={(e) => openMenu(e, null)}
         onDragOver={(e) => onDragOver(e, null)}
         onDrop={(e) => onDrop(e, null)}
@@ -338,6 +376,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           rowEls={rowEls.current}
           onToggle={toggleDir}
           onOpen={openFile}
+          onClick={onRowClick}
           onContext={openMenu}
           onRename={startRename}
           onCommitDraft={commitDraft}
@@ -412,6 +451,7 @@ interface RowsProps {
   rowEls: Map<string, HTMLElement>;
   onToggle: (entry: DirEntry) => void;
   onOpen: (entry: DirEntry, pin: boolean) => void;
+  onClick: (e: React.MouseEvent, entry: DirEntry) => void;
   onContext: (e: React.MouseEvent, entry: DirEntry) => void;
   onRename: (entry: DirEntry, depth: number) => void;
   onCommitDraft: (name: string) => void;
@@ -426,12 +466,14 @@ function Rows(props: RowsProps) {
   const { nodes, depth, expandedDirs, draft } = props;
   const activeFilePath = useWorkspaceStore((s) => s.activeFilePath);
   const gitStatuses = useWorkspaceStore((s) => s.gitStatuses);
+  const selected = useWorkspaceStore((s) => s.selected);
 
   return (
     <>
       {nodes.map((entry) => {
         const expanded = entry.isDir && expandedDirs.has(entry.path);
         const isActive = entry.path === activeFilePath;
+        const isSelected = selected.has(entry.path);
         const statusColor = entry.isDir ? "" : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
         return (
           <div
@@ -455,10 +497,10 @@ function Rows(props: RowsProps) {
                 draggable
                 tabIndex={0}
                 className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
-                  isActive ? "bg-bg-active text-text" : "text-text-muted"
+                  isSelected ? "bg-accent/20 text-text" : isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}
-                onClick={() => (entry.isDir ? props.onToggle(entry) : props.onOpen(entry, false))}
+                onClick={(e) => props.onClick(e, entry)}
                 onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
