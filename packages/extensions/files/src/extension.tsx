@@ -63,6 +63,21 @@ export const filesExtension: Extension = {
         .catch(() => {});
     };
 
+    // Re-expand the folders that were open last session (parents first so each
+    // child's loaded subtree nests correctly).
+    const restoreExpanded = async (root: string) => {
+      const dirs = (await ctx.storage.get<string[]>(`expanded:${root}`)) ?? [];
+      dirs.sort((a, b) => a.split("/").length - b.split("/").length);
+      for (const dir of dirs) {
+        try {
+          store.getState().setChildren(dir, await ipc.fs.list(dir));
+          store.getState().setExpanded(dir, true);
+        } catch {
+          /* folder no longer exists */
+        }
+      }
+    };
+
     ctx.subscriptions.push(
       // Open a folder as the workspace, then announce it. The kernel flips to
       // the editor workbench on this event; git/terminal react to it too.
@@ -71,6 +86,7 @@ export const filesExtension: Extension = {
         store.getState().setWorkspace(path, tree);
         ctx.events.emit("workspace:opened", { path });
         loadAllFiles(path); // fire-and-forget; populates the palette index
+        void restoreExpanded(path);
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
@@ -112,6 +128,24 @@ export const filesExtension: Extension = {
       ctx.events.on<{ statuses: Record<string, FileStatus> }>("git:status_changed", ({ statuses }) =>
         store.getState().setGitStatuses(statuses),
       ),
+    );
+
+    // Persist the set of expanded folders (debounced) so it survives restarts.
+    let expandedTimer: ReturnType<typeof setTimeout> | undefined;
+    let prevExpanded = store.getState().expandedDirs;
+    ctx.subscriptions.push(
+      { dispose: () => clearTimeout(expandedTimer) },
+      {
+        dispose: store.subscribe((s) => {
+          if (s.expandedDirs === prevExpanded || !s.path) return;
+          prevExpanded = s.expandedDirs;
+          const root = s.path;
+          clearTimeout(expandedTimer);
+          expandedTimer = setTimeout(() => {
+            void ctx.storage.set(`expanded:${root}`, [...store.getState().expandedDirs]);
+          }, 300);
+        }),
+      },
     );
 
     // Reflect external changes (e.g. a .gitignore written by another feature)

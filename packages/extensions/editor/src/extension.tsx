@@ -160,6 +160,60 @@ export const editorExtension: Extension = {
       }),
     );
 
+    // Persist open tabs per workspace and restore them on the next launch.
+    let workspacePath: string | null = null;
+    let restoring = false;
+    let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const saveTabs = () => {
+      if (!workspacePath || restoring) return;
+      const ws = workspacePath;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const s = store.getState();
+        const tabs = s.tabs.map((t) => ({ path: t.path, name: t.name }));
+        void ctx.storage.set(`tabs:${ws}`, { tabs, active: s.activeTabPath });
+      }, 300);
+    };
+
+    const restoreTabs = async (ws: string) => {
+      workspacePath = ws;
+      const saved = await ctx.storage
+        .get<{ tabs: { path: string; name: string }[]; active: string | null }>(`tabs:${ws}`)
+        .catch(() => undefined);
+      if (!saved?.tabs?.length) return;
+      restoring = true;
+      try {
+        for (const t of saved.tabs) {
+          try {
+            await ipc.fs.read(t.path); // skip files that no longer exist
+          } catch {
+            continue;
+          }
+          await ctx.commands.execute("editor.open", t.path, t.name, { pin: true });
+        }
+        if (saved.active) store.getState().setActiveTab(saved.active);
+      } finally {
+        restoring = false;
+        saveTabs();
+      }
+    };
+
+    let lastTabs = store.getState().tabs;
+    let lastActive = store.getState().activeTabPath;
+    ctx.subscriptions.push(
+      ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => void restoreTabs(path)),
+      { dispose: () => clearTimeout(saveTimer) },
+      {
+        dispose: store.subscribe((s) => {
+          if (s.tabs === lastTabs && s.activeTabPath === lastActive) return;
+          lastTabs = s.tabs;
+          lastActive = s.activeTabPath;
+          saveTabs();
+        }),
+      },
+    );
+
     ctx.ui.mountSlot("editor.surface", <EditorPane ctx={ctx} />, { id: "editor.main" });
     ctx.ui.contributeStatusBarItem({ id: "editor.path", align: "left", order: 20, render: () => <EditorPath /> });
     ctx.ui.contributeStatusBarItem({ id: "editor.encoding", align: "right", order: 10, render: () => <EditorEncoding /> });

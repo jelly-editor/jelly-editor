@@ -52,6 +52,11 @@ export function createStubIpc(): IpcClient {
       load: fail("settings.load"),
       save: fail("settings.save"),
     },
+    storage: {
+      load: fail("storage.load"),
+      set: fail("storage.set"),
+      delete: fail("storage.delete"),
+    },
     keybindings: {
       load: fail("keybindings.load"),
       save: fail("keybindings.save"),

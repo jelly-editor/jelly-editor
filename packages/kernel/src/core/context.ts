@@ -1,6 +1,6 @@
 import type { Disposable, Extension, ExtensionContext, IpcClient } from "@jelly/sdk";
 import { PrefixedLogger } from "../registries/logger";
-import { MemoryKeyValueStore } from "../registries/storage";
+import { PersistentKeyValueStore } from "../registries/storage";
 
 /** Shared, kernel-wide services handed to every extension. */
 export interface KernelServices {
@@ -63,7 +63,7 @@ export function createExtensionContext(
     keybindings: autoTrack(services.keybindings, subscriptions),
     palette: autoTrack(services.palette, subscriptions),
     ipc: services.ipc,
-    storage: new MemoryKeyValueStore(),
+    storage: new PersistentKeyValueStore(extension.manifest.id, services.ipc),
     log: new PrefixedLogger(extension.manifest.id),
     subscriptions,
   };

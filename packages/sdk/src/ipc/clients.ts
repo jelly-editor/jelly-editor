@@ -58,6 +58,13 @@ export interface SettingsClient {
   save(key: string, value: unknown): Promise<void>;
 }
 
+export interface StorageClient {
+  /** the full persisted state map (kernel-namespaced keys) */
+  load(): Promise<Record<string, unknown>>;
+  set(key: string, value: unknown): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
 export interface KeybindingsClient {
   /** the saved user overrides: command id → key spec (`""` = unbound) */
   load(): Promise<Record<string, string>>;

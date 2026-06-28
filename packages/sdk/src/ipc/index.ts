@@ -16,6 +16,7 @@ export type {
   KeybindingsClient,
   SearchClient,
   SettingsClient,
+  StorageClient,
   TerminalClient,
   UpdateCheckResult,
   UpdaterClient,
