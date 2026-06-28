@@ -15,7 +15,7 @@ export const commandPaletteExtension: Extension = {
         { id: "commandPalette.shortcuts", title: "Keyboard Shortcuts" },
       ],
       keybindings: [
-        { command: "commandPalette.toggle", key: "mod+k" },
+        { command: "commandPalette.toggle", key: "mod+shift+p" },
         { command: "commandPalette.openFiles", key: "mod+p" },
         { command: "commandPalette.shortcuts", key: "mod+k mod+s" },
       ],

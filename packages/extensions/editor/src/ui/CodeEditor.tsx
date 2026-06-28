@@ -6,6 +6,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { useEffect, useMemo, useRef } from "react";
 import { FindPanel } from "./FindPanel";
 import { useState } from "react";
+import { getActiveView, setActiveView } from "../active-view";
 
 interface Props {
   ctx: ExtensionContext;
@@ -57,6 +58,14 @@ export function CodeEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealNonce]);
 
+  // Keep the shared active-view pointer in sync so fold commands (run from the
+  // global keybinding dispatcher) act on the currently mounted editor.
+  useEffect(() => {
+    return () => {
+      if (viewRef.current && getActiveView() === viewRef.current) setActiveView(null);
+    };
+  }, []);
+
   const extensions = useMemo(
     () => [
       ...baseExtensions(name, dark, { fontSize, tabSize, wordWrap, largeFile: isLargeFile }),
@@ -93,6 +102,7 @@ export function CodeEditor({
         extensions={extensions}
         onCreateEditor={(view) => {
           viewRef.current = view;
+          setActiveView(view);
           if (revealLine !== undefined) revealLineInView(view, revealLine);
         }}
         basicSetup={{

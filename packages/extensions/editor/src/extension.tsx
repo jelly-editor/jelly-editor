@@ -1,10 +1,22 @@
 import type { Extension, ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
+import { foldAll, unfoldAll } from "@codemirror/language";
+import type { EditorView } from "@codemirror/view";
+import { foldNearest, unfoldNearest } from "./fold";
 import { EditorPane } from "./ui/EditorPane";
 import { EditorEncoding, EditorIndent, EditorPath } from "./ui/StatusItems";
 import { useEditorStore } from "./store";
 import { saveActive } from "./save";
 import { decideExternalChange } from "./reconcile";
+import { getActiveView } from "./active-view";
+
+/** Run a CodeMirror fold command against the currently mounted editor. */
+function runFold(cmd: (view: EditorView) => boolean): void {
+  const view = getActiveView();
+  if (!view) return;
+  cmd(view);
+  view.focus();
+}
 
 export const editorExtension: Extension = {
   manifest: {
@@ -18,10 +30,18 @@ export const editorExtension: Extension = {
         { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
         { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
+        { id: "editor.fold", title: "Fold" },
+        { id: "editor.unfold", title: "Unfold" },
+        { id: "editor.foldAll", title: "Fold All" },
+        { id: "editor.unfoldAll", title: "Unfold All" },
       ],
       keybindings: [
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
         { command: "editor.closeActiveTab", key: "mod+w", when: "workspaceOpen" },
+        { command: "editor.fold", key: "mod+alt+[", when: "workspaceOpen" },
+        { command: "editor.unfold", key: "mod+alt+]", when: "workspaceOpen" },
+        { command: "editor.foldAll", key: "mod+k mod+0", when: "workspaceOpen" },
+        { command: "editor.unfoldAll", key: "mod+k mod+j", when: "workspaceOpen" },
       ],
     },
   },
@@ -62,6 +82,10 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.closeFile", (path?: string) =>
         store.getState().closeTab(path ?? store.getState().activeTabPath ?? ""),
       ),
+      ctx.commands.register("editor.fold", () => runFold(foldNearest)),
+      ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
+      ctx.commands.register("editor.foldAll", () => runFold(foldAll)),
+      ctx.commands.register("editor.unfoldAll", () => runFold(unfoldAll)),
     );
 
     // A file or folder was renamed/moved in the tree — remap any open tabs so

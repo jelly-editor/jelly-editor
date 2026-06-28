@@ -58,6 +58,33 @@ export function eventKey(e: KeyboardEvent): string {
   return e.key.toLowerCase();
 }
 
+/**
+ * Physical-key fallback for punctuation. Holding Alt on macOS rewrites
+ * `e.key` to a typographic glyph (Option+[ → "“"), so a binding like
+ * `mod+alt+[` would never match by `e.key`. `e.code` is layout-shifted but
+ * modifier-stable, so we map the symbol codes back to their base character.
+ * Restricted to punctuation — letters/digits keep their layout-aware `e.key`
+ * matching so non-QWERTY layouts aren't double-bound.
+ */
+const SYMBOL_CODE: Record<string, string> = {
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Minus: "-",
+  Equal: "=",
+  Backquote: "`",
+};
+
+/** Does the event's key — by glyph or physical symbol code — equal `key`? */
+function keyMatches(e: KeyboardEvent, key: string): boolean {
+  return eventKey(e) === key || SYMBOL_CODE[e.code] === key;
+}
+
 /** True if the event is just a modifier being pressed (no real key yet). */
 export function isModifierEvent(e: KeyboardEvent): boolean {
   return e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta";
@@ -73,7 +100,7 @@ export function matchChord(chord: Chord, e: KeyboardEvent): boolean {
     e.metaKey === needMeta &&
     e.altKey === chord.alt &&
     e.shiftKey === chord.shift &&
-    eventKey(e) === chord.key
+    keyMatches(e, chord.key)
   );
 }
 

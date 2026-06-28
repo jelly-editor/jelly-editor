@@ -54,6 +54,14 @@ describe("matchChord", () => {
     const [ctrlChord] = parseKey("ctrl+`");
     expect(matchChord(ctrlChord, ev({ ctrlKey: true, key: "`" }))).toBe(true);
   });
+
+  test("falls back to physical code when Alt rewrites the glyph", () => {
+    // macOS: Option+[ produces e.key "“" but e.code stays "BracketLeft".
+    const [chord] = parseKey("mod+alt+[");
+    expect(matchChord(chord, ev({ ...modKey, altKey: true, key: "“", code: "BracketLeft" }))).toBe(
+      true,
+    );
+  });
 });
 
 describe("isModifierEvent", () => {
