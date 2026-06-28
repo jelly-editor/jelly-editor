@@ -1,5 +1,6 @@
 import type { IpcClient } from "@jelly/sdk";
 import { clipboard } from "./clipboard";
+import { drag } from "./drag";
 import { fs } from "./fs";
 import { git } from "./git";
 import { keybindings } from "./keybindings";
@@ -14,6 +15,7 @@ import { workspace } from "./workspace";
 export const ipc: IpcClient = {
   fs,
   clipboard,
+  drag,
   git,
   search,
   terminal,
@@ -24,4 +26,4 @@ export const ipc: IpcClient = {
   updater,
 };
 
-export { fs, clipboard, git, search, terminal, workspace, settings, storage, keybindings, updater };
+export { fs, clipboard, drag, git, search, terminal, workspace, settings, storage, keybindings, updater };

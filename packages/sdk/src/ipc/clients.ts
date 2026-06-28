@@ -29,6 +29,33 @@ export interface ClipboardClient {
   clear(): Promise<void>;
 }
 
+export interface DragSession {
+  paths: string[];
+  copy: boolean;
+}
+
+export type DragDropPhase = "enter" | "over" | "drop" | "leave";
+
+export interface DragDropEvent {
+  phase: DragDropPhase;
+  /** Dropped file paths — present on `enter`/`drop`, empty otherwise. */
+  paths: string[];
+  /** Cursor position in physical pixels relative to the webview. */
+  x: number;
+  y: number;
+}
+
+/** Cross-window file drag, backed by an OS-native drag operation. */
+export interface DragClient {
+  /** Begin an OS drag carrying `paths`; `copy` sets the move/copy intent. */
+  start(paths: string[], copy: boolean): Promise<void>;
+  /** The current session, recorded by the source window (null if none). */
+  readSession(): Promise<DragSession | null>;
+  clearSession(): Promise<void>;
+  /** Subscribe to native drag-drop events on this window; returns an unsubscribe. */
+  onDrop(handler: (e: DragDropEvent) => void): Promise<() => void>;
+}
+
 export interface GitClient {
   status(workspace: string): Promise<GitStatus>;
   diff(workspace: string, path: string): Promise<GitDiffResult>;

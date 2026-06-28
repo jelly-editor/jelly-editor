@@ -19,6 +19,7 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_drag::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             let path = args.get(1).map(|p| {
                 if std::path::Path::new(p).is_absolute() {
@@ -112,6 +113,9 @@ pub fn run() {
             jelly_fs::clipboard::clipboard_write,
             jelly_fs::clipboard::clipboard_read,
             jelly_fs::clipboard::clipboard_clear,
+            jelly_fs::drag::drag_session_write,
+            jelly_fs::drag::drag_session_read,
+            jelly_fs::drag::drag_session_clear,
             jelly_terminal::commands::create_terminal,
             jelly_terminal::commands::terminal_input,
             jelly_terminal::commands::terminal_resize,

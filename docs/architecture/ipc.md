@@ -9,6 +9,7 @@ work behind `ctx.ipc` is what makes the future sandbox real.
 interface IpcClient {
   fs:          { read, save, list, listFiles, create, createDir, rename, copy, delete };
   clipboard:   { write, read, clear };         // host-held file clipboard, shared across windows
+  drag:        { start, readSession, clearSession, onDrop }; // OS-native cross-window file drag
   git:         { status, diff, stage, unstage, commit };
   terminal:    { create, input, resize, close };
   workspace:   { open, recent, removeRecent };

@@ -13,6 +13,10 @@ export type {
 export type {
   ClipboardClient,
   ClipboardEntry,
+  DragClient,
+  DragDropEvent,
+  DragDropPhase,
+  DragSession,
   FsClient,
   GitClient,
   KeybindingsClient,

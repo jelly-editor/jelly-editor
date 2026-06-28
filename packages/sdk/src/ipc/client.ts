@@ -1,5 +1,6 @@
 import type {
   ClipboardClient,
+  DragClient,
   FsClient,
   GitClient,
   KeybindingsClient,
@@ -20,6 +21,7 @@ import type {
 export interface IpcClient {
   fs: FsClient;
   clipboard: ClipboardClient;
+  drag: DragClient;
   git: GitClient;
   search: SearchClient;
   terminal: TerminalClient;

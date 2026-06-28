@@ -22,12 +22,15 @@ const {
 } = ipc.fs;
 
 const INDENT = 12;
-const DRAG_MIME = "application/x-jelly-path";
-// Drop-target ring, toggled directly on DOM nodes (no React re-render mid-drag).
 const HIGHLIGHT = ["bg-accent/15", "shadow-[inset_0_0_0_1px]", "shadow-accent/50"];
 
 function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
+}
+function sameFiles(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((p) => set.has(p));
 }
 function joinPath(dir: string, name: string) {
   return `${dir}/${name}`;
@@ -49,19 +52,6 @@ async function refreshDir(dirPath: string) {
   useWorkspaceStore.getState().setChildren(dirPath, children);
 }
 
-/** A small name-only pill used as the drag image (instead of the full row). */
-function makeDragBadge(entry: DirEntry, count: number): HTMLElement {
-  const badge = document.createElement("div");
-  badge.textContent = count > 1 ? `${count} items` : entry.name;
-  badge.className =
-    "fixed -top-[1000px] left-0 px-2 h-[22px] flex items-center rounded-[5px] " +
-    "bg-bg-elevated border border-border text-text text-[12px] shadow-lg pointer-events-none";
-  document.body.appendChild(badge);
-  // Remove once the browser has snapshotted it for the drag cursor.
-  setTimeout(() => badge.remove(), 0);
-  return badge;
-}
-
 interface Draft {
   parentPath: string;
   depth: number;
@@ -79,12 +69,23 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // Whether the shared clipboard holds something pasteable. Refreshed each time
   // the menu opens, since another window may have copied since the last check.
   const [canPaste, setCanPaste] = useState(false);
-  // Drag-and-drop is driven entirely through refs/DOM so dragging over a large
-  // tree never re-renders React (the old `useState` highlight was the lag).
-  const dragging = useRef<string[]>([]); // paths being dragged
+  // Drag-and-drop runs as an OS-native drag so it crosses windows; the highlight
+  // is toggled directly on DOM nodes to avoid re-rendering the tree mid-drag.
+  const treeRef = useRef<HTMLDivElement | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
-  const copyIntent = useRef(false);
+  const incoming = useRef<{ paths: string[]; copy: boolean } | null>(null);
+  const dndRef = useRef<(e: { phase: string; paths: string[]; x: number; y: number }) => void>(() => {});
+
+  useEffect(() => {
+    let dispose: (() => void) | undefined;
+    let cancelled = false;
+    ipc.drag.onDrop((e) => void dndRef.current(e)).then((un) => (cancelled ? un() : (dispose = un)));
+    return () => {
+      cancelled = true;
+      dispose?.();
+    };
+  }, []);
 
   if (!root) {
     return <div className="px-[14px] py-4 text-[11px] text-text-dim">No folder open</div>;
@@ -217,13 +218,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     if (entry.cut) await ipc.clipboard.clear();
   }
 
-  // The directory a drop on `entry` targets: a folder receives into itself, a
-  // file into its parent. With no entry (empty space) the drop targets the root.
-  function dropDirOf(entry: DirEntry | null): string {
-    if (!entry) return root!;
-    return entry.isDir ? entry.path : parentOf(entry.path);
-  }
-
   function canDrop(srcs: string[], destDir: string, asCopy: boolean): boolean {
     if (!srcs.length) return false;
     if (srcs.some((s) => destDir === s || destDir.startsWith(s + "/"))) return false; // not into self/descendant
@@ -241,54 +235,69 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function onDragStart(e: React.DragEvent, entry: DirEntry) {
+    e.preventDefault();
     const selected = useWorkspaceStore.getState().selected;
     const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
     if (!selected.has(entry.path)) setSelection([entry.path]);
-    dragging.current = paths;
-    e.dataTransfer.setData(DRAG_MIME, JSON.stringify(paths));
-    // A single file also advertises an open payload so editor panes accept it.
-    if (paths.length === 1 && !entry.isDir) {
-      e.dataTransfer.setData("application/x-jelly-file", JSON.stringify({ path: entry.path, name: entry.name }));
-    }
-    e.dataTransfer.effectAllowed = "copyMove"; // move by default, copy with Option
-    e.dataTransfer.setDragImage(makeDragBadge(entry, paths.length), 12, 12);
+    void ipc.drag.start(paths, e.altKey);
   }
 
-  function onDragOver(e: React.DragEvent, entry: DirEntry | null) {
-    const wantsCopy = e.altKey || e.dataTransfer.dropEffect === "copy";
-    copyIntent.current = wantsCopy;
-    const destDir = dropDirOf(entry);
-    if (!canDrop(dragging.current, destDir, wantsCopy)) {
+  function destDirAt(el: Element | null, fallbackRoot: string): string {
+    const rowEl = el?.closest<HTMLElement>("[data-path]");
+    if (!rowEl?.dataset.path) return fallbackRoot;
+    return rowEl.dataset.dir === "1" ? rowEl.dataset.path : parentOf(rowEl.dataset.path);
+  }
+
+  async function onNativeDnd(e: { phase: string; paths: string[]; x: number; y: number }) {
+    if (e.phase === "leave") {
+      incoming.current = null;
       highlight(null);
       return;
     }
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = wantsCopy ? "copy" : "move";
-    highlight(destDir);
-  }
+    if (e.phase === "enter") {
+      incoming.current = await ipc.drag.readSession();
+      return;
+    }
 
-  function onDrop(e: React.DragEvent, entry: DirEntry | null) {
-    e.preventDefault();
-    e.stopPropagation();
-    const raw = e.dataTransfer.getData(DRAG_MIME);
-    const srcs = raw ? (JSON.parse(raw) as string[]) : dragging.current;
-    const destDir = dropDirOf(entry);
-    const asCopy = copyIntent.current;
-    highlight(null);
-    dragging.current = [];
-    if (canDrop(srcs, destDir, asCopy)) void transferAll(srcs, destDir, asCopy);
-  }
+    const dpr = window.devicePixelRatio || 1;
+    const el = document.elementFromPoint(e.x / dpr, e.y / dpr);
+    const overTree = !!(el && treeRef.current?.contains(el));
 
-  function onDragEnd() {
-    dragging.current = [];
-    copyIntent.current = false;
+    if (e.phase === "over") {
+      const inc = incoming.current;
+      const dest = overTree && el ? destDirAt(el, root!) : null;
+      highlight(dest && inc && canDrop(inc.paths, dest, inc.copy) ? dest : null);
+      return;
+    }
+
     highlight(null);
+    const session = incoming.current ?? (await ipc.drag.readSession());
+    incoming.current = null;
+    // The session is only ours if it names exactly the dropped files; otherwise
+    // this is an external (e.g. Finder) drop and we copy what the OS reported.
+    const internal = !!session && sameFiles(session.paths, e.paths);
+    if (internal) void ipc.drag.clearSession();
+    const paths = internal ? session!.paths : e.paths;
+    if (!paths.length) return;
+    const copy = internal ? session!.copy : true;
+
+    if (overTree && el) {
+      const dest = destDirAt(el, root!);
+      if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
+      return;
+    }
+    if (el?.closest("[data-pane-id]")) {
+      for (const p of paths) {
+        void ctx.commands.execute("editor.open", p, p.slice(p.lastIndexOf("/") + 1), { pin: true });
+      }
+    }
   }
 
   async function transferAll(froms: string[], destDir: string, asCopy: boolean) {
     for (const from of froms) await transfer(from, destDir, asCopy);
   }
+
+  dndRef.current = onNativeDnd;
 
   // Move (rename) or copy `from` into `destDir`, refreshing the affected dirs.
   async function transfer(from: string, destDir: string, asCopy: boolean) {
@@ -363,14 +372,13 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       </div>
       <div
         ref={(el) => {
+          treeRef.current = el;
           if (el) rowEls.current.set(root, el);
           else rowEls.current.delete(root);
         }}
         className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
         onClick={(e) => e.target === e.currentTarget && clearSelection()}
         onContextMenu={(e) => openMenu(e, null)}
-        onDragOver={(e) => onDragOver(e, null)}
-        onDrop={(e) => onDrop(e, null)}
       >
         <Rows
           nodes={tree}
@@ -386,9 +394,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
           onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-          onDragEnd={onDragEnd}
         />
 
         {draft && !draft.renaming && draft.parentPath === root && (
@@ -461,9 +466,6 @@ interface RowsProps {
   onCommitDraft: (name: string) => void;
   onCancelDraft: () => void;
   onDragStart: (e: React.DragEvent, entry: DirEntry) => void;
-  onDragOver: (e: React.DragEvent, entry: DirEntry) => void;
-  onDrop: (e: React.DragEvent, entry: DirEntry) => void;
-  onDragEnd: () => void;
 }
 
 function Rows(props: RowsProps) {
@@ -500,6 +502,8 @@ function Rows(props: RowsProps) {
               <div
                 draggable
                 tabIndex={0}
+                data-path={entry.path}
+                data-dir={entry.isDir ? "1" : "0"}
                 className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
                   isSelected ? "bg-accent/20 text-text" : isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}
@@ -515,9 +519,6 @@ function Rows(props: RowsProps) {
                 }}
                 onContextMenu={(e) => props.onContext(e, entry)}
                 onDragStart={(e) => props.onDragStart(e, entry)}
-                onDragOver={(e) => props.onDragOver(e, entry)}
-                onDrop={(e) => props.onDrop(e, entry)}
-                onDragEnd={props.onDragEnd}
               >
                 {entry.isDir && <Chevron expanded={expanded} />}
                 {!entry.isDir && <span className="w-[10px] shrink-0" />}

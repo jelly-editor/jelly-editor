@@ -10,6 +10,7 @@
     "core:webview:allow-create-webview-window",
     "opener:default",
     "dialog:default",
+    "drag:default",
     "updater:default",
     "process:default"
   ]

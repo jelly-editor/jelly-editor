@@ -9,14 +9,19 @@
 mod actor;
 pub mod clipboard;
 pub mod commands;
+pub mod drag;
 
 use tauri::{Builder, Wry};
 
 pub use actor::{list_dir, FileManagerHandle, FileManagerMsg};
 pub use clipboard::FileClipboard;
+pub use drag::DragSession;
 
-/// Spawn the FileManager actor and attach it, plus the shared file clipboard,
-/// as managed state.
+/// Spawn the FileManager actor and attach it, plus the shared file clipboard
+/// and drag session, as managed state.
 pub fn register(builder: Builder<Wry>) -> Builder<Wry> {
-    builder.manage(actor::spawn()).manage(FileClipboard::default())
+    builder
+        .manage(actor::spawn())
+        .manage(FileClipboard::default())
+        .manage(DragSession::default())
 }

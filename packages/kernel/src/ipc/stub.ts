@@ -29,6 +29,12 @@ export function createStubIpc(): IpcClient {
       read: fail("clipboard.read"),
       clear: fail("clipboard.clear"),
     },
+    drag: {
+      start: fail("drag.start"),
+      readSession: fail("drag.readSession"),
+      clearSession: fail("drag.clearSession"),
+      onDrop: fail("drag.onDrop"),
+    },
     git: {
       status: fail("git.status"),
       diff: fail("git.diff"),
