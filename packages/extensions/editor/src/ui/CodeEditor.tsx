@@ -22,6 +22,8 @@ interface Props {
   /** bumped each time a reveal is requested, so re-revealing the same line works */
   revealNonce?: number;
   onChange: (value: string) => void;
+  /** Called when this editor gains focus, so its pane becomes the active one. */
+  onFocus?: () => void;
 }
 
 /** Scroll `line` (1-based) into view and place the cursor at its start. */
@@ -45,6 +47,7 @@ export function CodeEditor({
   revealLine,
   revealNonce,
   onChange,
+  onFocus,
 }: Props) {
   const dark = theme !== "light";
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
@@ -124,7 +127,13 @@ export function CodeEditor({
   );
 
   return (
-    <div className="relative h-full">
+    <div
+      className="relative h-full"
+      onFocusCapture={() => {
+        if (viewRef.current) setActiveView(viewRef.current);
+        onFocus?.();
+      }}
+    >
       {findOpen && viewRef.current && (
         <FindPanel view={viewRef.current} onClose={() => setFindOpen(false)} />
       )}

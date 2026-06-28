@@ -3,9 +3,9 @@ import { ipc } from "@jelly/ipc";
 import { foldAll, unfoldAll } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 import { foldNearest, unfoldNearest } from "./fold";
-import { EditorPane } from "./ui/EditorPane";
+import { EditorPane } from "./ui/pane";
 import { EditorEncoding, EditorIndent, EditorPath } from "./ui/StatusItems";
-import { useEditorStore } from "./store";
+import { type LayoutNode, newPaneId, type Pane, type Tab, type ViewRenderer, useEditorStore, viewPath } from "./store";
 import { saveActive } from "./save";
 import { decideExternalChange } from "./reconcile";
 import { getActiveView } from "./active-view";
@@ -30,6 +30,8 @@ export const editorExtension: Extension = {
         { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
         { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
+        { id: "editor.splitRight", title: "Split Editor Right" },
+        { id: "editor.splitDown", title: "Split Editor Down" },
         { id: "editor.fold", title: "Fold" },
         { id: "editor.unfold", title: "Unfold" },
         { id: "editor.foldAll", title: "Fold All" },
@@ -38,6 +40,7 @@ export const editorExtension: Extension = {
       keybindings: [
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
         { command: "editor.closeActiveTab", key: "mod+w", when: "workspaceOpen" },
+        { command: "editor.splitRight", key: "mod+\\", when: "workspaceOpen" },
         { command: "editor.fold", key: "mod+alt+[", when: "workspaceOpen" },
         { command: "editor.unfold", key: "mod+alt+]", when: "workspaceOpen" },
         { command: "editor.foldAll", key: "mod+k mod+0", when: "workspaceOpen" },
@@ -48,22 +51,20 @@ export const editorExtension: Extension = {
 
   activate(ctx: ExtensionContext) {
     const store = useEditorStore;
+    const largeFileThreshold = () =>
+      ctx.settings.get<number>("editor.largeFileThreshold") ?? 1_048_576;
 
     ctx.subscriptions.push(
       ctx.commands.register(
         "editor.open",
         async (path: string, name: string, opts?: { pin?: boolean; line?: number }) => {
           const ed = store.getState();
-          // Always leave any diff view when opening a standard file.
-          ed.setActiveDiff(null);
-
           if (opts?.pin) ed.openPinned(path, name);
           else ed.openPreview(path, name);
           if (ed.getContent(path) === undefined) {
             try {
               const content = await ipc.fs.read(path);
-              const threshold = ctx.settings.get<number>("editor.largeFileThreshold") ?? 1_048_576;
-              if (content.length > threshold) ed.markLargeFile(path);
+              if (content.length > largeFileThreshold()) ed.markLargeFile(path);
               ed.setSaved(path, content);
             } catch (e) {
               ed.setSaved(path, `// Could not open file: ${e}`);
@@ -75,12 +76,29 @@ export const editorExtension: Extension = {
         },
       ),
       ctx.commands.register("editor.openDiff", (diff: { path: string; workspace: string }) =>
-        store.getState().setActiveDiff(diff),
+        store.getState().openDiff(diff),
       ),
       ctx.commands.register("editor.save", () => saveActive()),
       ctx.commands.register("editor.closeActiveTab", () => store.getState().requestCloseActive()),
-      ctx.commands.register("editor.closeFile", (path?: string) =>
-        store.getState().closeTab(path ?? store.getState().activeTabPath ?? ""),
+      ctx.commands.register("editor.closeFile", (path?: string) => {
+        const ed = store.getState();
+        const target = path ?? ed.getActivePane().activeTabPath;
+        if (target) ed.closeEverywhere(target);
+      }),
+      ctx.commands.register("editor.splitRight", () => store.getState().splitActive("right")),
+      ctx.commands.register("editor.splitDown", () => store.getState().splitActive("down")),
+      // Contributed pane views (e.g. terminals): other extensions register a
+      // renderer and open/close instances through these commands — never imports.
+      ctx.commands.register("editor.registerView", (viewType: string, render: ViewRenderer) =>
+        store.getState().registerView(viewType, render),
+      ),
+      ctx.commands.register(
+        "editor.openView",
+        (viewType: string, viewId: string, title: string, placement?: "active" | "group-bottom") =>
+          store.getState().openView(viewType, viewId, title, placement),
+      ),
+      ctx.commands.register("editor.closeView", (viewType: string, viewId: string) =>
+        store.getState().closeEverywhere(viewPath(viewType, viewId)),
       ),
       ctx.commands.register("editor.fold", () => runFold(foldNearest)),
       ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
@@ -97,15 +115,19 @@ export const editorExtension: Extension = {
     );
 
     // Announce the active file (file-tree highlight, status bar) and the open
-    // diff (git panel row highlight) so other extensions can follow along.
-    let prevActive = store.getState().activeTabPath;
-    let prevDiff = store.getState().activeDiff?.path ?? null;
+    // diff (git panel row highlight) from the focused pane so other extensions
+    // can follow along.
+    const activePane = (s: ReturnType<typeof store.getState>) => s.panes[s.activePaneId];
+    let prevActive = activePane(store.getState())?.activeTabPath ?? null;
+    let prevDiff = activePane(store.getState())?.activeDiff?.path ?? null;
     const unsub = store.subscribe((s) => {
-      if (s.activeTabPath !== prevActive) {
-        prevActive = s.activeTabPath;
-        ctx.events.emit("editor:active_changed", { path: s.activeTabPath });
+      const pane = activePane(s);
+      const active = pane?.activeTabPath ?? null;
+      if (active !== prevActive) {
+        prevActive = active;
+        ctx.events.emit("editor:active_changed", { path: active });
       }
-      const diffPath = s.activeDiff?.path ?? null;
+      const diffPath = pane?.activeDiff?.path ?? null;
       if (diffPath !== prevDiff) {
         prevDiff = diffPath;
         ctx.events.emit("editor:diff_changed", { path: diffPath });
@@ -113,13 +135,35 @@ export const editorExtension: Extension = {
     });
     ctx.subscriptions.push({ dispose: unsub });
 
+    // Tell a view's owner (e.g. the terminal extension) when its tab is gone, so
+    // it can tear the instance down.
+    const collectViews = (s: ReturnType<typeof store.getState>) => {
+      const m = new Map<string, { viewType: string; viewId: string }>();
+      for (const p of Object.values(s.panes)) {
+        for (const t of p.tabs) {
+          if (t.kind === "view" && t.viewType && t.viewId) m.set(t.path, { viewType: t.viewType, viewId: t.viewId });
+        }
+      }
+      return m;
+    };
+    let prevViews = collectViews(store.getState());
+    ctx.subscriptions.push({
+      dispose: store.subscribe((s) => {
+        const cur = collectViews(s);
+        for (const [path, v] of prevViews) {
+          if (!cur.has(path)) ctx.events.emit("editor:view_closed", v);
+        }
+        prevViews = cur;
+      }),
+    });
+
     // Reconcile open files that changed on disk outside the editor. With no
     // unsaved edits we adopt the new contents silently; otherwise we surface a
     // notification so the user chooses between their edits and the disk version.
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("file:changed_externally", async ({ path }) => {
         const ed = store.getState();
-        const tab = ed.tabs.find((t) => t.path === path);
+        const tab = Object.values(ed.panes).flatMap((p) => p.tabs).find((t) => t.path === path);
         try {
           const onDisk = await ipc.fs.read(path);
           const outcome = decideExternalChange({
@@ -160,7 +204,7 @@ export const editorExtension: Extension = {
       }),
     );
 
-    // Persist open tabs per workspace and restore them on the next launch.
+    // Persist the pane layout per workspace and restore it on the next launch.
     let workspacePath: string | null = null;
     let restoring = false;
     let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -168,6 +212,29 @@ export const editorExtension: Extension = {
     // `dirty` holds the unsaved buffer for a modified tab so edits survive a
     // restart; it's omitted for clean tabs (reopened from disk).
     type SavedTab = { path: string; name: string; dirty?: string };
+    type SavedNode =
+      | { kind: "leaf"; tabs: SavedTab[]; active: string | null; focused: boolean }
+      | { kind: "split"; dir: "row" | "column"; sizes: number[]; children: SavedNode[] };
+    type SavedState = { root: SavedNode };
+
+    const serialize = (node: LayoutNode, s: ReturnType<typeof store.getState>): SavedNode => {
+      if (node.type === "leaf") {
+        const p = s.panes[node.paneId];
+        return {
+          kind: "leaf",
+          tabs: (p?.tabs ?? [])
+            .filter((t) => t.kind !== "view") // views (terminals) aren't disk files
+            .map((t) => ({
+              path: t.path,
+              name: t.name,
+              dirty: t.isDirty ? s.getContent(t.path) : undefined,
+            })),
+          active: p?.activeTabPath ?? null,
+          focused: node.paneId === s.activePaneId,
+        };
+      }
+      return { kind: "split", dir: node.dir, sizes: node.sizes, children: node.children.map((c) => serialize(c, s)) };
+    };
 
     const saveTabs = () => {
       if (!workspacePath || restoring) return;
@@ -175,50 +242,86 @@ export const editorExtension: Extension = {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         const s = store.getState();
-        const tabs: SavedTab[] = s.tabs.map((t) => ({
-          path: t.path,
-          name: t.name,
-          dirty: t.isDirty ? s.getContent(t.path) : undefined,
-        }));
-        void ctx.storage.set(`tabs:${ws}`, { tabs, active: s.activeTabPath });
+        void ctx.storage.set<SavedState>(`tabs:${ws}`, { root: serialize(s.root, s) });
       }, 300);
     };
 
     const restoreTabs = async (ws: string) => {
       workspacePath = ws;
-      const saved = await ctx.storage
-        .get<{ tabs: SavedTab[]; active: string | null }>(`tabs:${ws}`)
-        .catch(() => undefined);
-      if (!saved?.tabs?.length) return;
+      const saved = await ctx.storage.get<SavedState>(`tabs:${ws}`).catch(() => undefined);
+      if (!saved?.root) return;
       restoring = true;
       try {
-        for (const t of saved.tabs) {
-          try {
-            await ipc.fs.read(t.path); // skip files that no longer exist
-          } catch {
-            continue;
+        const fileContents = new Map(store.getState().fileContents);
+        const savedContents = new Map(store.getState().savedContents);
+        const largeFiles = new Set(store.getState().largeFiles);
+        const threshold = largeFileThreshold();
+        const dirtyApply: { path: string; dirty: string }[] = [];
+        const panes: Record<string, Pane> = {};
+        let focusedPaneId: string | null = null;
+        let tabCount = 0;
+
+        const build = async (sn: SavedNode): Promise<LayoutNode> => {
+          if (sn.kind === "split") {
+            const children: LayoutNode[] = [];
+            for (const c of sn.children) children.push(await build(c));
+            return { type: "split", id: `split-r-${children.length}-${Math.random().toString(36).slice(2, 8)}`, dir: sn.dir, sizes: sn.sizes, children };
           }
-          await ctx.commands.execute("editor.open", t.path, t.name, { pin: true });
-          // Re-apply unsaved edits on top of the on-disk content.
-          if (t.dirty !== undefined) store.getState().updateBuffer(t.path, t.dirty);
-        }
-        if (saved.active) store.getState().setActiveTab(saved.active);
+          const tabs: Tab[] = [];
+          for (const t of sn.tabs) {
+            if (!fileContents.has(t.path)) {
+              let content: string;
+              try {
+                content = await ipc.fs.read(t.path); // skip files that no longer exist
+              } catch {
+                continue;
+              }
+              if (content.length > threshold) largeFiles.add(t.path);
+              fileContents.set(t.path, content);
+              savedContents.set(t.path, content);
+            }
+            tabs.push({ path: t.path, name: t.name, isDirty: false, isPinned: true, isPreview: false });
+            if (t.dirty !== undefined) dirtyApply.push({ path: t.path, dirty: t.dirty });
+          }
+          tabCount += tabs.length;
+          const id = newPaneId();
+          const active = tabs.some((t) => t.path === sn.active) ? sn.active : tabs[tabs.length - 1]?.path ?? null;
+          panes[id] = { id, tabs, activeTabPath: active, activeDiff: null };
+          if (sn.focused) focusedPaneId = id;
+          return { type: "leaf", paneId: id };
+        };
+
+        const root = await build(saved.root);
+        if (tabCount === 0) return;
+
+        const ids = Object.keys(panes);
+        store.setState({
+          root,
+          panes,
+          activePaneId: focusedPaneId ?? ids[0],
+          fileContents,
+          savedContents,
+          largeFiles,
+        });
+        for (const d of dirtyApply) store.getState().updateBuffer(d.path, d.dirty);
       } finally {
         restoring = false;
         saveTabs();
       }
     };
 
-    let lastTabs = store.getState().tabs;
-    let lastActive = store.getState().activeTabPath;
+    let lastRoot = store.getState().root;
+    let lastPanes = store.getState().panes;
+    let lastActivePane = store.getState().activePaneId;
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => void restoreTabs(path)),
       { dispose: () => clearTimeout(saveTimer) },
       {
         dispose: store.subscribe((s) => {
-          if (s.tabs === lastTabs && s.activeTabPath === lastActive) return;
-          lastTabs = s.tabs;
-          lastActive = s.activeTabPath;
+          if (s.root === lastRoot && s.panes === lastPanes && s.activePaneId === lastActivePane) return;
+          lastRoot = s.root;
+          lastPanes = s.panes;
+          lastActivePane = s.activePaneId;
           saveTabs();
         }),
       },

@@ -2,7 +2,7 @@ import { useEditorStore } from "../store";
 
 /** Active file path (last two segments), shown on the left of the status bar. */
 export function EditorPath() {
-  const activeTabPath = useEditorStore((s) => s.activeTabPath);
+  const activeTabPath = useEditorStore((s) => s.panes[s.activePaneId]?.activeTabPath ?? null);
   const relativePath = activeTabPath ? activeTabPath.split("/").slice(-2).join("/") : null;
   if (!relativePath) return null;
   return <span className="text-text-dim">{relativePath}</span>;

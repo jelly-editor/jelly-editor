@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/www/public/jelly.png" alt="Drivebase" width="80" />
+  <img src="apps/www/public/jelly.png" alt="Jelly Editor" width="80" />
 </p>
 
 <h2 align="center">Jelly Editor</h2>
@@ -28,19 +28,24 @@ That's what Jelly is.
 - **Git where you work.** See your branch, stage changes, review diffs, and commit — without context switching.
 - **One window per project.** Open as many projects as you like; each gets its own independent window.
 
-## Features
-
-- **Editor** — syntax highlighting for common languages, file tabs with unsaved indicators, multi-cursor, find & replace with regex, word wrap.
-- **File explorer** — browse your folder with file-type icons; create, rename, and delete files and folders.
-- **Integrated terminal** — full terminal with multiple tabs, resizable alongside your code.
-- **Git panel** — view changed files, stage and unstage, inspect diffs, and commit with a message.
-- **Settings** — adjust font, font size, tab size, word wrap, and theme.
-
 ## Roadmap
 
-Jelly is in active development — pre-v1, rough edges expected.
+Jelly is in active development — pre-v1, rough edges expected. The roadmap is
+organized around the path to a stable v1:
 
-Track what's planned, in progress, and shipped on the [public project board](https://github.com/orgs/jelly-editor/projects).
+- **v0.2 Core Editing** — fast navigation, workspace search, split panes,
+  terminal improvements, and daily editing essentials.
+- **v0.3 Git Workflow** — staging, committing, pushing, branching, history, and
+  conflict-resolution tools.
+- **v0.4 Extension Ecosystem** — runtime extension loading, manifest discovery,
+  and a sandboxed extension context.
+- **v0.5 Quality of Life** — session restore, breadcrumbs, pinned buffers,
+  editor polish, and workflow refinements.
+- **v1.0 General Release** — stable APIs, app updates, broader platform support,
+  and performance polish.
+
+See the full public roadmap at
+[jelly-editor.github.io/roadmap](https://jelly-editor.github.io/roadmap).
 
 ## Building from source
 

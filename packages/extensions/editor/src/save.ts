@@ -14,8 +14,8 @@ export async function saveTab(path: string): Promise<void> {
   }
 }
 
-/** Save the active tab, if any. */
+/** Save the active tab in the focused pane, if any. */
 export function saveActive(): Promise<void> | void {
-  const path = useEditorStore.getState().activeTabPath;
+  const path = useEditorStore.getState().getActivePane().activeTabPath;
   if (path) return saveTab(path);
 }

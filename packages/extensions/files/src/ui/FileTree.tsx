@@ -1,6 +1,6 @@
 import type { DirEntry, ExtensionContext, FileStatus } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
-import { FileIcon } from "@jelly/ui";
+import { ContextMenu, type ContextMenuEntry, FileIcon, useContextMenu } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 
@@ -70,32 +70,16 @@ interface Draft {
   initial: string;
 }
 
-interface ContextMenu {
-  x: number;
-  y: number;
-  entry: DirEntry | null;
-}
-
 export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const { path: root, tree, expandedDirs, setExpanded, setChildren } = useWorkspaceStore();
-  const [menu, setMenu] = useState<ContextMenu | null>(null);
+  // Right-click target: a tree entry, or null for the empty area (= root).
+  const menu = useContextMenu<DirEntry | null>();
   const [draft, setDraft] = useState<Draft | null>(null);
   // Drag-and-drop is driven entirely through refs/DOM so dragging over a large
   // tree never re-renders React (the old `useState` highlight was the lag).
   const dragging = useRef<string | null>(null); // path being dragged
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(null);
-    window.addEventListener("click", close);
-    window.addEventListener("contextmenu", close);
-    return () => {
-      window.removeEventListener("click", close);
-      window.removeEventListener("contextmenu", close);
-    };
-  }, [menu]);
 
   if (!root) {
     return <div className="px-[14px] py-4 text-[11px] text-text-dim">No folder open</div>;
@@ -119,7 +103,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function startCreate(parentDir: string, depth: number, isDir: boolean) {
-    setMenu(null);
     setExpanded(parentDir, true);
     if (useWorkspaceStore.getState().expandedDirs.has(parentDir)) {
       const node = findNode(tree, parentDir);
@@ -131,7 +114,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function startRename(entry: DirEntry, depth: number) {
-    setMenu(null);
     setDraft({
       parentPath: parentOf(entry.path),
       depth,
@@ -173,7 +155,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   async function remove(entry: DirEntry) {
-    setMenu(null);
     const ok = await ctx.dialog.confirm(
       `Delete ${entry.isDir ? "folder" : "file"} "${entry.name}"? This cannot be undone.`,
       { title: "Confirm delete", kind: "warning", confirmLabel: "Delete", danger: true },
@@ -213,6 +194,10 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   function onDragStart(e: React.DragEvent, entry: DirEntry) {
     dragging.current = entry.path;
     e.dataTransfer.setData(DRAG_MIME, entry.path);
+    // Files also advertise an open payload so editor panes can accept the drop.
+    if (!entry.isDir) {
+      e.dataTransfer.setData("application/x-jelly-file", JSON.stringify({ path: entry.path, name: entry.name }));
+    }
     e.dataTransfer.effectAllowed = "copyMove"; // move by default, copy with Option
     e.dataTransfer.setDragImage(makeDragBadge(entry), 12, 12);
   }
@@ -317,10 +302,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           else rowEls.current.delete(root);
         }}
         className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY, entry: null });
-        }}
+        onContextMenu={(e) => menu.open(e, null)}
         onDragOver={(e) => onDragOver(e, null)}
         onDrop={(e) => onDrop(e, null)}
       >
@@ -332,11 +314,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           rowEls={rowEls.current}
           onToggle={toggleDir}
           onOpen={openFile}
-          onContext={(e, entry) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setMenu({ x: e.clientX, y: e.clientY, entry });
-          }}
+          onContext={(e, entry) => menu.open(e, entry)}
           onRename={startRename}
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
@@ -351,14 +329,17 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
         )}
       </div>
 
-      {menu && (
-        <ContextMenuView
-          menu={menu}
-          rootPath={root}
-          onNewFile={(dir, depth) => startCreate(dir, depth, false)}
-          onNewFolder={(dir, depth) => startCreate(dir, depth, true)}
-          onRename={startRename}
-          onDelete={remove}
+      {menu.state && (
+        <ContextMenu
+          x={menu.state.x}
+          y={menu.state.y}
+          onClose={menu.close}
+          items={fileMenuItems(menu.state.data, root, {
+            onNewFile: (dir, depth) => startCreate(dir, depth, false),
+            onNewFolder: (dir, depth) => startCreate(dir, depth, true),
+            onRename: startRename,
+            onDelete: remove,
+          })}
         />
       )}
     </div>
@@ -547,22 +528,17 @@ function DraftRow({
   );
 }
 
-function ContextMenuView({
-  menu,
-  rootPath,
-  onNewFile,
-  onNewFolder,
-  onRename,
-  onDelete,
-}: {
-  menu: ContextMenu;
-  rootPath: string;
-  onNewFile: (dir: string, depth: number) => void;
-  onNewFolder: (dir: string, depth: number) => void;
-  onRename: (entry: DirEntry, depth: number) => void;
-  onDelete: (entry: DirEntry) => void;
-}) {
-  const entry = menu.entry;
+/** Build the file-tree context menu for a right-clicked entry (or the root). */
+function fileMenuItems(
+  entry: DirEntry | null,
+  rootPath: string,
+  handlers: {
+    onNewFile: (dir: string, depth: number) => void;
+    onNewFolder: (dir: string, depth: number) => void;
+    onRename: (entry: DirEntry, depth: number) => void;
+    onDelete: (entry: DirEntry) => void;
+  },
+): ContextMenuEntry[] {
   const targetDir = !entry ? rootPath : entry.isDir ? entry.path : parentOf(entry.path);
   const targetDepth = !entry
     ? 0
@@ -570,34 +546,18 @@ function ContextMenuView({
     ? depthOf(entry.path, rootPath) + 1
     : depthOf(entry.path, rootPath);
 
-  const Item = ({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) => (
-    <button
-      className={`flex items-center w-full text-left px-3 h-[26px] text-[12px] cursor-pointer hover:bg-bg-hover ${
-        danger ? "text-danger" : "text-text"
-      }`}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div
-      className="fixed z-[200] min-w-[150px] py-1 bg-bg-elevated border border-border rounded-[6px] shadow-lg"
-      style={{ left: menu.x, top: menu.y }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Item label="New File" onClick={() => onNewFile(targetDir, targetDepth)} />
-      <Item label="New Folder" onClick={() => onNewFolder(targetDir, targetDepth)} />
-      {entry && (
-        <>
-          <div className="my-1 border-t border-border" />
-          <Item label="Rename" onClick={() => onRename(entry, depthOf(entry.path, rootPath))} />
-          <Item label="Delete" danger onClick={() => onDelete(entry)} />
-        </>
-      )}
-    </div>
-  );
+  const items: ContextMenuEntry[] = [
+    { label: "New File", onSelect: () => handlers.onNewFile(targetDir, targetDepth) },
+    { label: "New Folder", onSelect: () => handlers.onNewFolder(targetDir, targetDepth) },
+  ];
+  if (entry) {
+    items.push(
+      { type: "separator" },
+      { label: "Rename", onSelect: () => handlers.onRename(entry, depthOf(entry.path, rootPath)) },
+      { label: "Delete", danger: true, onSelect: () => handlers.onDelete(entry) },
+    );
+  }
+  return items;
 }
 
 function depthOf(path: string, rootPath: string): number {

@@ -93,6 +93,27 @@ ctx.ui.contributePanelTab({ id: "myfeature.panel", title: "My Panel", render: My
 Available slots: `titlebar`, `activitybar`, `sidebar.panel`, `editor.surface`,
 `panel.tab`, `statusbar.left`, `statusbar.right`, `modal`, `context-menu`.
 
+### Pane views — hosting your UI in the editor grid
+
+The editor surface is a tiling grid of panes; tabs are either files or
+**contributed views**. An extension hosts its own UI in a pane (e.g. the
+terminal) through the command bus — never by importing the editor:
+
+```ts
+// Register a renderer for your view type, then open instances as panes.
+ctx.commands.execute("editor.registerView", "terminal",
+  (id, { active }) => <TerminalView id={id} active={active} />);
+ctx.commands.execute("editor.openView", "terminal", instanceId, "Terminal 1");
+ctx.commands.execute("editor.closeView", "terminal", instanceId);
+
+// The editor emits this when the user closes (or the last drag empties) the tab.
+ctx.events.on("editor:view_closed", ({ viewType, viewId }) => dispose(viewId));
+```
+
+View panes are dragged, split, and tiled exactly like file tabs. Because a drag
+remounts the host React node, keep long-lived state (a PTY, a websocket) outside
+the component — see the terminal's persistent-DOM session map.
+
 ### `ctx.dialog` — in-app modal dialogs
 
 The themed replacement for native `alert`/`confirm`. The host renders it; you
@@ -127,7 +148,8 @@ ctx.events.emit("myfeature:done", { ok: true });    // other extensions can list
 ```
 
 Core events: `workspace:opened`, `file:changed_externally`, `file:saved`,
-`git:status_changed`, `terminal:output`, `terminal:exit`.
+`git:status_changed`, `terminal:output`, `terminal:exit`, `editor:active_changed`,
+`editor:diff_changed`, `editor:view_closed`.
 
 ### `ctx.ipc` — the only door to native capability
 
