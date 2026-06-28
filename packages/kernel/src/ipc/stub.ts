@@ -29,6 +29,7 @@ export function createStubIpc(): IpcClient {
       diff: fail("git.diff"),
       stage: fail("git.stage"),
       unstage: fail("git.unstage"),
+      discard: fail("git.discard"),
       commit: fail("git.commit"),
     },
     search: {

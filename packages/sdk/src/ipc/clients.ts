@@ -19,6 +19,8 @@ export interface GitClient {
   diff(workspace: string, path: string): Promise<GitDiffResult>;
   stage(workspace: string, path: string): Promise<void>;
   unstage(workspace: string, path: string): Promise<void>;
+  /** Discard working-tree changes: restore tracked files to HEAD, delete untracked. */
+  discard(workspace: string, path: string): Promise<void>;
   commit(workspace: string, message: string): Promise<void>;
 }
 

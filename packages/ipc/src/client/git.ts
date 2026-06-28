@@ -6,5 +6,6 @@ export const git: GitClient = {
   diff: (workspace, path) => invoke<GitDiffResult>("git_diff", { workspace, path }),
   stage: (workspace, path) => invoke<void>("git_stage", { workspace, path }),
   unstage: (workspace, path) => invoke<void>("git_unstage", { workspace, path }),
+  discard: (workspace, path) => invoke<void>("git_discard", { workspace, path }),
   commit: (workspace, message) => invoke<void>("git_commit", { workspace, message }),
 };

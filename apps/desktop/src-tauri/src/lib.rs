@@ -167,6 +167,7 @@ pub fn run() {
             jelly_git::commands::git_diff,
             jelly_git::commands::git_stage,
             jelly_git::commands::git_unstage,
+            jelly_git::commands::git_discard,
             jelly_git::commands::git_commit,
             jelly_search::commands::start_search,
             jelly_search::commands::cancel_search,

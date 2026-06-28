@@ -151,6 +151,30 @@ pub fn git_unstage(workspace: String, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn git_discard(workspace: String, path: String) -> Result<(), String> {
+    let repo = open(&workspace)?;
+    let workdir = repo.workdir().ok_or("Bare repository")?;
+    let rel = Path::new(&path);
+
+    // Untracked files have no committed version to restore — delete them.
+    let status = repo.status_file(rel).map_err(|e| e.to_string())?;
+    if status.contains(Status::WT_NEW) {
+        let abs = workdir.join(&path);
+        let res = if abs.is_dir() {
+            std::fs::remove_dir_all(&abs)
+        } else {
+            std::fs::remove_file(&abs)
+        };
+        return res.map_err(|e| e.to_string());
+    }
+
+    // Tracked: restore the working-tree file to its HEAD version.
+    let mut checkout = git2::build::CheckoutBuilder::new();
+    checkout.path(rel).force();
+    repo.checkout_head(Some(&mut checkout)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn git_commit(workspace: String, message: String) -> Result<(), String> {
     if message.trim().is_empty() {
         return Err("Commit message is empty".into());

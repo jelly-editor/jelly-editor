@@ -5,7 +5,16 @@ import { refreshGitStatus } from "../refresh";
 import { useGitStore, type FileStatus, type GitFile } from "../store";
 import { FileIcon } from "@jelly/ui";
 
-const { stage: gitStage, unstage: gitUnstage, commit: gitCommit } = ipc.git;
+const { stage: gitStage, unstage: gitUnstage, discard: gitDiscard, commit: gitCommit } = ipc.git;
+
+function DiscardIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7v6h6" />
+      <path d="M3 13a9 9 0 1 0 3-7.7L3 7" />
+    </svg>
+  );
+}
 
 const RENDER_LIMIT = 500;
 
@@ -21,11 +30,13 @@ function FileRow({
   file,
   staged,
   onAction,
+  onDiscard,
   onOpenDiff,
 }: {
   file: GitFile;
   staged: boolean;
   onAction: (file: GitFile) => void;
+  onDiscard?: (file: GitFile) => void;
   onOpenDiff: (file: GitFile) => void;
 }) {
   const activeDiffPath = useGitStore((s) => s.activeDiffPath);
@@ -48,6 +59,18 @@ function FileRow({
         <span className="text-text truncate shrink-0 max-w-full">{name}</span>
         {dir && <span className="text-[11px] text-text-muted truncate min-w-0 flex-1">{dir}</span>}
       </span>
+      {onDiscard && (
+        <button
+          className="absolute right-[44px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-bg-active text-text-muted opacity-0 group-hover:opacity-100 hover:text-danger"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDiscard(file);
+          }}
+          title="Discard changes"
+        >
+          <DiscardIcon />
+        </button>
+      )}
       <button
         className="absolute right-[24px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-bg-active text-text-muted opacity-0 group-hover:opacity-100 hover:text-text"
         onClick={(e) => {
@@ -105,11 +128,13 @@ function CappedRows({
   files,
   staged,
   onAction,
+  onDiscard,
   onOpenDiff,
 }: {
   files: GitFile[];
   staged: boolean;
   onAction: (file: GitFile) => void;
+  onDiscard?: (file: GitFile) => void;
   onOpenDiff: (file: GitFile) => void;
 }) {
   const shown = files.length > RENDER_LIMIT ? files.slice(0, RENDER_LIMIT) : files;
@@ -121,6 +146,7 @@ function CappedRows({
           file={f}
           staged={staged}
           onAction={onAction}
+          onDiscard={onDiscard}
           onOpenDiff={onOpenDiff}
         />
       ))}
@@ -156,6 +182,19 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
   async function unstage(file: GitFile) {
     if (!workspacePath) return;
     await gitUnstage(workspacePath, file.path).catch(() => {});
+    refreshGitStatus();
+  }
+  async function discard(file: GitFile) {
+    if (!workspacePath) return;
+    const name = file.path.split("/").pop() ?? file.path;
+    const verb = file.status === "untracked" ? "delete" : "discard changes in";
+    const ok = await ctx.dialog.confirm(`Are you sure you want to ${verb} ${name}? This is irreversible.`, {
+      title: "Discard Changes",
+      danger: true,
+      confirmLabel: "Discard",
+    });
+    if (!ok) return;
+    await gitDiscard(workspacePath, file.path).catch(() => {});
     refreshGitStatus();
   }
   async function stageAll() {
@@ -246,6 +285,7 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
                 files={unstagedFiles}
                 staged={false}
                 onAction={stage}
+                onDiscard={discard}
                 onOpenDiff={openDiff}
               />
             </Section>
