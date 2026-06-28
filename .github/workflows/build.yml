@@ -36,6 +36,33 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      - name: Extract latest changelog entry
+        run: |
+          node -e "
+          const fs = require('fs');
+          try {
+            const content = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const lines = content.split('\n');
+            let result = [];
+            let foundFirst = false;
+            for (const line of lines) {
+              if (line.startsWith('## [')) {
+                if (foundFirst) break;
+                foundFirst = true;
+                continue;
+              }
+              if (foundFirst) {
+                result.push(line);
+              }
+            }
+            const body = result.join('\n').trim() || 'Download the asset for your platform. Installed apps update automatically.';
+            fs.appendFileSync(process.env.GITHUB_ENV, 'RELEASE_BODY<<EOF\n' + body + '\nEOF\n');
+          } catch (err) {
+            console.error(err);
+            fs.appendFileSync(process.env.GITHUB_ENV, 'RELEASE_BODY<<EOF\nDownload the asset for your platform. Installed apps update automatically.\nEOF\n');
+          }
+          "
+
       - name: Build, sign, and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -52,7 +79,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
           releaseName: "Jelly ${{ github.ref_name }}"
-          releaseBody: "Download the asset for your platform. Installed apps update automatically."
+          releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
