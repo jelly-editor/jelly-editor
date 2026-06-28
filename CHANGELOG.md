@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.4](https://github.com/jelly-editor/jelly-editor/compare/v0.1.3...v0.1.4) (2026-06-28)
+
+### Features
+
+* add manual update checker ([adf9f36](https://github.com/jelly-editor/jelly-editor/commit/adf9f36598357504d717f7542c23dbf713aeaafd))
+* **command-palette:** group commands by source, drop id/shortcut hints ([21c9f2b](https://github.com/jelly-editor/jelly-editor/commit/21c9f2b39972ddb620280b51409e6ea41dad4486))
+* **editor:** auto-reload unedited files changed on disk, notify when dirty ([fef3cc2](https://github.com/jelly-editor/jelly-editor/commit/fef3cc2c4148132730a1ad21cfdd3f060492471c))
+* **editor:** code folding with fold/unfold keybindings ([5c00c35](https://github.com/jelly-editor/jelly-editor/commit/5c00c35e234ad01ddb7a7dae40f926d4159a737d)), closes [#8](https://github.com/jelly-editor/jelly-editor/issues/8)
+* **editor:** git change gutter for modified lines ([6241168](https://github.com/jelly-editor/jelly-editor/commit/62411680cccba41e0e63b084386fb7158db8801a))
+* **editor:** persist unsaved buffer content across sessions ([06f8b5e](https://github.com/jelly-editor/jelly-editor/commit/06f8b5ef15fd8ce9089c73680ac444994d81c63a))
+* **editor:** tiling split panes, draggable tabs, terminals as panes ([9bf778f](https://github.com/jelly-editor/jelly-editor/commit/9bf778f1e3b0ef22a03fd861fe2e924cd6fa2c31))
+* **files:** colour tree entries by git status ([ad9e982](https://github.com/jelly-editor/jelly-editor/commit/ad9e9823ead4b4e0593eac7d8e18fae370943e19))
+* **files:** recursive "Go to File" index across the whole workspace ([6bae44c](https://github.com/jelly-editor/jelly-editor/commit/6bae44cc14f3af6ade7b1766289b5743ddf0e891))
+* **files:** reveal active file in the explorer tree ([1b207bf](https://github.com/jelly-editor/jelly-editor/commit/1b207bf1e2d7aa0027434524cb1a69b08620f0e9))
+* **git:** discard changes button on unstaged files ([b4fb041](https://github.com/jelly-editor/jelly-editor/commit/b4fb041f4b1d5bb7fac4eab05c0832eee86e2a90))
+* **git:** refresh panel on external stage/commit/branch changes ([99aa2d6](https://github.com/jelly-editor/jelly-editor/commit/99aa2d66d5a869db124feb62096b7a7641e8095e))
+* persist expanded folders and open tabs across sessions ([84f070d](https://github.com/jelly-editor/jelly-editor/commit/84f070d86e3357ef08fbc5e6eb1f213f285eae0b))
+* **www:** add open graph and twitter meta tags ([d63ea0f](https://github.com/jelly-editor/jelly-editor/commit/d63ea0f5927a1abad1667289d75fc347b90e9d0f))
+
+### Bug Fixes
+
+* **watcher:** watch dirs individually, skip ignored trees ([d628ea8](https://github.com/jelly-editor/jelly-editor/commit/d628ea889279ea0d593793d374f53c192bead95b))
+
 ## [0.1.3](https://github.com/jelly-editor/jelly-editor/compare/v0.1.2...v0.1.3) (2026-06-27)
 
 ### Features
