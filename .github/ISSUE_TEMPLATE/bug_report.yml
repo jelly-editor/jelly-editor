@@ -72,7 +72,7 @@ body:
     id: version
     attributes:
       label: Jelly Version / Commit Hash
-      description: Example: v0.1.0 or git commit sha.
+      description: "Example: v0.1.0 or git commit sha."
     validations:
       required: false
   - type: textarea
