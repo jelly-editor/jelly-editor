@@ -36,7 +36,7 @@ function themeOf(ctx: ExtensionContext) {
 function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Session {
   const el = document.createElement("div");
   el.className =
-    "absolute inset-0 overflow-hidden bg-bg-elevated " +
+    "absolute inset-0 overflow-hidden bg-bg-elevated pl-3 " +
     "[&_.xterm]:h-full [&_.xterm]:bg-inherit " +
     "[&_.xterm-viewport]:!bg-inherit [&_.xterm-screen]:min-h-full";
   host.appendChild(el);
