@@ -123,6 +123,10 @@ function firstLeafId(node: LayoutNode): string {
   return node.type === "leaf" ? node.paneId : firstLeafId(node.children[0]);
 }
 
+function isViewOnlyPane(pane: Pane): boolean {
+  return pane.tabs.length > 0 && pane.tabs.every((t) => t.kind === "view") && !pane.activeDiff;
+}
+
 /** Pick the next active path after removing `path` from a tab list. */
 function nextActive(prev: Tab[], removed: string, current: string | null): string | null {
   if (current !== removed) return current;
@@ -147,6 +151,7 @@ interface EditorState {
   viewRenderers: Map<string, ViewRenderer>;
   /** Bumped when a renderer registers so mounted view hosts re-render. */
   viewVersion: number;
+  hiddenPaneIds: Set<string>;
 
   getActivePane: () => Pane;
 
@@ -158,6 +163,7 @@ interface EditorState {
    * bottom pane (how terminals open by default).
    */
   openView: (viewType: string, viewId: string, title: string, placement?: "active" | "group-bottom") => void;
+  toggleViewType: (viewType: string) => boolean;
 
   openPreview: (path: string, name: string) => void;
   openPinned: (path: string, name: string) => void;
@@ -229,6 +235,24 @@ export const useEditorStore = create<EditorState>((set, get) => {
     return { root: nextRoot, panes: nextPanes, activePaneId };
   };
 
+  const fileTarget = (s: EditorState): { root: LayoutNode; panes: Record<string, Pane>; pane: Pane } => {
+    const pane = active(s);
+    if (!isViewOnlyPane(pane)) return { root: s.root, panes: s.panes, pane };
+
+    const visibleFilePaneId = leafIds(s.root).find((id) => {
+      const p = s.panes[id];
+      return p && !s.hiddenPaneIds.has(id) && !isViewOnlyPane(p);
+    });
+    if (visibleFilePaneId) return { root: s.root, panes: s.panes, pane: s.panes[visibleFilePaneId] };
+
+    const np = emptyPane();
+    return {
+      root: splitRoot(s.root, np.id, "top"),
+      panes: { ...s.panes, [np.id]: np },
+      pane: np,
+    };
+  };
+
   const init = emptyPane();
 
   return {
@@ -243,6 +267,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     closing: null,
     viewRenderers: new Map(),
     viewVersion: 0,
+    hiddenPaneIds: new Set(),
 
     getActivePane: () => active(get()),
 
@@ -257,13 +282,24 @@ export const useEditorStore = create<EditorState>((set, get) => {
         const path = viewPath(viewType, viewId);
         const open = Object.values(s.panes).find((p) => p.tabs.some((t) => t.path === path));
         if (open) {
-          return { panes: { ...s.panes, [open.id]: { ...open, activeTabPath: path, activeDiff: null } }, activePaneId: open.id };
+          const hiddenPaneIds = new Set(s.hiddenPaneIds);
+          hiddenPaneIds.delete(open.id);
+          return {
+            panes: { ...s.panes, [open.id]: { ...open, activeTabPath: path, activeDiff: null } },
+            activePaneId: open.id,
+            hiddenPaneIds,
+          };
         }
         const tab: Tab = { path, name: title, isDirty: false, isPinned: true, isPreview: false, kind: "view", viewType, viewId };
-        const addTo = (pane: Pane): Partial<EditorState> => ({
-          panes: { ...s.panes, [pane.id]: { ...pane, tabs: [...pane.tabs, tab], activeTabPath: path, activeDiff: null } },
-          activePaneId: pane.id,
-        });
+        const addTo = (pane: Pane): Partial<EditorState> => {
+          const hiddenPaneIds = new Set(s.hiddenPaneIds);
+          hiddenPaneIds.delete(pane.id);
+          return {
+            panes: { ...s.panes, [pane.id]: { ...pane, tabs: [...pane.tabs, tab], activeTabPath: path, activeDiff: null } },
+            activePaneId: pane.id,
+            hiddenPaneIds,
+          };
+        };
 
         if (placement === "group-bottom") {
           const group = Object.values(s.panes).find((p) => p.tabs.some((t) => t.kind === "view" && t.viewType === viewType));
@@ -283,27 +319,88 @@ export const useEditorStore = create<EditorState>((set, get) => {
         return addTo(active(s));
       }),
 
+    toggleViewType: (viewType) => {
+      const state = get();
+      const panesWithView = Object.values(state.panes).filter((pane) =>
+        pane.tabs.some((tab) => tab.kind === "view" && tab.viewType === viewType),
+      );
+      if (panesWithView.length === 0) return false;
+
+      const viewPathIn = (pane: Pane) =>
+        pane.tabs.find((tab) => tab.kind === "view" && tab.viewType === viewType)?.path;
+
+      const activePane = state.panes[state.activePaneId];
+      const activeViewPath = activePane ? viewPathIn(activePane) : undefined;
+      const activePaneShowsView =
+        activePane &&
+        !state.hiddenPaneIds.has(activePane.id) &&
+        activePane.activeTabPath === activeViewPath;
+
+      if (activePaneShowsView) {
+        const visibleIds = leafIds(state.root).filter(
+          (id) => id !== activePane.id && !state.hiddenPaneIds.has(id),
+        );
+        if (visibleIds.length === 0) return true;
+
+        set({
+          hiddenPaneIds: new Set([...state.hiddenPaneIds, activePane.id]),
+          activePaneId: visibleIds[0],
+        });
+        return true;
+      }
+
+      const target =
+        panesWithView.find((pane) => !state.hiddenPaneIds.has(pane.id)) ??
+        panesWithView.find((pane) => state.hiddenPaneIds.has(pane.id));
+      if (!target) return false;
+
+      const path = viewPathIn(target);
+      if (!path) return false;
+      const hiddenPaneIds = new Set(state.hiddenPaneIds);
+      hiddenPaneIds.delete(target.id);
+      set({
+        hiddenPaneIds,
+        activePaneId: target.id,
+        panes: {
+          ...state.panes,
+          [target.id]: { ...target, activeTabPath: path, activeDiff: null },
+        },
+      });
+      return true;
+    },
+
     openPreview: (path, name) =>
       set((s) => {
-        const pane = active(s);
+        const target = fileTarget(s);
+        const pane = target.pane;
         if (pane.tabs.some((t) => t.path === path)) {
-          return { panes: { ...s.panes, [pane.id]: { ...pane, activeTabPath: path, activeDiff: null } } };
+          return {
+            root: target.root,
+            panes: { ...target.panes, [pane.id]: { ...pane, activeTabPath: path, activeDiff: null } },
+            activePaneId: pane.id,
+          };
         }
         const previewIdx = pane.tabs.findIndex((t) => t.isPreview && !t.isDirty);
         const nt: Tab = { path, name, isDirty: false, isPinned: false, isPreview: true };
         const tabs = [...pane.tabs];
         if (previewIdx >= 0) tabs[previewIdx] = nt;
         else tabs.push(nt);
-        return { panes: { ...s.panes, [pane.id]: { ...pane, tabs, activeTabPath: path, activeDiff: null } } };
+        return {
+          root: target.root,
+          panes: { ...target.panes, [pane.id]: { ...pane, tabs, activeTabPath: path, activeDiff: null } },
+          activePaneId: pane.id,
+        };
       }),
 
     openPinned: (path, name) =>
       set((s) => {
-        const pane = active(s);
+        const target = fileTarget(s);
+        const pane = target.pane;
         if (pane.tabs.some((t) => t.path === path)) {
           return {
+            root: target.root,
             panes: {
-              ...s.panes,
+              ...target.panes,
               [pane.id]: {
                 ...pane,
                 tabs: pane.tabs.map((t) =>
@@ -313,11 +410,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 activeDiff: null,
               },
             },
+            activePaneId: pane.id,
           };
         }
         return {
+          root: target.root,
           panes: {
-            ...s.panes,
+            ...target.panes,
             [pane.id]: {
               ...pane,
               tabs: [...pane.tabs, { path, name, isDirty: false, isPinned: true, isPreview: false }],
@@ -325,6 +424,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
               activeDiff: null,
             },
           },
+          activePaneId: pane.id,
         };
       }),
 
@@ -357,7 +457,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         if (tabs.length === 0 && !updated.activeDiff) {
           ({ root, panes, activePaneId } = dropPane(s, root, panes, paneId));
         }
-        return { root, panes, activePaneId, ...pruneContent(s, panes, path) };
+        const hiddenPaneIds = new Set(s.hiddenPaneIds);
+        if (!panes[paneId]) hiddenPaneIds.delete(paneId);
+        return { root, panes, activePaneId, hiddenPaneIds, ...pruneContent(s, panes, path) };
       }),
 
     closeEverywhere: (path) =>
@@ -378,7 +480,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
           }
         }
         const activePaneId = panes[s.activePaneId] ? s.activePaneId : firstLeafId(root);
-        return { root, panes, activePaneId, ...pruneContent(s, panes, path) };
+        const hiddenPaneIds = new Set([...s.hiddenPaneIds].filter((id) => panes[id]));
+        return { root, panes, activePaneId, hiddenPaneIds, ...pruneContent(s, panes, path) };
       }),
 
     setActiveTab: (paneId, path) =>
@@ -388,7 +491,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
         return { panes: { ...s.panes, [paneId]: { ...pane, activeTabPath: path, activeDiff: null } } };
       }),
 
-    setActivePane: (activePaneId) => set({ activePaneId }),
+    setActivePane: (activePaneId) =>
+      set((s) => {
+        const hiddenPaneIds = new Set(s.hiddenPaneIds);
+        hiddenPaneIds.delete(activePaneId);
+        return { activePaneId, hiddenPaneIds };
+      }),
 
     updateBuffer: (path, content) =>
       set((s) => {
@@ -559,7 +667,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
           root = removeLeaf(root, fromPaneId)!;
           delete panes[fromPaneId];
         }
-        return { root, panes, activePaneId: toPaneId };
+        const hiddenPaneIds = new Set(s.hiddenPaneIds);
+        hiddenPaneIds.delete(fromPaneId);
+        hiddenPaneIds.delete(toPaneId);
+        return { root, panes, activePaneId: toPaneId, hiddenPaneIds };
       }),
 
     dropTabOnPaneEdge: (fromPaneId, path, targetPaneId, side) =>
@@ -575,7 +686,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
           root = removeLeaf(root, fromPaneId)!;
           delete panes[fromPaneId];
         }
-        return { root, panes, activePaneId: np.id };
+        const hiddenPaneIds = new Set(s.hiddenPaneIds);
+        hiddenPaneIds.delete(fromPaneId);
+        hiddenPaneIds.delete(np.id);
+        return { root, panes, activePaneId: np.id, hiddenPaneIds };
       }),
 
     setSplitSizes: (splitId, sizes) => set((s) => ({ root: setSizes(s.root, splitId, sizes) })),

@@ -8,14 +8,24 @@ export const terminalExtension: Extension = {
     name: "Terminal",
     version: "1.0.0",
     contributes: {
-      commands: [{ id: "terminal.new", title: "New Terminal" }],
-      keybindings: [{ command: "terminal.new", key: "ctrl+`" }],
+      commands: [
+        { id: "terminal.new", title: "New Terminal" },
+        { id: "terminal.toggle", title: "Toggle Terminal" },
+      ],
+      keybindings: [
+        { command: "terminal.new", key: "ctrl+`" },
+        { command: "terminal.toggle", key: "mod+j" },
+      ],
     },
   },
 
   activate(ctx: ExtensionContext) {
     const store = useTerminalStore;
     let counter = 0;
+    const openTerminal = () => {
+      const id = crypto.randomUUID();
+      void ctx.commands.execute("editor.openView", "terminal", id, `Terminal ${++counter}`, "group-bottom");
+    };
 
     void Promise.resolve(ctx.commands.execute<string | null>("workspace.getPath"))
       .then((path) => store.getState().setCwd(path ?? null))
@@ -31,9 +41,10 @@ export const terminalExtension: Extension = {
 
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => store.getState().setCwd(path)),
-      ctx.commands.register("terminal.new", () => {
-        const id = crypto.randomUUID();
-        void ctx.commands.execute("editor.openView", "terminal", id, `Terminal ${++counter}`, "group-bottom");
+      ctx.commands.register("terminal.new", openTerminal),
+      ctx.commands.register("terminal.toggle", async () => {
+        const toggled = await ctx.commands.execute<boolean>("editor.toggleViewType", "terminal");
+        if (!toggled) openTerminal();
       }),
       ctx.events.on<{ viewType: string; viewId: string }>("editor:view_closed", ({ viewType, viewId }) => {
         if (viewType === "terminal") disposeSession(viewId);

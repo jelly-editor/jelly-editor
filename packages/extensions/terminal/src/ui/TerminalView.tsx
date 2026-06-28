@@ -35,7 +35,10 @@ function themeOf(ctx: ExtensionContext) {
 
 function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Session {
   const el = document.createElement("div");
-  el.className = "absolute inset-0 px-2 py-1";
+  el.className =
+    "absolute inset-0 overflow-hidden bg-bg-elevated " +
+    "[&_.xterm]:h-full [&_.xterm]:bg-inherit " +
+    "[&_.xterm-viewport]:!bg-inherit [&_.xterm-screen]:min-h-full";
   host.appendChild(el);
 
   const term = new Terminal({

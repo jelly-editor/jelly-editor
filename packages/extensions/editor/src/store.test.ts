@@ -18,6 +18,7 @@ function reset() {
     largeFiles: new Set(),
     revealTarget: null,
     closing: null,
+    hiddenPaneIds: new Set(),
   });
 }
 
@@ -174,17 +175,18 @@ describe("moveTab (drag center)", () => {
 });
 
 describe("contributed views (terminals)", () => {
-  test("openView adds a view tab and it can be split & dragged like a file", () => {
-    s().openView("terminal", "t1", "Terminal 1");
+  test("openView adds a view tab and it can be dragged into a file pane", () => {
+    s().openPinned("/w/a.ts", "a.ts");
+    const filePaneId = active().id;
+    s().openView("terminal", "t1", "Terminal 1", "group-bottom");
     const tab = active().tabs.find((t) => t.kind === "view");
     expect(tab?.viewType).toBe("terminal");
     expect(tab?.viewId).toBe("t1");
     expect(active().activeTabPath).toBe("view:terminal:t1");
 
-    s().openPinned("/w/a.ts", "a.ts"); // pane now has [terminal, a]
-    s().splitTab(active().id, "view:terminal:t1", "right");
-    expect(paneCount()).toBe(2);
-    expect(paneWith("view:terminal:t1")?.tabs[0]?.viewId).toBe("t1");
+    s().moveTab(active().id, filePaneId, "view:terminal:t1");
+    expect(paneCount()).toBe(1);
+    expect(s().panes[filePaneId].tabs.map((t) => t.path)).toEqual(["/w/a.ts", "view:terminal:t1"]);
   });
 
   test("group-bottom opens a dedicated bottom pane and groups same-type views", () => {
@@ -208,6 +210,40 @@ describe("contributed views (terminals)", () => {
     s().openView("terminal", "t1", "Terminal 1");
     s().closeTab(active().id, "view:terminal:t1");
     expect(active().tabs).toHaveLength(0);
+  });
+
+  test("opening a file while terminal pane is active targets the file pane", () => {
+    s().openPinned("/w/a.ts", "a.ts");
+    const filePaneId = active().id;
+    s().openView("terminal", "t1", "Terminal 1", "group-bottom");
+    const termPaneId = active().id;
+
+    s().openPinned("/w/b.ts", "b.ts");
+
+    expect(s().activePaneId).toBe(filePaneId);
+    expect(s().panes[filePaneId].tabs.map((t) => t.path)).toEqual(["/w/a.ts", "/w/b.ts"]);
+    expect(s().panes[termPaneId].tabs.map((t) => t.path)).toEqual(["view:terminal:t1"]);
+  });
+
+  test("toggleViewType hides and restores an active terminal pane without closing it", () => {
+    s().openPinned("/w/a.ts", "a.ts");
+    const filePaneId = active().id;
+    s().openView("terminal", "t1", "Terminal 1", "group-bottom");
+    const termPaneId = active().id;
+
+    expect(s().toggleViewType("terminal")).toBe(true);
+    expect(s().hiddenPaneIds.has(termPaneId)).toBe(true);
+    expect(s().panes[termPaneId].tabs.map((t) => t.path)).toEqual(["view:terminal:t1"]);
+    expect(s().activePaneId).toBe(filePaneId);
+
+    expect(s().toggleViewType("terminal")).toBe(true);
+    expect(s().hiddenPaneIds.has(termPaneId)).toBe(false);
+    expect(s().activePaneId).toBe(termPaneId);
+    expect(active().activeTabPath).toBe("view:terminal:t1");
+  });
+
+  test("toggleViewType returns false when no view of that type exists", () => {
+    expect(s().toggleViewType("terminal")).toBe(false);
   });
 });
 

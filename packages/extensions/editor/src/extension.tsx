@@ -4,7 +4,7 @@ import { foldAll, unfoldAll } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 import { foldNearest, unfoldNearest } from "./fold";
 import { EditorPane } from "./ui/pane";
-import { EditorEncoding, EditorIndent, EditorPath } from "./ui/StatusItems";
+import { EditorEncoding, EditorIndent } from "./ui/StatusItems";
 import { type LayoutNode, newPaneId, type Pane, type Tab, type ViewRenderer, useEditorStore, viewPath } from "./store";
 import { saveActive } from "./save";
 import { decideExternalChange } from "./reconcile";
@@ -30,6 +30,7 @@ export const editorExtension: Extension = {
         { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
         { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
+        { id: "editor.toggleViewType", title: "Toggle View Type", palette: false },
         { id: "editor.splitRight", title: "Split Editor Right" },
         { id: "editor.splitDown", title: "Split Editor Down" },
         { id: "editor.fold", title: "Fold" },
@@ -99,6 +100,9 @@ export const editorExtension: Extension = {
       ),
       ctx.commands.register("editor.closeView", (viewType: string, viewId: string) =>
         store.getState().closeEverywhere(viewPath(viewType, viewId)),
+      ),
+      ctx.commands.register("editor.toggleViewType", (viewType: string) =>
+        store.getState().toggleViewType(viewType),
       ),
       ctx.commands.register("editor.fold", () => runFold(foldNearest)),
       ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
@@ -209,9 +213,14 @@ export const editorExtension: Extension = {
     let restoring = false;
     let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // `dirty` holds the unsaved buffer for a modified tab so edits survive a
-    // restart; it's omitted for clean tabs (reopened from disk).
-    type SavedTab = { path: string; name: string; dirty?: string };
+    type SavedTab = {
+      path: string;
+      name: string;
+      dirty?: string;
+      kind?: "file" | "view";
+      viewType?: string;
+      viewId?: string;
+    };
     type SavedNode =
       | { kind: "leaf"; tabs: SavedTab[]; active: string | null; focused: boolean }
       | { kind: "split"; dir: "row" | "column"; sizes: number[]; children: SavedNode[] };
@@ -222,13 +231,14 @@ export const editorExtension: Extension = {
         const p = s.panes[node.paneId];
         return {
           kind: "leaf",
-          tabs: (p?.tabs ?? [])
-            .filter((t) => t.kind !== "view") // views (terminals) aren't disk files
-            .map((t) => ({
-              path: t.path,
-              name: t.name,
-              dirty: t.isDirty ? s.getContent(t.path) : undefined,
-            })),
+          tabs: (p?.tabs ?? []).map((t) => ({
+            path: t.path,
+            name: t.name,
+            dirty: t.kind === "view" ? undefined : t.isDirty ? s.getContent(t.path) : undefined,
+            kind: t.kind,
+            viewType: t.viewType,
+            viewId: t.viewId,
+          })),
           active: p?.activeTabPath ?? null,
           focused: node.paneId === s.activePaneId,
         };
@@ -269,6 +279,21 @@ export const editorExtension: Extension = {
           }
           const tabs: Tab[] = [];
           for (const t of sn.tabs) {
+            if (t.kind === "view") {
+              if (!t.viewType || !t.viewId) continue;
+              tabs.push({
+                path: t.path,
+                name: t.name,
+                isDirty: false,
+                isPinned: true,
+                isPreview: false,
+                kind: "view",
+                viewType: t.viewType,
+                viewId: t.viewId,
+              });
+              continue;
+            }
+
             if (!fileContents.has(t.path)) {
               let content: string;
               try {
@@ -302,6 +327,7 @@ export const editorExtension: Extension = {
           fileContents,
           savedContents,
           largeFiles,
+          hiddenPaneIds: new Set(),
         });
         for (const d of dirtyApply) store.getState().updateBuffer(d.path, d.dirty);
       } finally {
@@ -328,7 +354,6 @@ export const editorExtension: Extension = {
     );
 
     ctx.ui.mountSlot("editor.surface", <EditorPane ctx={ctx} />, { id: "editor.main" });
-    ctx.ui.contributeStatusBarItem({ id: "editor.path", align: "left", order: 20, render: () => <EditorPath /> });
     ctx.ui.contributeStatusBarItem({ id: "editor.encoding", align: "right", order: 10, render: () => <EditorEncoding /> });
     ctx.ui.contributeStatusBarItem({ id: "editor.indent", align: "right", order: 20, render: () => <EditorIndent /> });
   },
