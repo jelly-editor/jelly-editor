@@ -84,6 +84,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const dragging = useRef<string[]>([]); // paths being dragged
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
+  const copyIntent = useRef(false);
 
   if (!root) {
     return <div className="px-[14px] py-4 text-[11px] text-text-dim">No folder open</div>;
@@ -254,14 +255,16 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function onDragOver(e: React.DragEvent, entry: DirEntry | null) {
+    const wantsCopy = e.altKey || e.dataTransfer.dropEffect === "copy";
+    copyIntent.current = wantsCopy;
     const destDir = dropDirOf(entry);
-    if (!canDrop(dragging.current, destDir, e.altKey)) {
+    if (!canDrop(dragging.current, destDir, wantsCopy)) {
       highlight(null);
       return;
     }
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = e.altKey ? "copy" : "move";
+    e.dataTransfer.dropEffect = wantsCopy ? "copy" : "move";
     highlight(destDir);
   }
 
@@ -271,7 +274,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     const raw = e.dataTransfer.getData(DRAG_MIME);
     const srcs = raw ? (JSON.parse(raw) as string[]) : dragging.current;
     const destDir = dropDirOf(entry);
-    const asCopy = e.altKey;
+    const asCopy = copyIntent.current;
     highlight(null);
     dragging.current = [];
     if (canDrop(srcs, destDir, asCopy)) void transferAll(srcs, destDir, asCopy);
@@ -279,6 +282,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
 
   function onDragEnd() {
     dragging.current = [];
+    copyIntent.current = false;
     highlight(null);
   }
 
