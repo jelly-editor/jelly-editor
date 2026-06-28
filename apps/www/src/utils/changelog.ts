@@ -158,13 +158,18 @@ export function parseChangelog(content: string): ChangelogRelease[] {
   return releases;
 }
 
+export interface ChangelogResponse {
+  releases: ChangelogRelease[];
+  hasMore: boolean;
+}
+
 /**
  * Fetches the releases from GitHub API with local CHANGELOG.md as fallback.
- * Limits the results to the top 10 releases.
+ * Limits the results to the top 20 releases and returns if there are more.
  */
-export async function getChangelog(): Promise<ChangelogRelease[]> {
+export async function getChangelog(): Promise<ChangelogResponse> {
   try {
-    const res = await fetch("https://api.github.com/repos/jelly-editor/jelly-editor/releases", {
+    const res = await fetch("https://api.github.com/repos/jelly-editor/jelly-editor/releases?per_page=21", {
       headers: {
         "User-Agent": "jelly-website-builder",
         Accept: "application/vnd.github+json",
@@ -174,8 +179,9 @@ export async function getChangelog(): Promise<ChangelogRelease[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
+        const hasMore = data.length > 20;
         const limitedData = data.slice(0, 20);
-        return limitedData.map((release: any) => {
+        const releases = limitedData.map((release: any) => {
           const version = release.tag_name.replace(/^v/, "");
           const date = release.published_at ? release.published_at.slice(0, 10) : "";
           return {
@@ -185,6 +191,7 @@ export async function getChangelog(): Promise<ChangelogRelease[]> {
             sections: parseReleaseBody(release.body || ""),
           };
         });
+        return { releases, hasMore };
       }
     }
     console.warn("GitHub Releases API returned non-OK status:", res.status);
@@ -209,12 +216,14 @@ export async function getChangelog(): Promise<ChangelogRelease[]> {
       if (fs.existsSync(localPath)) {
         const content = fs.readFileSync(localPath, "utf-8");
         const parsed = parseChangelog(content);
-        return parsed.slice(0, 20);
+        const hasMore = parsed.length > 20;
+        const releases = parsed.slice(0, 20);
+        return { releases, hasMore };
       }
     }
   } catch (err) {
     console.error("Failed to read local CHANGELOG.md fallback:", err);
   }
 
-  return [];
+  return { releases: [], hasMore: false };
 }

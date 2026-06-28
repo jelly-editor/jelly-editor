@@ -4,7 +4,7 @@ import Footer from "@/components/landing/Footer.astro";
 import { getChangelog } from "@/utils/changelog";
 import "../styles/global.css";
 
-const releases = await getChangelog();
+const { releases, hasMore } = await getChangelog();
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
@@ -184,24 +184,26 @@ function getCategoryStyles(title: string) {
         </section>
 
         <!-- Bottom Callout (View More on GitHub) -->
-        <section class="mx-auto max-w-[1240px] px-6 pb-28 text-center">
-          <div class="inline-block rounded-2xl border border-rule/70 bg-surface px-8 py-10 max-w-md mx-auto">
-            <h3 class="text-[19px] font-semibold tracking-tight text-ink mb-2">
-              Looking for older updates?
-            </h3>
-            <p class="text-[13.5px] leading-relaxed text-ink-muted mb-6">
-              We show the 20 most recent updates here. To see the full release history, explore our GitHub repository.
-            </p>
-            <a
-              href="https://github.com/jelly-editor/jelly-editor/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex h-9 items-center rounded-full bg-ink px-5 text-[13px] font-medium text-background transition-transform hover:-translate-y-px"
-            >
-              View all on GitHub →
-            </a>
-          </div>
-        </section>
+        {hasMore && (
+          <section class="mx-auto max-w-[1240px] px-6 pb-28 text-center">
+            <div class="inline-block rounded-2xl border border-rule/70 bg-surface px-8 py-10 max-w-md mx-auto">
+              <h3 class="text-[19px] font-semibold tracking-tight text-ink mb-2">
+                Looking for older updates?
+              </h3>
+              <p class="text-[13.5px] leading-relaxed text-ink-muted mb-6">
+                We show the 20 most recent updates here. To see the full release history, explore our GitHub repository.
+              </p>
+              <a
+                href="https://github.com/jelly-editor/jelly-editor/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex h-9 items-center rounded-full bg-ink px-5 text-[13px] font-medium text-background transition-transform hover:-translate-y-px"
+              >
+                View all on GitHub →
+              </a>
+            </div>
+          </section>
+        )}
 
       </main>
       <Footer />
