@@ -121,10 +121,32 @@ export const filesExtension: Extension = {
     );
 
     // Keep the tree highlight in sync with the editor's active file.
+    // Expand (lazily loading as needed) every ancestor folder so the active
+    // file is revealed in the tree, however deeply nested.
+    const revealInTree = async (filePath: string) => {
+      const root = store.getState().path;
+      if (!root || !filePath.startsWith(root + "/")) return;
+      const segments = filePath.slice(root.length + 1).split("/");
+      segments.pop(); // drop the filename
+      let dir = root;
+      for (const seg of segments) {
+        dir = `${dir}/${seg}`;
+        if (!isDirLoaded(store.getState().tree, root, dir)) {
+          try {
+            store.getState().setChildren(dir, await ipc.fs.list(dir));
+          } catch {
+            return; // folder vanished — stop here
+          }
+        }
+        store.getState().setExpanded(dir, true);
+      }
+    };
+
     ctx.subscriptions.push(
-      ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) =>
-        store.getState().setActiveFilePath(path),
-      ),
+      ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) => {
+        store.getState().setActiveFilePath(path);
+        if (path) void revealInTree(path);
+      }),
       ctx.events.on<{ statuses: Record<string, FileStatus> }>("git:status_changed", ({ statuses }) =>
         store.getState().setGitStatuses(statuses),
       ),
