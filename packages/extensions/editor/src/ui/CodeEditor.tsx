@@ -1,4 +1,5 @@
 import type { ExtensionContext } from "@jelly/sdk";
+import { ipc } from "@jelly/ipc";
 import { baseExtensions, useSetting } from "@jelly/ui";
 import { search, searchKeymap } from "@codemirror/search";
 import { EditorView, keymap } from "@codemirror/view";
@@ -7,9 +8,11 @@ import { useEffect, useMemo, useRef } from "react";
 import { FindPanel } from "./FindPanel";
 import { useState } from "react";
 import { getActiveView, setActiveView } from "../active-view";
+import { gitGutter, setGitBaseline } from "../gitGutter";
 
 interface Props {
   ctx: ExtensionContext;
+  path: string;
   name: string;
   value: string;
   theme: "dark" | "light";
@@ -34,6 +37,7 @@ function revealLineInView(view: EditorView, line: number) {
 
 export function CodeEditor({
   ctx,
+  path,
   name,
   value,
   theme,
@@ -47,7 +51,37 @@ export function CodeEditor({
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
   const wordWrap = useSetting(ctx, "editor.wordWrap", false);
   const viewRef = useRef<EditorView | null>(null);
+  const baselineRef = useRef<string | null>(null);
   const [findOpen, setFindOpen] = useState(false);
+
+  // Diff the live document against the file's HEAD version for the change
+  // gutter. The baseline only moves on git operations, so refetch on those.
+  useEffect(() => {
+    if (isLargeFile) return;
+    let cancelled = false;
+    const load = async () => {
+      const ws = await ctx.commands
+        .execute<string | null>("workspace.getPath")
+        .catch(() => null);
+      if (!ws || !path) return;
+      const rel = path.startsWith(ws + "/") ? path.slice(ws.length + 1) : path;
+      let original: string;
+      try {
+        ({ original } = await ipc.git.diff(ws, rel));
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      baselineRef.current = original;
+      viewRef.current?.dispatch({ effects: setGitBaseline.of(original) });
+    };
+    void load();
+    const sub = ctx.events.on("git:changed", () => void load());
+    return () => {
+      cancelled = true;
+      sub.dispose();
+    };
+  }, [ctx, path, isLargeFile]);
 
   // Apply reveal requests once the view exists (covers both an already-open
   // file and one that just mounted after loading).
@@ -69,6 +103,7 @@ export function CodeEditor({
   const extensions = useMemo(
     () => [
       ...baseExtensions(name, dark, { fontSize, tabSize, wordWrap, largeFile: isLargeFile }),
+      ...(isLargeFile ? [] : [gitGutter()]),
       search({ top: true }),
       keymap.of(
         searchKeymap.filter(
@@ -103,6 +138,9 @@ export function CodeEditor({
         onCreateEditor={(view) => {
           viewRef.current = view;
           setActiveView(view);
+          if (baselineRef.current !== null) {
+            view.dispatch({ effects: setGitBaseline.of(baselineRef.current) });
+          }
           if (revealLine !== undefined) revealLineInView(view, revealLine);
         }}
         basicSetup={{

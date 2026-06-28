@@ -180,6 +180,7 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
           <CodeEditor
             key={activeTabPath}
             ctx={ctx}
+            path={activeTabPath ?? ""}
             name={activeTab.name}
             value={value}
             theme={theme}
