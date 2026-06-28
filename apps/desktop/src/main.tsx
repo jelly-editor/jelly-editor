@@ -30,8 +30,8 @@ async function boot() {
   // single global key dispatcher (replaces per-extension keydown listeners).
   kernel.installKeyDispatch(window);
 
-  await listen("menu:check_for_updates", () => {
-    void kernel.commands.execute("settings.checkForUpdates");
+  await listen<string>("menu:command", (event) => {
+    void kernel.commands.execute(event.payload);
   });
 
   // If this window was opened via `jelly <path>`, open that folder.

@@ -1,5 +1,5 @@
 import type { DirEntry, Extension, ExtensionContext, FileStatus, PaletteItem } from "@jelly/sdk";
-import { ipc } from "@jelly/ipc";
+import { ipc, pickFolder } from "@jelly/ipc";
 import { fuzzyMatch } from "@jelly/ui";
 import { FileTree } from "./ui/FileTree";
 import { WorkspaceTitle } from "./ui/WorkspaceTitle";
@@ -42,6 +42,7 @@ export const filesExtension: Extension = {
     contributes: {
       commands: [
         { id: "workspace.open", title: "Open Folder" },
+        { id: "workspace.openFolder", title: "Open Folder", palette: false },
         { id: "workspace.getPath", title: "Get Workspace Path", palette: false },
         { id: "files.list", title: "List Files", palette: false },
         { id: "files.refresh", title: "Refresh Explorer", palette: false },
@@ -87,6 +88,10 @@ export const filesExtension: Extension = {
         ctx.events.emit("workspace:opened", { path });
         loadAllFiles(path); // fire-and-forget; populates the palette index
         void restoreExpanded(path);
+      }),
+      ctx.commands.register("workspace.openFolder", async () => {
+        const path = await pickFolder();
+        if (path) await ctx.commands.execute("workspace.open", path);
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),

@@ -1,57 +1,50 @@
 //! Thin Tauri host. It owns no feature logic — it folds each feature crate's
 //! `register` (which attaches that feature's managed state) and lists the
-//! re-exported commands in a single `generate_handler!`. App-level chrome (the
-//! macOS menu) is the only thing wired here directly.
+//! re-exported commands in a single `generate_handler!`.
 
-use tauri::{Emitter, Manager};
+mod menu;
+
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "macos")]
     let _ = fix_path_env::fix();
 
-    // Resolve the first CLI argument (if any) as the path to open. We do this
-    // before building the app so we can act on it inside `.setup()`.
     let cli_path: Option<String> = {
         let args: Vec<String> = std::env::args().collect();
-        // args[0] is the binary; args[1] might be a path.
         args.get(1).cloned()
     };
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        // When a second `jelly` process is launched while one is already running,
-        // forward its arguments to the existing instance and exit the new one.
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            // args[0] = binary path; args[1] = optional folder path
             let path = args.get(1).map(|p| {
                 if std::path::Path::new(p).is_absolute() {
                     p.clone()
                 } else {
-                    // Resolve relative to the new instance's working directory.
-                    std::path::Path::new(&cwd).join(p).to_string_lossy().to_string()
+                    std::path::Path::new(&cwd)
+                        .join(p)
+                        .to_string_lossy()
+                        .to_string()
                 }
             });
 
             if let Some(p) = path {
                 let _ = jelly_core::window::open_window_for_path(app, &p);
             } else {
-                // No path — just bring any existing window to the front.
                 if let Some(win) = app.get_webview_window("main") {
                     let _ = win.set_focus();
                 }
             }
         }));
 
-    // Auto-update (desktop only): plugin-updater fetches/installs signed
-    // releases, plugin-process relaunches the app after an update.
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init());
 
-    // Fold each feature's managed state into the builder.
     let builder = jelly_core::register(builder);
     let builder = jelly_fs::register(builder);
     let builder = jelly_watcher::register(builder);
@@ -66,59 +59,10 @@ pub fn run() {
             {
                 use tauri::TitleBarStyle;
                 win.set_title_bar_style(TitleBarStyle::Overlay).unwrap();
-
-                // Custom menu: keep Cmd+Q (quit) and standard clipboard shortcuts,
-                // but deliberately omit "Close Window" so Cmd+W does NOT close the
-                // window. Cmd+W is handled in the frontend to close the active buffer.
-                use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-
-                let check_updates = MenuItemBuilder::with_id(
-                    "check_for_updates",
-                    "Check for Updates...",
-                )
-                .build(app)?;
-
-                let app_menu = SubmenuBuilder::new(app, "Jelly")
-                    .about(None)
-                    .item(&check_updates)
-                    .separator()
-                    .services()
-                    .separator()
-                    .hide()
-                    .hide_others()
-                    .show_all()
-                    .separator()
-                    .quit()
-                    .build()?;
-
-                let edit_menu = SubmenuBuilder::new(app, "Edit")
-                    .undo()
-                    .redo()
-                    .separator()
-                    .cut()
-                    .copy()
-                    .paste()
-                    .select_all()
-                    .build()?;
-
-                let window_menu = SubmenuBuilder::new(app, "Window")
-                    .minimize()
-                    .fullscreen()
-                    .build()?;
-
-                let menu = MenuBuilder::new(app)
-                    .items(&[&app_menu, &edit_menu, &window_menu])
-                    .build()?;
-                app.set_menu(menu)?;
-                app.on_menu_event(|app, event| {
-                    if event.id().as_ref() == "check_for_updates" {
-                        let _ = app.emit("menu:check_for_updates", ());
-                    }
-                });
             }
 
-            // If a path was passed on the CLI, open it in the main window by
-            // queuing it as the initial path for that window label ("main").
+            menu::install(app)?;
+
             if let Some(path) = cli_path {
                 let resolved = if std::path::Path::new(&path).is_absolute() {
                     path.clone()
@@ -131,7 +75,10 @@ pub fn run() {
 
                 if let Ok(abs) = std::fs::canonicalize(&resolved) {
                     if let Some(state) = app.try_state::<jelly_core::InitialPaths>() {
-                        state.0.lock().unwrap()
+                        state
+                            .0
+                            .lock()
+                            .unwrap()
                             .insert("main".to_string(), abs.to_string_lossy().to_string());
                     }
                 }
