@@ -75,6 +75,9 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // Right-click target: a tree entry, or null for the empty area (= root).
   const menu = useContextMenu<DirEntry | null>();
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Whether the shared clipboard holds something pasteable. Refreshed each time
+  // the menu opens, since another window may have copied since the last check.
+  const [canPaste, setCanPaste] = useState(false);
   // Drag-and-drop is driven entirely through refs/DOM so dragging over a large
   // tree never re-renders React (the old `useState` highlight was the lag).
   const dragging = useRef<string | null>(null); // path being dragged
@@ -169,6 +172,22 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     }
   }
 
+  function openMenu(e: React.MouseEvent, entry: DirEntry | null) {
+    menu.open(e, entry);
+    void ipc.clipboard.read().then((c) => setCanPaste(!!c?.paths.length));
+  }
+
+  function clip(entry: DirEntry, cut: boolean) {
+    void ipc.clipboard.write([entry.path], cut);
+  }
+
+  async function paste(destDir: string) {
+    const entry = await ipc.clipboard.read();
+    if (!entry?.paths.length) return;
+    for (const from of entry.paths) await transfer(from, destDir, !entry.cut);
+    if (entry.cut) await ipc.clipboard.clear();
+  }
+
   // The directory a drop on `entry` targets: a folder receives into itself, a
   // file into its parent. With no entry (empty space) the drop targets the root.
   function dropDirOf(entry: DirEntry | null): string {
@@ -240,7 +259,12 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
 
       let target = joinPath(destDir, name);
       let overwrite = false;
-      if (taken.has(name)) {
+      // Copying into the source's own folder duplicates it (Finder-style), with
+      // no prompt; moving into the same folder is a no-op.
+      if (parentOf(from) === destDir) {
+        if (!asCopy) return;
+        target = joinPath(destDir, uniqueName(name, taken));
+      } else if (taken.has(name)) {
         const choice = await ctx.dialog.show({
           title: `${verb} — name already exists`,
           message: `"${name}" already exists in this folder.`,
@@ -302,7 +326,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           else rowEls.current.delete(root);
         }}
         className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
-        onContextMenu={(e) => menu.open(e, null)}
+        onContextMenu={(e) => openMenu(e, null)}
         onDragOver={(e) => onDragOver(e, null)}
         onDrop={(e) => onDrop(e, null)}
       >
@@ -314,7 +338,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           rowEls={rowEls.current}
           onToggle={toggleDir}
           onOpen={openFile}
-          onContext={(e, entry) => menu.open(e, entry)}
+          onContext={openMenu}
           onRename={startRename}
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
@@ -334,9 +358,12 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           x={menu.state.x}
           y={menu.state.y}
           onClose={menu.close}
-          items={fileMenuItems(menu.state.data, root, {
+          items={fileMenuItems(menu.state.data, root, canPaste, {
             onNewFile: (dir, depth) => startCreate(dir, depth, false),
             onNewFolder: (dir, depth) => startCreate(dir, depth, true),
+            onCopy: (entry) => clip(entry, false),
+            onCut: (entry) => clip(entry, true),
+            onPaste: paste,
             onRename: startRename,
             onDelete: remove,
           })}
@@ -532,9 +559,13 @@ function DraftRow({
 function fileMenuItems(
   entry: DirEntry | null,
   rootPath: string,
+  canPaste: boolean,
   handlers: {
     onNewFile: (dir: string, depth: number) => void;
     onNewFolder: (dir: string, depth: number) => void;
+    onCopy: (entry: DirEntry) => void;
+    onCut: (entry: DirEntry) => void;
+    onPaste: (dir: string) => void;
     onRename: (entry: DirEntry, depth: number) => void;
     onDelete: (entry: DirEntry) => void;
   },
@@ -549,7 +580,15 @@ function fileMenuItems(
   const items: ContextMenuEntry[] = [
     { label: "New File", onSelect: () => handlers.onNewFile(targetDir, targetDepth) },
     { label: "New Folder", onSelect: () => handlers.onNewFolder(targetDir, targetDepth) },
+    { type: "separator" },
   ];
+  if (entry) {
+    items.push(
+      { label: "Copy", onSelect: () => handlers.onCopy(entry) },
+      { label: "Cut", onSelect: () => handlers.onCut(entry) },
+    );
+  }
+  items.push({ label: "Paste", disabled: !canPaste, onSelect: () => handlers.onPaste(targetDir) });
   if (entry) {
     items.push(
       { type: "separator" },

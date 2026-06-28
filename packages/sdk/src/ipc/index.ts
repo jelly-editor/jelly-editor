@@ -11,6 +11,8 @@ export type {
   SearchOptions,
 } from "./types";
 export type {
+  ClipboardClient,
+  ClipboardEntry,
   FsClient,
   GitClient,
   KeybindingsClient,

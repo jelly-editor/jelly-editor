@@ -24,6 +24,11 @@ export function createStubIpc(): IpcClient {
       copy: fail("fs.copy"),
       delete: fail("fs.delete"),
     },
+    clipboard: {
+      write: fail("clipboard.write"),
+      read: fail("clipboard.read"),
+      clear: fail("clipboard.clear"),
+    },
     git: {
       status: fail("git.status"),
       diff: fail("git.diff"),

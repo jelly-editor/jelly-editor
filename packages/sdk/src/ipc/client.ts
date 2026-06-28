@@ -1,4 +1,5 @@
 import type {
+  ClipboardClient,
   FsClient,
   GitClient,
   KeybindingsClient,
@@ -18,6 +19,7 @@ import type {
  */
 export interface IpcClient {
   fs: FsClient;
+  clipboard: ClipboardClient;
   git: GitClient;
   search: SearchClient;
   terminal: TerminalClient;

@@ -7,13 +7,16 @@
 //! collide with the `list_dir` command at the crate root).
 
 mod actor;
+pub mod clipboard;
 pub mod commands;
 
 use tauri::{Builder, Wry};
 
 pub use actor::{list_dir, FileManagerHandle, FileManagerMsg};
+pub use clipboard::FileClipboard;
 
-/// Spawn the FileManager actor and attach its handle as managed state.
+/// Spawn the FileManager actor and attach it, plus the shared file clipboard,
+/// as managed state.
 pub fn register(builder: Builder<Wry>) -> Builder<Wry> {
-    builder.manage(actor::spawn())
+    builder.manage(actor::spawn()).manage(FileClipboard::default())
 }

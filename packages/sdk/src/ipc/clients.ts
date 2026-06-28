@@ -14,6 +14,21 @@ export interface FsClient {
   delete(path: string): Promise<void>;
 }
 
+/** A pending file clipboard entry, shared across all windows by the host. */
+export interface ClipboardEntry {
+  paths: string[];
+  /** `true` for a cut (move on paste), `false` for a copy. */
+  cut: boolean;
+}
+
+export interface ClipboardClient {
+  /** Stage `paths` for a copy (or cut) — overwrites any previous entry. */
+  write(paths: string[], cut: boolean): Promise<void>;
+  /** Read the current entry, or `null` when the clipboard is empty. */
+  read(): Promise<ClipboardEntry | null>;
+  clear(): Promise<void>;
+}
+
 export interface GitClient {
   status(workspace: string): Promise<GitStatus>;
   diff(workspace: string, path: string): Promise<GitDiffResult>;
