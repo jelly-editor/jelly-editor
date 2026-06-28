@@ -19,7 +19,7 @@ export function ActivityBar() {
     return (
       <button
         key={item.id}
-        className={`flex items-center justify-center w-8 h-8 p-0 rounded-[5px] cursor-pointer transition-colors duration-[80ms] hover:text-text ${
+        className={`relative flex items-center justify-center w-8 h-8 p-0 rounded-[5px] cursor-pointer transition-colors duration-[80ms] hover:text-text ${
           active ? "bg-bg-active text-text" : "bg-transparent text-text-muted"
         }`}
         onClick={() =>
@@ -28,6 +28,7 @@ export function ActivityBar() {
         title={item.title}
       >
         {item.icon()}
+        {item.badge?.()}
       </button>
     );
   };

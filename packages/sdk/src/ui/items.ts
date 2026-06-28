@@ -4,6 +4,8 @@ export interface ActivityBarItem {
   id: string;
   /** renders the button's icon (a small SVG node, typically) */
   icon: () => ReactNode;
+  /** optional count/dot overlaid on the icon (e.g. number of git changes) */
+  badge?: () => ReactNode;
   title?: string;
   /** which end of the rail; defaults to "top" */
   align?: "top" | "bottom";

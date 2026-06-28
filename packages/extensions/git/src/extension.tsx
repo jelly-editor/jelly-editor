@@ -16,6 +16,16 @@ function GitIcon() {
   );
 }
 
+function GitBadge() {
+  const count = useGitStore((s) => s.staged.length + s.modified.length + s.untracked.length);
+  if (!count) return null;
+  return (
+    <span className="absolute -top-[3px] -right-[3px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-accent px-[3px] text-[9px] font-semibold leading-none text-white">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export const gitExtension: Extension = {
   manifest: {
     id: "jelly.git",
@@ -82,7 +92,7 @@ export const gitExtension: Extension = {
       { dispose: () => clearTimeout(timer) },
     );
 
-    ctx.ui.contributeActivityBarItem({ id: "git", order: 20, title: "Git", icon: () => <GitIcon /> });
+    ctx.ui.contributeActivityBarItem({ id: "git", order: 20, title: "Git", icon: () => <GitIcon />, badge: () => <GitBadge /> });
     ctx.ui.contributeSidebarPanel({ id: "git", render: () => <GitPanel ctx={ctx} /> });
     ctx.ui.contributeStatusBarItem({
       id: "git.branch",
