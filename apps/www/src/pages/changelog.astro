@@ -1,0 +1,210 @@
+---
+import Nav from "@/components/landing/Nav.astro";
+import Footer from "@/components/landing/Footer.astro";
+import { getChangelog } from "@/utils/changelog";
+import "../styles/global.css";
+
+const releases = await getChangelog();
+
+function formatDate(dateStr?: string) {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+const tagColors: Record<string, { bg: string; text: string }> = {
+  ux:          { bg: "bg-[#fef2c0]/30",  text: "text-[#a87f00]" },
+  editor:      { bg: "bg-[#c5def5]/30",  text: "text-[#1f6db5]" },
+  files:       { bg: "bg-[#e4e669]/20",  text: "text-[#7a7a00]" },
+  terminal:    { bg: "bg-[#006b75]/15",  text: "text-[#006b75]" },
+  settings:    { bg: "bg-[#f9d0c4]/30",  text: "text-[#b94c27]" },
+  extensions:  { bg: "bg-[#d4c5f9]/30",  text: "text-[#6c3fc5]" },
+  performance: { bg: "bg-[#d4c5f9]/20",  text: "text-[#7b61c2]" },
+  git:         { bg: "bg-[#1d76db]/12",  text: "text-[#1d76db]" },
+};
+
+const categoryColors: Record<string, { bg: string; text: string; dot: string }> = {
+  "features":  { bg: "bg-jelly-cream text-ink", dot: "bg-jelly-magenta" },
+  "bug fixes": { bg: "bg-jelly-soft text-ink",  dot: "bg-jelly-violet" },
+  "default":   { bg: "bg-surface-2 text-ink-muted", dot: "bg-ink-faint" },
+};
+
+function getCategoryStyles(title: string) {
+  const norm = title.toLowerCase();
+  if (norm.includes("feature")) return categoryColors["features"];
+  if (norm.includes("bug") || norm.includes("fix")) return categoryColors["bug fixes"];
+  return categoryColors["default"];
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Changelog — Jelly Editor</title>
+    <meta
+      name="description"
+      content="Follow the latest updates, features, and fixes shipped to Jelly."
+    />
+    <meta property="og:title" content="Changelog — Jelly Editor" />
+    <meta
+      property="og:description"
+      content="Follow the latest updates, features, and fixes shipped to Jelly."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://jelly-editor.github.io/changelog" />
+    <meta property="og:image" content="https://jelly-editor.github.io/open-graph.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Changelog — Jelly Editor" />
+    <meta
+      name="twitter:description"
+      content="Follow the latest updates, features, and fixes shipped to Jelly."
+    />
+    <meta name="twitter:image" content="https://jelly-editor.github.io/open-graph.png" />
+  </head>
+  <body class="bg-background text-ink selection:bg-jelly-cream/80">
+    <div class="min-h-screen bg-background text-ink">
+      <Nav />
+      <main>
+        
+        <!-- Page header -->
+        <section class="mx-auto max-w-[1240px] px-6 pt-24 pb-16 md:pt-32">
+          <div class="max-w-2xl">
+            <p class="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
+              Changelog
+            </p>
+            <h1 class="text-balance text-[44px] font-semibold leading-[1.04] tracking-[-0.03em] text-ink md:text-[56px]">
+              What's new.
+            </h1>
+            <p class="mt-5 max-w-xl text-[16.5px] leading-[1.6] text-ink-muted">
+              Follow the latest updates, features, and bug fixes shipped to the Jelly desktop editor.
+            </p>
+          </div>
+        </section>
+
+        <!-- Changelog entries timeline -->
+        <section class="mx-auto max-w-[1240px] px-6 pb-20">
+          <div class="relative">
+            <!-- Vertical spine (desktop only) -->
+            <div class="absolute left-[7px] top-3 bottom-3 hidden w-px bg-rule/70 md:block" aria-hidden="true"></div>
+
+            <ol class="space-y-16">
+              {releases.length === 0 ? (
+                <div class="rounded-2xl border border-rule/70 bg-surface p-8 text-center text-ink-muted md:pl-10">
+                  <p>No release logs found. Check back soon!</p>
+                </div>
+              ) : (
+                releases.map((rel) => (
+                  <li class="relative md:pl-10">
+                    <!-- Dot on timeline spine -->
+                    <div
+                      class="absolute left-0 top-[6px] hidden h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background bg-jelly-magenta md:flex"
+                      aria-hidden="true"
+                    ></div>
+
+                    <div class="group rounded-2xl border border-rule/70 bg-surface p-7 md:p-8">
+                      <!-- Version / Date info -->
+                      <div class="mb-6 flex flex-wrap items-baseline justify-between gap-4 border-b border-rule/50 pb-4">
+                        <div class="flex items-center gap-3">
+                          <h2 class="font-mono text-2xl font-bold tracking-tight text-ink">
+                            v{rel.version}
+                          </h2>
+                          {rel.date && (
+                            <span class="rounded bg-surface-2 px-2.5 py-0.5 font-mono text-[11px] font-medium tracking-tight text-ink-muted">
+                              {formatDate(rel.date)}
+                            </span>
+                          )}
+                        </div>
+                        {rel.url && (
+                          <a
+                            href={rel.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-ink-faint hover:text-ink transition-colors"
+                          >
+                            GitHub Release
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3" aria-hidden="true">
+                              <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+
+                      <!-- Sections (Categories like Features, Bug Fixes) -->
+                      <div class="space-y-8">
+                        {rel.sections.map((sec) => {
+                          const catStyles = getCategoryStyles(sec.title);
+                          return (
+                            <div>
+                              <div class="mb-4 flex items-center gap-2">
+                                <span class={`h-1.5 w-1.5 rounded-full ${catStyles.dot}`}></span>
+                                <h3 class="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-muted font-bold">
+                                  {sec.title}
+                                </h3>
+                              </div>
+
+                              <ul class="space-y-3 pl-3">
+                                {sec.items.map((item) => {
+                                  const tc = item.scope ? (tagColors[item.scope.toLowerCase()] ?? { bg: "bg-surface-2", text: "text-ink-muted" }) : null;
+                                  return (
+                                    <li class="flex items-start gap-2 text-[14.5px] leading-[1.6] text-ink-muted">
+                                      <span class="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-faint"></span>
+                                      <span class="flex-1">
+                                        {item.scope && tc && (
+                                          <span class={`mr-2 inline-flex rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${tc.bg} ${tc.text}`}>
+                                            {item.scope}
+                                          </span>
+                                        )}
+                                        <span set:html={item.message}></span>
+                                      </span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ol>
+          </div>
+        </section>
+
+        <!-- Bottom Callout (View More on GitHub) -->
+        <section class="mx-auto max-w-[1240px] px-6 pb-28 text-center">
+          <div class="inline-block rounded-2xl border border-rule/70 bg-surface px-8 py-10 max-w-md mx-auto">
+            <h3 class="text-[19px] font-semibold tracking-tight text-ink mb-2">
+              Looking for older updates?
+            </h3>
+            <p class="text-[13.5px] leading-relaxed text-ink-muted mb-6">
+              We show the 20 most recent updates here. To see the full release history, explore our GitHub repository.
+            </p>
+            <a
+              href="https://github.com/jelly-editor/jelly-editor/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex h-9 items-center rounded-full bg-ink px-5 text-[13px] font-medium text-background transition-transform hover:-translate-y-px"
+            >
+              View all on GitHub →
+            </a>
+          </div>
+        </section>
+
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>
