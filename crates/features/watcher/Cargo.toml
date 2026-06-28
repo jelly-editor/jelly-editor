@@ -8,3 +8,4 @@ jelly-protocol = { path = "../../jelly-protocol" }
 tauri = { version = "2", features = [] }
 notify = "8.2.0"
 notify-debouncer-mini = "0.7.0"
+ignore = "0.4.26"
