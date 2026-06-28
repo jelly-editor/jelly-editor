@@ -7,9 +7,11 @@ const DRAG_ICON =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 export const drag: DragClient = {
-  start: (paths, copy) => {
+  start: (paths, copy, icon) => {
     void invoke<void>("drag_session_write", { paths, copy });
-    return startDrag({ item: paths, icon: DRAG_ICON, mode: copy ? "copy" : "move" });
+    return startDrag({ item: paths, icon: icon || DRAG_ICON, mode: copy ? "copy" : "move" }, () =>
+      invoke<void>("drag_session_clear"),
+    );
   },
   readSession: () => invoke<DragSession | null>("drag_session_read"),
   clearSession: () => invoke<void>("drag_session_clear"),

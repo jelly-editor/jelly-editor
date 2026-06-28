@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import type { DirEntry, FsClient } from "@jelly/sdk";
 
 export const fs: FsClient = {
@@ -11,4 +12,5 @@ export const fs: FsClient = {
   rename: (from, to) => invoke<void>("rename", { from, to }),
   copy: (from, to) => invoke<void>("copy", { from, to }),
   delete: (path) => invoke<void>("delete", { path }),
+  notifyChanged: (path) => emit("file:changed_externally", { path }),
 };

@@ -12,6 +12,8 @@ export interface FsClient {
   rename(from: string, to: string): Promise<void>;
   copy(from: string, to: string): Promise<void>;
   delete(path: string): Promise<void>;
+  /** Broadcast that `path` changed, so every window re-lists its parent dir. */
+  notifyChanged(path: string): Promise<void>;
 }
 
 /** A pending file clipboard entry, shared across all windows by the host. */
@@ -47,8 +49,10 @@ export interface DragDropEvent {
 
 /** Cross-window file drag, backed by an OS-native drag operation. */
 export interface DragClient {
-  /** Begin an OS drag carrying `paths`; `copy` sets the move/copy intent. */
-  start(paths: string[], copy: boolean): Promise<void>;
+  /** Begin an OS drag carrying `paths`. `alt`/`cmd` are the modifiers held at
+   *  drag start; the drop window derives copy-vs-move from them and whether the
+   *  drag is same- or cross-window. `icon` is an optional PNG data-URI image. */
+  start(paths: string[], alt: boolean, cmd: boolean, icon?: string): Promise<void>;
   /** The current session, recorded by the source window (null if none). */
   readSession(): Promise<DragSession | null>;
   clearSession(): Promise<void>;

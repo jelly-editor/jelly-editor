@@ -1,13 +1,9 @@
 import type { ExtensionContext } from "@jelly/sdk";
-import { useState } from "react";
 import { type Pane, useEditorStore } from "../../store";
 import { CodeEditor } from "../CodeEditor";
 import { DiffView } from "../DiffView";
 import type { BeginDrag } from "./drag";
 import { TabBar } from "./TabBar";
-
-/** Native-DnD payload the file explorer sets when dragging a file out. */
-const FILE_MIME = "application/x-jelly-file";
 
 export interface PaneProps {
   ctx: ExtensionContext;
@@ -48,47 +44,31 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
   const closeDiff = useEditorStore((s) => s.closeDiff);
   const revealTarget = useEditorStore((s) => s.revealTarget);
   const isActive = useEditorStore((s) => s.activePaneId === pane.id);
-
-  const [fileOver, setFileOver] = useState(false);
+  const dragOver = useEditorStore((s) => (s.dragOver?.paneId === pane.id ? s.dragOver : null));
 
   const focusPane = () => {
     if (!isActive) setActivePane(pane.id);
   };
 
-  const fileDrop = {
-    onDragOver: (e: React.DragEvent) => {
-      if (!e.dataTransfer.types.includes(FILE_MIME)) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      if (!fileOver) setFileOver(true);
-    },
-    onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFileOver(false);
-    },
-    onDrop: (e: React.DragEvent) => {
-      if (!e.dataTransfer.types.includes(FILE_MIME)) return;
-      e.preventDefault();
-      setFileOver(false);
-      const raw = e.dataTransfer.getData(FILE_MIME);
-      if (!raw) return;
-      try {
-        const { path, name } = JSON.parse(raw) as { path: string; name: string };
-        setActivePane(pane.id);
-        void ctx.commands.execute("editor.open", path, name, { pin: true });
-      } catch {
-        /* malformed payload — ignore */
-      }
-    },
+  const EDGE_INSET: Record<string, string> = {
+    left: "left-0 top-0 w-1/2 h-full",
+    right: "right-0 top-0 w-1/2 h-full",
+    top: "left-0 top-0 w-full h-1/2",
+    bottom: "left-0 bottom-0 w-full h-1/2",
   };
-  const fileOverlay = fileOver ? (
-    <div className="pointer-events-none absolute inset-0 z-[40] bg-accent/10 ring-2 ring-inset ring-accent/60" />
+  const fileOverlay = dragOver ? (
+    <div
+      className={`pointer-events-none absolute z-[40] bg-accent/10 ring-2 ring-inset ring-accent/60 ${
+        dragOver.side ? EDGE_INSET[dragOver.side] : "inset-0"
+      }`}
+    />
   ) : null;
 
   if (pane.activeDiff) {
     const diff = pane.activeDiff;
     const name = diff.path.split("/").pop() ?? diff.path;
     return (
-      <div data-pane-id={pane.id} className={`relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg`} onMouseDown={focusPane} {...fileDrop}>
+      <div data-pane-id={pane.id} className={`relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg`} onMouseDown={focusPane}>
         {fileOverlay}
         <div className="flex items-center gap-2 h-[34px] px-3 bg-bg-elevated border-b border-border shrink-0">
           <span className="text-[12px] text-text">{name}</span>
@@ -112,7 +92,7 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
   const isLargeFile = activeTab && !isView ? largeFiles.has(activeTab.path) : false;
 
   return (
-    <div data-pane-id={pane.id} className={`relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg`} onMouseDown={focusPane} {...fileDrop}>
+    <div data-pane-id={pane.id} className={`relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg`} onMouseDown={focusPane}>
       {fileOverlay}
       {pane.tabs.length > 0 && <TabBar pane={pane} beginDrag={beginDrag} />}
       {isLargeFile && <LargeFileBanner />}

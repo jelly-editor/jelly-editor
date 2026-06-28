@@ -23,6 +23,7 @@ export function createStubIpc(): IpcClient {
       rename: fail("fs.rename"),
       copy: fail("fs.copy"),
       delete: fail("fs.delete"),
+      notifyChanged: fail("fs.notifyChanged"),
     },
     clipboard: {
       write: fail("clipboard.write"),

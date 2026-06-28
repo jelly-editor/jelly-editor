@@ -152,8 +152,13 @@ interface EditorState {
   /** Bumped when a renderer registers so mounted view hosts re-render. */
   viewVersion: number;
   hiddenPaneIds: Set<string>;
+  /** Pane currently under a file drag, plus the edge being targeted (null = center). */
+  dragOver: { paneId: string; side: Side | null } | null;
 
   getActivePane: () => Pane;
+  setDragOver: (v: { paneId: string; side: Side | null } | null) => void;
+  /** Open a fresh pane split off `targetPaneId` on `side`, and make it active. */
+  splitOpen: (targetPaneId: string, side: Side) => void;
 
   /** Register a renderer for a `view` tab type (called via the command bus). */
   registerView: (viewType: string, render: ViewRenderer) => void;
@@ -268,8 +273,19 @@ export const useEditorStore = create<EditorState>((set, get) => {
     viewRenderers: new Map(),
     viewVersion: 0,
     hiddenPaneIds: new Set(),
+    dragOver: null,
 
     getActivePane: () => active(get()),
+    setDragOver: (dragOver) => set({ dragOver }),
+    splitOpen: (targetPaneId, side) =>
+      set((s) => {
+        const np = emptyPane();
+        return {
+          root: splitLeaf(s.root, targetPaneId, np.id, side),
+          panes: { ...s.panes, [np.id]: np },
+          activePaneId: np.id,
+        };
+      }),
 
     registerView: (viewType, render) =>
       set((s) => {

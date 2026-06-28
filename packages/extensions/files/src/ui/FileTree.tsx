@@ -24,13 +24,36 @@ const {
 const INDENT = 12;
 const HIGHLIGHT = ["bg-accent/15", "shadow-[inset_0_0_0_1px]", "shadow-accent/50"];
 
+/** A rounded pill PNG (data URI) showing `label`, used as the native drag image. */
+function dragImage(label: string): string {
+  const font = "12px -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+  const canvas = document.createElement("canvas");
+  const cx = canvas.getContext("2d")!;
+  cx.font = font;
+  const padX = 9;
+  const h = 22;
+  const w = Math.ceil(cx.measureText(label).width) + padX * 2;
+  canvas.width = w;
+  canvas.height = h;
+  cx.font = font;
+  const r = 5;
+  cx.beginPath();
+  cx.moveTo(r, 0);
+  cx.arcTo(w, 0, w, h, r);
+  cx.arcTo(w, h, 0, h, r);
+  cx.arcTo(0, h, 0, 0, r);
+  cx.arcTo(0, 0, w, 0, r);
+  cx.closePath();
+  cx.fillStyle = "rgba(38,38,44,0.96)";
+  cx.fill();
+  cx.fillStyle = "#fff";
+  cx.textBaseline = "middle";
+  cx.fillText(label, padX, h / 2 + 0.5);
+  return canvas.toDataURL("image/png");
+}
+
 function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
-}
-function sameFiles(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false;
-  const set = new Set(a);
-  return b.every((p) => set.has(p));
 }
 function joinPath(dir: string, name: string) {
   return `${dir}/${name}`;
@@ -75,15 +98,28 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
   const incoming = useRef<{ paths: string[]; copy: boolean } | null>(null);
+  const incomingRead = useRef(false);
   const dndRef = useRef<(e: { phase: string; paths: string[]; x: number; y: number }) => void>(() => {});
+  // Tracked here because WKWebView doesn't report modifier keys on drag events.
+  const altDown = useRef(false);
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let cancelled = false;
     ipc.drag.onDrop((e) => void dndRef.current(e)).then((un) => (cancelled ? un() : (dispose = un)));
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Alt") altDown.current = e.type === "keydown";
+    };
+    const onBlur = () => (altDown.current = false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    window.addEventListener("blur", onBlur);
     return () => {
       cancelled = true;
       dispose?.();
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+      window.removeEventListener("blur", onBlur);
     };
   }, []);
 
@@ -234,12 +270,19 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     highlightedDir.current = destDir;
   }
 
+  // Plain mousedown selects the row up front, so the drag starts from a stable
+  // selection — mutating it inside `onDragStart` cancels the native drag.
+  function onRowMouseDown(e: React.MouseEvent, entry: DirEntry) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    if (!useWorkspaceStore.getState().selected.has(entry.path)) setSelection([entry.path]);
+  }
+
   function onDragStart(e: React.DragEvent, entry: DirEntry) {
     e.preventDefault();
     const selected = useWorkspaceStore.getState().selected;
     const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
-    if (!selected.has(entry.path)) setSelection([entry.path]);
-    void ipc.drag.start(paths, e.altKey);
+    const label = paths.length > 1 ? `${paths.length} items` : entry.name;
+    void ipc.drag.start(paths, altDown.current, dragImage(label));
   }
 
   function destDirAt(el: Element | null, fallbackRoot: string): string {
@@ -251,46 +294,41 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   async function onNativeDnd(e: { phase: string; paths: string[]; x: number; y: number }) {
     if (e.phase === "leave") {
       incoming.current = null;
+      incomingRead.current = false;
       highlight(null);
       return;
     }
-    if (e.phase === "enter") {
+    // Cache the session once per drag (the source clears it when the drag ends,
+    // so reading fresh at drop time would race and lose the copy/move intent).
+    if (!incomingRead.current) {
+      incomingRead.current = true;
       incoming.current = await ipc.drag.readSession();
-      return;
     }
+    const session = incoming.current;
+    if (e.phase === "enter") return;
 
     const dpr = window.devicePixelRatio || 1;
     const el = document.elementFromPoint(e.x / dpr, e.y / dpr);
     const overTree = !!(el && treeRef.current?.contains(el));
 
     if (e.phase === "over") {
-      const inc = incoming.current;
       const dest = overTree && el ? destDirAt(el, root!) : null;
-      highlight(dest && inc && canDrop(inc.paths, dest, inc.copy) ? dest : null);
+      highlight(dest && session && canDrop(session.paths, dest, session.copy) ? dest : null);
       return;
     }
 
     highlight(null);
-    const session = incoming.current ?? (await ipc.drag.readSession());
     incoming.current = null;
-    // The session is only ours if it names exactly the dropped files; otherwise
-    // this is an external (e.g. Finder) drop and we copy what the OS reported.
-    const internal = !!session && sameFiles(session.paths, e.paths);
-    if (internal) void ipc.drag.clearSession();
-    const paths = internal ? session!.paths : e.paths;
+    incomingRead.current = false;
+    if (!overTree || !el) return; // dropped elsewhere (e.g. an editor pane) — not ours
+    // A live session means the drag came from inside Jelly; use its own paths
+    // (the OS drop paths are unreliable for app-initiated drags). Otherwise this
+    // is an external (e.g. Finder) drop, which we copy.
+    const paths = session?.paths.length ? session.paths : e.paths;
     if (!paths.length) return;
-    const copy = internal ? session!.copy : true;
-
-    if (overTree && el) {
-      const dest = destDirAt(el, root!);
-      if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
-      return;
-    }
-    if (el?.closest("[data-pane-id]")) {
-      for (const p of paths) {
-        void ctx.commands.execute("editor.open", p, p.slice(p.lastIndexOf("/") + 1), { pin: true });
-      }
-    }
+    const copy = session ? session.copy : true;
+    const dest = destDirAt(el, root!);
+    if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
   }
 
   async function transferAll(froms: string[], destDir: string, asCopy: boolean) {
@@ -338,9 +376,11 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
         await renamePath(from, target);
         ctx.events.emit("files:renamed", { from, to: target });
         await refreshDir(parentOf(from));
+        void ipc.fs.notifyChanged(from);
       }
       setExpanded(destDir, true);
       await refreshDir(destDir);
+      void ipc.fs.notifyChanged(target);
     } catch (e) {
       await alertError(`${e}`, `${verb} failed`);
     }
@@ -389,6 +429,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           onToggle={toggleDir}
           onOpen={openFile}
           onClick={onRowClick}
+          onMouseDownRow={onRowMouseDown}
           onContext={openMenu}
           onRename={startRename}
           onCommitDraft={commitDraft}
@@ -461,6 +502,7 @@ interface RowsProps {
   onToggle: (entry: DirEntry) => void;
   onOpen: (entry: DirEntry, pin: boolean) => void;
   onClick: (e: React.MouseEvent, entry: DirEntry) => void;
+  onMouseDownRow: (e: React.MouseEvent, entry: DirEntry) => void;
   onContext: (e: React.MouseEvent, entry: DirEntry) => void;
   onRename: (entry: DirEntry, depth: number) => void;
   onCommitDraft: (name: string) => void;
@@ -509,6 +551,7 @@ function Rows(props: RowsProps) {
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}
                 onClick={(e) => props.onClick(e, entry)}
+                onMouseDown={(e) => props.onMouseDownRow(e, entry)}
                 onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {

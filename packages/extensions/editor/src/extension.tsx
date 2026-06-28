@@ -5,7 +5,7 @@ import type { EditorView } from "@codemirror/view";
 import { foldNearest, unfoldNearest } from "./fold";
 import { EditorPane } from "./ui/pane";
 import { EditorEncoding, EditorIndent } from "./ui/StatusItems";
-import { type LayoutNode, newPaneId, type Pane, type Tab, type ViewRenderer, useEditorStore, viewPath } from "./store";
+import { type LayoutNode, newPaneId, type Pane, type Side, type Tab, type ViewRenderer, useEditorStore, viewPath } from "./store";
 import { saveActive } from "./save";
 import { decideExternalChange } from "./reconcile";
 import { getActiveView } from "./active-view";
@@ -352,6 +352,65 @@ export const editorExtension: Extension = {
         }),
       },
     );
+
+    // Native (cross-window) file drops onto a pane open the file there; dropping
+    // near an edge splits the pane. The explorer starts the drag and records the
+    // paths in the shared drag session.
+    const paneTargetAt = (x: number, y: number): { paneId: string; side: Side | null } | null => {
+      const dpr = window.devicePixelRatio || 1;
+      const el = document.elementFromPoint(x / dpr, y / dpr)?.closest<HTMLElement>("[data-pane-id]");
+      if (!el?.dataset.paneId) return null;
+      const r = el.getBoundingClientRect();
+      const fx = (x / dpr - r.left) / r.width;
+      const fy = (y / dpr - r.top) / r.height;
+      const m = Math.min(fx, 1 - fx, fy, 1 - fy);
+      const side: Side | null =
+        m >= 0.2 ? null : m === fx ? "left" : m === 1 - fx ? "right" : m === fy ? "top" : "bottom";
+      return { paneId: el.dataset.paneId, side };
+    };
+
+    let incomingPaths: string[] | null = null;
+    let incomingRead = false;
+    let lastOverKey = "";
+    let dropDisposed = false;
+    let unlistenDrop: (() => void) | undefined;
+    // `over` fires continuously; only push to the store when the targeted pane or
+    // edge actually changes, so we don't re-render every pane (and its editor).
+    const setDragOver = (t: { paneId: string; side: Side | null } | null) => {
+      const key = t ? `${t.paneId}:${t.side ?? ""}` : "";
+      if (key === lastOverKey) return;
+      lastOverKey = key;
+      store.getState().setDragOver(t);
+    };
+    void ipc.drag
+      .onDrop(async (e) => {
+        if (e.phase === "leave") {
+          incomingPaths = null;
+          incomingRead = false;
+          setDragOver(null);
+          return;
+        }
+        if (!incomingRead) {
+          incomingRead = true;
+          incomingPaths = (await ipc.drag.readSession())?.paths ?? null;
+        }
+        if (e.phase === "enter") return;
+        const target = paneTargetAt(e.x, e.y);
+        if (e.phase === "over") return setDragOver(target);
+
+        setDragOver(null);
+        const paths = incomingPaths?.length ? incomingPaths : e.paths;
+        incomingPaths = null;
+        incomingRead = false;
+        if (!target || !paths.length) return;
+        if (target.side) store.getState().splitOpen(target.paneId, target.side);
+        else store.getState().setActivePane(target.paneId);
+        for (const p of paths) {
+          await ctx.commands.execute("editor.open", p, p.slice(p.lastIndexOf("/") + 1), { pin: true });
+        }
+      })
+      .then((un) => (dropDisposed ? un() : (unlistenDrop = un)));
+    ctx.subscriptions.push({ dispose: () => ((dropDisposed = true), unlistenDrop?.()) });
 
     ctx.ui.mountSlot("editor.surface", <EditorPane ctx={ctx} />, { id: "editor.main" });
     ctx.ui.contributeStatusBarItem({ id: "editor.encoding", align: "right", order: 10, render: () => <EditorEncoding /> });
