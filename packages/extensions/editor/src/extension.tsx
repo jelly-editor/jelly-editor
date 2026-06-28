@@ -26,6 +26,9 @@ export const editorExtension: Extension = {
     contributes: {
       commands: [
         { id: "editor.open", title: "Open File", palette: false },
+        { id: "editor.fileDragOver", title: "File Drag Over", palette: false },
+        { id: "editor.fileDragLeave", title: "File Drag Leave", palette: false },
+        { id: "editor.dropFilesAt", title: "Drop Files At", palette: false },
         { id: "editor.openDiff", title: "Open Diff", palette: false },
         { id: "editor.save", title: "Save File" },
         { id: "editor.closeFile", title: "Close File" },
@@ -54,6 +57,29 @@ export const editorExtension: Extension = {
     const store = useEditorStore;
     const largeFileThreshold = () =>
       ctx.settings.get<number>("editor.largeFileThreshold") ?? 1_048_576;
+    const openPinned = async (path: string) => {
+      await ctx.commands.execute("editor.open", path, path.slice(path.lastIndexOf("/") + 1), { pin: true });
+    };
+
+    const paneTargetAt = (x: number, y: number): { paneId: string; side: Side | null } | null => {
+      const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
+      if (!el?.dataset.paneId) return null;
+      const r = el.getBoundingClientRect();
+      const fx = (x - r.left) / r.width;
+      const fy = (y - r.top) / r.height;
+      const m = Math.min(fx, 1 - fx, fy, 1 - fy);
+      const side: Side | null =
+        m >= 0.2 ? null : m === fx ? "left" : m === 1 - fx ? "right" : m === fy ? "top" : "bottom";
+      return { paneId: el.dataset.paneId, side };
+    };
+
+    let lastOverKey = "";
+    const setDragOver = (t: { paneId: string; side: Side | null } | null) => {
+      const key = t ? `${t.paneId}:${t.side ?? ""}` : "";
+      if (key === lastOverKey) return;
+      lastOverKey = key;
+      store.getState().setDragOver(t);
+    };
 
     ctx.subscriptions.push(
       ctx.commands.register(
@@ -88,6 +114,17 @@ export const editorExtension: Extension = {
       }),
       ctx.commands.register("editor.splitRight", () => store.getState().splitActive("right")),
       ctx.commands.register("editor.splitDown", () => store.getState().splitActive("down")),
+      ctx.commands.register("editor.fileDragOver", (x: number, y: number) => setDragOver(paneTargetAt(x, y))),
+      ctx.commands.register("editor.fileDragLeave", () => setDragOver(null)),
+      ctx.commands.register("editor.dropFilesAt", async (paths: string[], x: number, y: number) => {
+        const target = paneTargetAt(x, y);
+        setDragOver(null);
+        if (!target || !paths.length) return false;
+        if (target.side) store.getState().splitOpen(target.paneId, target.side);
+        else store.getState().setActivePane(target.paneId);
+        for (const p of paths) await openPinned(p);
+        return true;
+      }),
       // Contributed pane views (e.g. terminals): other extensions register a
       // renderer and open/close instances through these commands — never imports.
       ctx.commands.register("editor.registerView", (viewType: string, render: ViewRenderer) =>
@@ -356,31 +393,10 @@ export const editorExtension: Extension = {
     // Native (cross-window) file drops onto a pane open the file there; dropping
     // near an edge splits the pane. The explorer starts the drag and records the
     // paths in the shared drag session.
-    const paneTargetAt = (x: number, y: number): { paneId: string; side: Side | null } | null => {
-      const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
-      if (!el?.dataset.paneId) return null;
-      const r = el.getBoundingClientRect();
-      const fx = (x - r.left) / r.width;
-      const fy = (y - r.top) / r.height;
-      const m = Math.min(fx, 1 - fx, fy, 1 - fy);
-      const side: Side | null =
-        m >= 0.2 ? null : m === fx ? "left" : m === 1 - fx ? "right" : m === fy ? "top" : "bottom";
-      return { paneId: el.dataset.paneId, side };
-    };
-
     let incomingPaths: string[] | null = null;
     let incomingRead = false;
-    let lastOverKey = "";
     let dropDisposed = false;
     let unlistenDrop: (() => void) | undefined;
-    // `over` fires continuously; only push to the store when the targeted pane or
-    // edge actually changes, so we don't re-render every pane (and its editor).
-    const setDragOver = (t: { paneId: string; side: Side | null } | null) => {
-      const key = t ? `${t.paneId}:${t.side ?? ""}` : "";
-      if (key === lastOverKey) return;
-      lastOverKey = key;
-      store.getState().setDragOver(t);
-    };
     void ipc.drag
       .onDrop(async (e) => {
         if (e.phase === "leave") {
@@ -404,9 +420,7 @@ export const editorExtension: Extension = {
         if (!target || !paths.length) return;
         if (target.side) store.getState().splitOpen(target.paneId, target.side);
         else store.getState().setActivePane(target.paneId);
-        for (const p of paths) {
-          await ctx.commands.execute("editor.open", p, p.slice(p.lastIndexOf("/") + 1), { pin: true });
-        }
+        for (const p of paths) await openPinned(p);
       })
       .then((un) => (dropDisposed ? un() : (unlistenDrop = un)));
     ctx.subscriptions.push({ dispose: () => ((dropDisposed = true), unlistenDrop?.()) });

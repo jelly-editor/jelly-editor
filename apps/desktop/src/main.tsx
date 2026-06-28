@@ -8,12 +8,27 @@ import { DialogHost } from "./DialogHost";
 import { NotificationHost } from "./NotificationHost";
 import { builtinExtensions } from "./extensions";
 
+function installBrowserDropGuard() {
+  const preventNavigation = (event: DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = event.dataTransfer.types.includes("Files") ? "copy" : "none";
+    }
+  };
+
+  window.addEventListener("dragover", preventNavigation, { capture: true });
+  window.addEventListener("drop", preventNavigation, { capture: true });
+}
+
 /**
  * The thin host: boot the kernel with the real Tauri bridge, attach the native
  * event bridge to its bus, load the built-in extensions, then render the Shell.
  * The app owns no feature code — only this bootstrap and the extension list.
  */
 async function boot() {
+  installBrowserDropGuard();
+
   const kernel = new Kernel({ ipc });
 
   // Load persisted settings before extensions activate so they see saved values.

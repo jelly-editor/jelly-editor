@@ -1,16 +1,10 @@
-import type { DirEntry, ExtensionContext, FileStatus } from "@jelly/sdk";
-import { getCurrentWindowLabel, ipc } from "@jelly/ipc";
-import { ContextMenu, type ContextMenuEntry, FileIcon, useContextMenu } from "@jelly/ui";
-import { useEffect, useRef, useState } from "react";
+import type { DirEntry, ExtensionContext } from "@jelly/sdk";
+import { ipc } from "@jelly/ipc";
+import { ContextMenu, type ContextMenuEntry, useContextMenu } from "@jelly/ui";
+import { useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
-
-const STATUS_COLOR: Record<FileStatus, string> = {
-  untracked: "text-success",
-  added: "text-success",
-  modified: "text-warning",
-  renamed: "text-accent",
-  deleted: "text-danger",
-};
+import { DraftRow, Rows, type Draft } from "./FileRows";
+import { DragGhost, useFileTreeDnd } from "./useFileTreeDnd";
 
 const {
   list: listDir,
@@ -20,37 +14,6 @@ const {
   copy: copyPath,
   delete: deletePath,
 } = ipc.fs;
-
-const INDENT = 12;
-const HIGHLIGHT = ["bg-accent/15", "shadow-[inset_0_0_0_1px]", "shadow-accent/50"];
-
-/** A rounded pill PNG (data URI) showing `label`, used as the native drag image. */
-function dragImage(label: string): string {
-  const font = "12px -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
-  const canvas = document.createElement("canvas");
-  const cx = canvas.getContext("2d")!;
-  cx.font = font;
-  const padX = 9;
-  const h = 22;
-  const w = Math.ceil(cx.measureText(label).width) + padX * 2;
-  canvas.width = w;
-  canvas.height = h;
-  cx.font = font;
-  const r = 5;
-  cx.beginPath();
-  cx.moveTo(r, 0);
-  cx.arcTo(w, 0, w, h, r);
-  cx.arcTo(w, h, 0, h, r);
-  cx.arcTo(0, h, 0, 0, r);
-  cx.arcTo(0, 0, w, 0, r);
-  cx.closePath();
-  cx.fillStyle = "rgba(38,38,44,0.96)";
-  cx.fill();
-  cx.fillStyle = "#fff";
-  cx.textBaseline = "middle";
-  cx.fillText(label, padX, h / 2 + 0.5);
-  return canvas.toDataURL("image/png");
-}
 
 function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
@@ -75,14 +38,6 @@ async function refreshDir(dirPath: string) {
   useWorkspaceStore.getState().setChildren(dirPath, children);
 }
 
-interface Draft {
-  parentPath: string;
-  depth: number;
-  isDir: boolean;
-  renaming?: string;
-  initial: string;
-}
-
 export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const { path: root, tree, expandedDirs, setExpanded, setChildren, setSelection, toggleSelection, clearSelection } =
     useWorkspaceStore();
@@ -92,46 +47,16 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // Whether the shared clipboard holds something pasteable. Refreshed each time
   // the menu opens, since another window may have copied since the last check.
   const [canPaste, setCanPaste] = useState(false);
-  // Drag-and-drop runs as an OS-native drag so it crosses windows; the highlight
-  // is toggled directly on DOM nodes to avoid re-rendering the tree mid-drag.
   const treeRef = useRef<HTMLDivElement | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
-  const highlightedDir = useRef<string | null>(null);
-  const incoming = useRef<{ paths: string[]; alt: boolean; cmd: boolean; source: string } | null>(null);
-  const incomingRead = useRef(false);
-  const dndRef = useRef<(e: { phase: string; paths: string[]; x: number; y: number }) => void>(() => {});
-  // Tracked here because WKWebView doesn't report modifier keys on drag events.
-  const altDown = useRef(false);
-  const cmdDown = useRef(false);
-  const dragging = useRef(false);
-  const windowLabel = getCurrentWindowLabel();
-
-  useEffect(() => {
-    let dispose: (() => void) | undefined;
-    let cancelled = false;
-    ipc.drag.onDrop((e) => void dndRef.current(e)).then((un) => (cancelled ? un() : (dispose = un)));
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Alt" && e.key !== "Meta") return;
-      if (e.key === "Alt") altDown.current = e.type === "keydown";
-      if (e.key === "Meta") cmdDown.current = e.type === "keydown";
-      if (dragging.current) void ipc.drag.updateModifiers(altDown.current, cmdDown.current);
-    };
-    const onBlur = () => {
-      altDown.current = false;
-      cmdDown.current = false;
-      if (dragging.current) void ipc.drag.updateModifiers(false, false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("keyup", onKey);
-    window.addEventListener("blur", onBlur);
-    return () => {
-      cancelled = true;
-      dispose?.();
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keyup", onKey);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, []);
+  const dnd = useFileTreeDnd({
+    ctx,
+    root: root ?? "",
+    treeRef,
+    rowEls,
+    canDrop,
+    transferAll,
+  });
 
   if (!root) {
     return <div className="px-[14px] py-4 text-[11px] text-text-dim">No folder open</div>;
@@ -142,6 +67,11 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   }
 
   function onRowClick(e: React.MouseEvent, entry: DirEntry) {
+    if (dnd.consumeSuppressedClick()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (e.metaKey || e.ctrlKey) {
       toggleSelection(entry.path);
       return;
@@ -271,85 +201,9 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     return true;
   }
 
-  // Toggle the drop-target ring directly on the destination's DOM node.
-  function highlight(destDir: string | null) {
-    if (highlightedDir.current === destDir) return;
-    const prev = highlightedDir.current;
-    if (prev) rowEls.current.get(prev)?.classList.remove(...HIGHLIGHT);
-    if (destDir) rowEls.current.get(destDir)?.classList.add(...HIGHLIGHT);
-    highlightedDir.current = destDir;
-  }
-
-  // Plain mousedown selects the row up front, so the drag starts from a stable
-  // selection — mutating it inside `onDragStart` cancels the native drag.
-  function onRowMouseDown(e: React.MouseEvent, entry: DirEntry) {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
-    if (!useWorkspaceStore.getState().selected.has(entry.path)) setSelection([entry.path]);
-  }
-
-  function onDragStart(e: React.DragEvent, entry: DirEntry) {
-    e.preventDefault();
-    const selected = useWorkspaceStore.getState().selected;
-    const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
-    const label = paths.length > 1 ? `${paths.length} items` : entry.name;
-    dragging.current = true;
-    void ipc.drag.start(paths, altDown.current || e.altKey, cmdDown.current || e.metaKey, dragImage(label)).finally(() => {
-      dragging.current = false;
-      altDown.current = false;
-      cmdDown.current = false;
-    });
-  }
-
-  function destDirAt(el: Element | null, fallbackRoot: string): string {
-    const rowEl = el?.closest<HTMLElement>("[data-path]");
-    if (!rowEl?.dataset.path) return fallbackRoot;
-    return rowEl.dataset.dir === "1" ? rowEl.dataset.path : parentOf(rowEl.dataset.path);
-  }
-
-  async function onNativeDnd(e: { phase: string; paths: string[]; x: number; y: number }) {
-    if (e.phase === "leave") {
-      incoming.current = null;
-      incomingRead.current = false;
-      highlight(null);
-      return;
-    }
-    // Cache the session once per drag (the source clears it when the drag ends,
-    // so reading fresh at drop time would race and lose the copy/move intent).
-    if (!incomingRead.current) {
-      incomingRead.current = true;
-      incoming.current = await ipc.drag.readSession();
-    }
-    const session = incoming.current;
-    if (e.phase === "enter") return;
-
-    const el = document.elementFromPoint(e.x, e.y);
-    const overTree = !!(el && treeRef.current?.contains(el));
-    const copy = session ? (session.source === windowLabel ? session.alt : !session.cmd) : true;
-
-    if (e.phase === "over") {
-      const dest = overTree && el ? destDirAt(el, root!) : null;
-      highlight(dest && session && canDrop(session.paths, dest, copy) ? dest : null);
-      return;
-    }
-
-    highlight(null);
-    incoming.current = null;
-    incomingRead.current = false;
-    if (!overTree || !el) return; // dropped elsewhere (e.g. an editor pane) — not ours
-    // A live session means the drag came from inside Jelly; use its own paths
-    // (the OS drop paths are unreliable for app-initiated drags). Otherwise this
-    // is an external (e.g. Finder) drop, which we copy.
-    const paths = session?.paths.length ? session.paths : e.paths;
-    if (!paths.length) return;
-    const dest = destDirAt(el, root!);
-    if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
-  }
-
   async function transferAll(froms: string[], destDir: string, asCopy: boolean) {
     for (const from of froms) await transfer(from, destDir, asCopy);
   }
-
-  dndRef.current = onNativeDnd;
 
   // Move (rename) or copy `from` into `destDir`, refreshing the affected dirs.
   async function transfer(from: string, destDir: string, asCopy: boolean) {
@@ -443,18 +297,19 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           onToggle={toggleDir}
           onOpen={openFile}
           onClick={onRowClick}
-          onMouseDownRow={onRowMouseDown}
+          onPointerDownRow={dnd.onRowPointerDown}
           onContext={openMenu}
           onRename={startRename}
           onCommitDraft={commitDraft}
           onCancelDraft={() => setDraft(null)}
-          onDragStart={onDragStart}
         />
 
         {draft && !draft.renaming && draft.parentPath === root && (
           <DraftRow draft={draft} onCommit={commitDraft} onCancel={() => setDraft(null)} />
         )}
       </div>
+
+      {dnd.dragGhost && <DragGhost drag={dnd.dragGhost} />}
 
       {menu.state && (
         <ContextMenu
@@ -505,158 +360,6 @@ function findNode(nodes: DirEntry[], path: string): DirEntry | undefined {
     }
   }
   return undefined;
-}
-
-interface RowsProps {
-  nodes: DirEntry[];
-  depth: number;
-  expandedDirs: Set<string>;
-  draft: Draft | null;
-  rowEls: Map<string, HTMLElement>;
-  onToggle: (entry: DirEntry) => void;
-  onOpen: (entry: DirEntry, pin: boolean) => void;
-  onClick: (e: React.MouseEvent, entry: DirEntry) => void;
-  onMouseDownRow: (e: React.MouseEvent, entry: DirEntry) => void;
-  onContext: (e: React.MouseEvent, entry: DirEntry) => void;
-  onRename: (entry: DirEntry, depth: number) => void;
-  onCommitDraft: (name: string) => void;
-  onCancelDraft: () => void;
-  onDragStart: (e: React.DragEvent, entry: DirEntry) => void;
-}
-
-function Rows(props: RowsProps) {
-  const { nodes, depth, expandedDirs, draft } = props;
-  const activeFilePath = useWorkspaceStore((s) => s.activeFilePath);
-  const gitStatuses = useWorkspaceStore((s) => s.gitStatuses);
-  const selected = useWorkspaceStore((s) => s.selected);
-
-  return (
-    <>
-      {nodes.map((entry) => {
-        const expanded = entry.isDir && expandedDirs.has(entry.path);
-        const isActive = entry.path === activeFilePath;
-        const isSelected = selected.has(entry.path);
-        const statusColor = entry.isDir ? "" : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
-        return (
-          <div
-            key={entry.path}
-            // Folders register their whole block (row + children) as the drop
-            // target, so the highlight encloses the entire folder.
-            ref={
-              entry.isDir
-                ? (el) => {
-                    if (el) props.rowEls.set(entry.path, el);
-                    else props.rowEls.delete(entry.path);
-                  }
-                : undefined
-            }
-            className="rounded-[4px]"
-          >
-            {draft?.renaming === entry.path ? (
-              <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />
-            ) : (
-              <div
-                draggable
-                tabIndex={0}
-                data-path={entry.path}
-                data-dir={entry.isDir ? "1" : "0"}
-                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
-                  isSelected ? "bg-accent/20 text-text" : isActive ? "bg-bg-active text-text" : "text-text-muted"
-                }`}
-                style={{ paddingLeft: depth * INDENT + 10 }}
-                onClick={(e) => props.onClick(e, entry)}
-                onMouseDown={(e) => props.onMouseDownRow(e, entry)}
-                onDoubleClick={() => !entry.isDir && props.onOpen(entry, true)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (entry.isDir) props.onToggle(entry);
-                    else props.onRename(entry, depth);
-                  }
-                }}
-                onContextMenu={(e) => props.onContext(e, entry)}
-                onDragStart={(e) => props.onDragStart(e, entry)}
-              >
-                {entry.isDir && <Chevron expanded={expanded} />}
-                {!entry.isDir && <span className="w-[10px] shrink-0" />}
-                <FileIcon name={entry.name} isDir={entry.isDir} isOpen={expanded} />
-                <span className={`truncate ${statusColor}`}>{entry.name}</span>
-              </div>
-            )}
-
-            {expanded && entry.children && (
-              <Rows {...props} nodes={entry.children} depth={depth + 1} />
-            )}
-
-            {draft && !draft.renaming && draft.parentPath === entry.path && expanded && (
-              <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />
-            )}
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
-function Chevron({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`shrink-0 text-text-dim transition-transform duration-[80ms] ${expanded ? "rotate-90" : ""}`}
-    >
-      <polyline points="9 6 15 12 9 18" />
-    </svg>
-  );
-}
-
-function DraftRow({
-  draft,
-  onCommit,
-  onCancel,
-}: {
-  draft: Draft;
-  onCommit: (name: string) => void;
-  onCancel: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState(draft.initial);
-
-  useEffect(() => {
-    ref.current?.focus();
-    if (draft.initial) {
-      const dot = draft.initial.lastIndexOf(".");
-      ref.current?.setSelectionRange(0, dot > 0 ? dot : draft.initial.length);
-    }
-  }, [draft.initial]);
-
-  return (
-    <div
-      className="flex items-center gap-[6px] h-[24px] pr-2"
-      style={{ paddingLeft: draft.depth * INDENT + 10 }}
-    >
-      <span className="w-[10px] shrink-0" />
-      <FileIcon name={value || "x"} isDir={draft.isDir} />
-      <input
-        ref={ref}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => onCommit(value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onCommit(value);
-          else if (e.key === "Escape") onCancel();
-        }}
-        className="flex-1 bg-bg border border-accent rounded-[3px] px-[4px] h-[19px] text-[13px] text-text outline-none"
-        spellCheck={false}
-      />
-    </div>
-  );
 }
 
 /** Build the file-tree context menu for a right-clicked entry (or the root). */
