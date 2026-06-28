@@ -4,6 +4,7 @@ import { EditorPane } from "./ui/EditorPane";
 import { EditorEncoding, EditorIndent, EditorPath } from "./ui/StatusItems";
 import { useEditorStore } from "./store";
 import { saveActive } from "./save";
+import { decideExternalChange } from "./reconcile";
 
 export const editorExtension: Extension = {
   manifest: {
@@ -88,14 +89,47 @@ export const editorExtension: Extension = {
     });
     ctx.subscriptions.push({ dispose: unsub });
 
-    // Flag open files that changed on disk outside the editor.
+    // Reconcile open files that changed on disk outside the editor. With no
+    // unsaved edits we adopt the new contents silently; otherwise we surface a
+    // notification so the user chooses between their edits and the disk version.
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("file:changed_externally", async ({ path }) => {
         const ed = store.getState();
-        if (!ed.tabs.some((t) => t.path === path)) return;
+        const tab = ed.tabs.find((t) => t.path === path);
         try {
           const onDisk = await ipc.fs.read(path);
-          if (onDisk !== ed.savedContents.get(path)) ed.markExternalChange(path);
+          const outcome = decideExternalChange({
+            isOpen: !!tab,
+            isDirty: !!tab?.isDirty,
+            onDisk,
+            saved: ed.savedContents.get(path),
+            alreadyNotified: ed.externallyChanged.has(path),
+          });
+          if (outcome === "ignore" || !tab) return;
+
+          if (outcome === "reload") {
+            ed.setSaved(path, onDisk); // clean buffer — adopt disk version
+            return;
+          }
+
+          ed.markExternalChange(path);
+          ctx.notifications.warn(`${tab.name} changed on disk, but you have unsaved changes.`, {
+            source: "Editor",
+            actions: [
+              {
+                label: "Reload",
+                variant: "primary",
+                run: async () => {
+                  try {
+                    store.getState().setSaved(path, await ipc.fs.read(path));
+                  } catch {
+                    store.getState().clearExternalChange(path);
+                  }
+                },
+              },
+              { label: "Keep Mine", run: () => store.getState().clearExternalChange(path) },
+            ],
+          });
         } catch {
           /* file may have been removed mid-flight — ignore */
         }

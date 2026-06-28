@@ -1,13 +1,10 @@
 import type { ExtensionContext } from "@jelly/sdk";
-import { ipc } from "@jelly/ipc";
 import { useSetting } from "@jelly/ui";
 import { useEffect } from "react";
 import { useEditorStore } from "../store";
 import { saveTab } from "../save";
 import { CodeEditor } from "./CodeEditor";
 import { DiffView } from "./DiffView";
-
-const { read: readFile } = ipc.fs;
 
 function TabBar({ onRequestClose }: { onRequestClose: (path: string) => void }) {
   const { tabs, activeTabPath, setActiveTab, pinTab, setActiveDiff } = useEditorStore();
@@ -60,37 +57,6 @@ function LargeFileBanner() {
   return (
     <div className="flex items-center gap-3 px-3 h-[30px] bg-warning/15 border-b border-warning/30 text-[12px] text-text shrink-0">
       <span className="text-warning">Syntax highlighting disabled for large files.</span>
-    </div>
-  );
-}
-
-function ReloadBanner({ path }: { path: string }) {
-  const { setSaved, clearExternalChange } = useEditorStore();
-
-  async function reload() {
-    try {
-      const content = await readFile(path);
-      setSaved(path, content);
-    } catch {
-      clearExternalChange(path);
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-3 px-3 h-[30px] bg-warning/15 border-b border-warning/30 text-[12px] text-text shrink-0">
-      <span className="text-warning">This file changed on disk.</span>
-      <button
-        className="px-2 h-[20px] rounded-[4px] bg-bg-active text-text cursor-pointer hover:bg-bg-hover"
-        onClick={reload}
-      >
-        Reload
-      </button>
-      <button
-        className="px-2 h-[20px] rounded-[4px] bg-transparent text-text-muted cursor-pointer hover:text-text"
-        onClick={() => clearExternalChange(path)}
-      >
-        Keep mine
-      </button>
     </div>
   );
 }
@@ -160,7 +126,6 @@ function UnsavedDialog({
 export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const tabs = useEditorStore((s) => s.tabs);
   const activeTabPath = useEditorStore((s) => s.activeTabPath);
-  const externallyChanged = useEditorStore((s) => s.externallyChanged);
   const largeFiles = useEditorStore((s) => s.largeFiles);
   const updateBuffer = useEditorStore((s) => s.updateBuffer);
   const getContent = useEditorStore((s) => s.getContent);
@@ -176,7 +141,6 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   const closingTab = closingPath ? tabs.find((t) => t.path === closingPath) : undefined;
   const activeTab = tabs.find((t) => t.path === activeTabPath);
   const value = activeTabPath ? getContent(activeTabPath) : undefined;
-  const showBanner = activeTabPath ? externallyChanged.has(activeTabPath) : false;
   const isLargeFile = activeTabPath ? largeFiles.has(activeTabPath) : false;
 
   if (activeDiff) {
@@ -202,7 +166,6 @@ export function EditorPane({ ctx }: { ctx: ExtensionContext }) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-bg">
       {tabs.length > 0 && <TabBar onRequestClose={requestClose} />}
-      {showBanner && activeTabPath && <ReloadBanner path={activeTabPath} />}
       {isLargeFile && <LargeFileBanner />}
       <div className="flex-1 overflow-hidden">
         {!activeTab ? (
