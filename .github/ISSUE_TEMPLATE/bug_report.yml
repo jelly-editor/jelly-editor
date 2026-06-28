@@ -1,0 +1,101 @@
+name: "🐛 Bug Report"
+description: Report a bug or unexpected behavior in Jelly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please ensure you have searched existing issues first.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what went wrong...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Open Jelly
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Component or Extension
+      description: Which part of Jelly is having this issue?
+      options:
+        - "Editor (@jelly/editor)"
+        - "File Explorer (@jelly/files)"
+        - "Git Panel (@jelly/git)"
+        - "Terminal (@jelly/terminal)"
+        - "Search (@jelly/search)"
+        - "Settings (@jelly/settings)"
+        - "Welcome Page (@jelly/welcome)"
+        - "Kernel / Core Shell (@jelly/kernel)"
+        - "SDK (@jelly/sdk)"
+        - "IPC Bridge (@jelly/ipc)"
+        - "Tauri Backend (Rust / crates)"
+        - "Installation / Build / Dev Environment"
+        - "Other / Unknown"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS are you running?
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Jelly Version / Commit Hash
+      description: Example: v0.1.0 or git commit sha.
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info (Optional)
+      description: output of bun --version, rustc --version, tauri info, etc.
+      placeholder: |
+        Bun: 1.x
+        Rust: 1.x
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Logs & Screenshots
+      description: Add any relevant logs, stack traces, or screenshots to help debug.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklists
+      options:
+        - label: I have verified this bug exists on the latest release/main branch.
+          required: true
+        - label: I have searched existing issues to ensure this is not a duplicate.
+          required: true

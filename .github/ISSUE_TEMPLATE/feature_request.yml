@@ -1,0 +1,51 @@
+name: "💡 Feature Request"
+description: Propose a new feature, improvement, or extension idea
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make Jelly better? We'd love to hear it!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem is.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: A clear and concise description of what you want to happen.
+      placeholder: I want Jelly to be able to...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: A clear and concise description of any alternative solutions or features you've considered.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Feature Scope
+      description: Where does this feature belong in the architecture?
+      options:
+        - "New Extension Idea"
+        - "Enhance Existing Extension"
+        - "Core Kernel / Shell Modification"
+        - "SDK / API Contribution"
+        - "UI / Design System / Theme"
+        - "Rust Backend Crate"
+        - "Documentation or Dev Tools"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockup screenshots, or design thoughts here.

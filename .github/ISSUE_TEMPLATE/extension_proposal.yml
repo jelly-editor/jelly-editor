@@ -1,0 +1,62 @@
+name: "🔌 Extension Proposal"
+description: Propose a new first-party/third-party extension or request changes to the Extension SDK
+title: "[Extension Proposal]: "
+labels: ["extension", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Jelly is built around a thin core kernel and modular extensions. Use this form to propose new capabilities or SDK additions.
+  - type: input
+    id: extension-name
+    attributes:
+      label: Proposed Extension Name
+      placeholder: e.g., jelly-markdown-preview or jelly-copilot
+    validations:
+      required: true
+  - type: textarea
+    id: core-functionality
+    attributes:
+      label: Core Functionality & Use Cases
+      description: What does this extension do, and who is it for?
+      placeholder: Describe the main features...
+    validations:
+      required: true
+  - type: dropdown
+    id: slots
+    attributes:
+      label: Target UI Layout Slots
+      description: Which kernel layout slots will this extension mount into?
+      options:
+        - Activity Bar / Sidebar (Primary view)
+        - Panel Slots (Bottom view/Terminal area)
+        - Editor Slot (Custom editor tab type)
+        - Editor Title/Toolbar Menu
+        - Status Bar (Bottom bar)
+        - Background / Command-only (No UI)
+        - Multiple Slots
+    validations:
+      required: true
+  - type: textarea
+    id: sdk-requirements
+    attributes:
+      label: SDK / API Requirements
+      description: Does this extension need new APIs/hooks added to `@jelly/sdk`?
+      placeholder: List any new events, command registrations, or SDK updates needed...
+    validations:
+      required: true
+  - type: textarea
+    id: backend-requirements
+    attributes:
+      label: Native Backend / Rust Crate Requirements
+      description: Does this extension require native capabilities? If so, what will the Rust backend feature crate need to watch or execute?
+      placeholder: Describe any FS, process spawning, watcher, or network requirements...
+  - type: checkboxes
+    id: architectural-rules
+    attributes:
+      label: Extension Architecture Alignment
+      options:
+        - label: I confirm this extension conforms to the rule "No extension imports another extension. Cross-feature interaction goes through command/event buses."
+          required: true
+        - label: I confirm that native calls will strictly go through `@jelly/ipc` / `ctx.ipc`.
+          required: true
