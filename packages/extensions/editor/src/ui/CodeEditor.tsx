@@ -68,6 +68,20 @@ export function CodeEditor({
         .catch(() => null);
       if (!ws || !path) return;
       const rel = path.startsWith(ws + "/") ? path.slice(ws.length + 1) : path;
+
+      // Untracked files have no HEAD baseline, so skip the gutter for them.
+      try {
+        const status = await ipc.git.status(ws);
+        if (cancelled) return;
+        if (status.untracked.some((f) => f.path === rel)) {
+          baselineRef.current = null;
+          viewRef.current?.dispatch({ effects: setGitBaseline.of(null) });
+          return;
+        }
+      } catch {
+        /* not a repo */
+      }
+
       let original: string;
       try {
         ({ original } = await ipc.git.diff(ws, rel));
