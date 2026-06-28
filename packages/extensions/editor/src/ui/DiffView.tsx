@@ -7,6 +7,17 @@ import { useEffect, useRef } from "react";
 
 const { diff: gitDiff } = ipc.git;
 
+// Replace @codemirror/merge's default underline on changed text with a soft
+// block highlight in our diff colors.
+const diffTheme = EditorView.theme({
+  "&.cm-merge-b .cm-changedText": {
+    background: "color-mix(in oklch, var(--color-success) 22%, transparent) !important",
+  },
+  "&.cm-merge-a .cm-changedText, & .cm-deletedChunk .cm-deletedText": {
+    background: "color-mix(in oklch, var(--color-danger) 22%, transparent) !important",
+  },
+});
+
 /** Side-by-side diff (HEAD ↔ working tree) for a repo-relative path, rendered
  *  read-only with @codemirror/merge. */
 export function DiffView({
@@ -40,6 +51,7 @@ export function DiffView({
         EditorView.editable.of(false),
         lineNumbers(),
         EditorView.lineWrapping,
+        diffTheme,
         ...baseExtensions(name, theme !== "light"),
       ];
 
