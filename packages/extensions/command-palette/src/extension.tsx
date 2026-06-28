@@ -23,8 +23,6 @@ export const commandPaletteExtension: Extension = {
   },
 
   activate(ctx: ExtensionContext) {
-    const keyFor = (id: string) => ctx.keybindings.list().find((b) => b.command === id)?.key;
-
     ctx.subscriptions.push(
       ctx.commands.register("commandPalette.toggle", () =>
         useCommandPaletteUi.getState().openCommands(),
@@ -45,17 +43,13 @@ export const commandPaletteExtension: Extension = {
           ctx.commands
             .list()
             .filter((c) => c.palette !== false)
-            .filter((c) => fuzzyMatch(q, c.title) || fuzzyMatch(q, c.id))
-            .map((c) => {
-              const key = keyFor(c.id);
-              return {
-                id: c.id,
-                label: c.title,
-                hint: key ? formatKeybinding(key) : undefined,
-                detail: key ? undefined : c.id,
-                onAccept: () => void ctx.commands.execute(c.id).catch(() => {}),
-              };
-            }),
+            .filter((c) => fuzzyMatch(q, c.title) || fuzzyMatch(q, c.category ?? ""))
+            .map((c) => ({
+              id: c.id,
+              // Prefix with the source, e.g. "Git: Commit". No id/shortcut hint.
+              label: c.category ? `${c.category}: ${c.title}` : c.title,
+              onAccept: () => void ctx.commands.execute(c.id).catch(() => {}),
+            })),
       }),
 
       // Every keybinding, joined to its command's title — the cheat sheet.

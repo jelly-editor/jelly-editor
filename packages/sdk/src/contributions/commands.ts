@@ -5,6 +5,9 @@ export interface CommandDescriptor {
   title: string;
   /** Set to false to hide from the command palette. Default: true. */
   palette?: boolean;
+  /** Display group, e.g. the contributing extension's name ("Git"). Seeded by
+   *  the kernel; shown as a "Category: Title" prefix in the command palette. */
+  category?: string;
 }
 
 export type CommandHandler = (...args: any[]) => unknown;

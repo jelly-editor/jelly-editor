@@ -4,12 +4,16 @@ import { toDisposable } from "../core/disposable";
 /** In-memory command bus: register by id, execute by id. */
 export class CommandBus implements CommandRegistry {
   private handlers = new Map<string, CommandHandler>();
-  private titles = new Map<string, string>();
+  private descriptors = new Map<string, CommandDescriptor>();
 
-  /** Seed display titles from an extension manifest's contributes.commands list. */
-  seedDescriptors(commands: CommandDescriptor[]): void {
+  /**
+   * Seed display metadata from an extension manifest's contributes.commands.
+   * `category` (the extension's name) is stamped onto each so the palette can
+   * group them, e.g. "Git: Commit".
+   */
+  seedDescriptors(commands: CommandDescriptor[], category?: string): void {
     for (const cmd of commands) {
-      this.titles.set(cmd.id, cmd.title);
+      this.descriptors.set(cmd.id, { ...cmd, category: cmd.category ?? category });
     }
   }
 
@@ -35,6 +39,6 @@ export class CommandBus implements CommandRegistry {
   }
 
   list(): CommandDescriptor[] {
-    return [...this.titles.entries()].map(([id, title]) => ({ id, title }));
+    return [...this.descriptors.values()];
   }
 }

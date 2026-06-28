@@ -26,6 +26,20 @@ describe("CommandBus", () => {
     expect(() => bus.register("demo.dup", () => 2)).toThrow(/already registered/);
   });
 
+  test("seedDescriptors stamps the category and list() exposes palette + category", () => {
+    const bus = new CommandBus();
+    bus.seedDescriptors([{ id: "git.commit", title: "Commit", palette: false }], "Git");
+    expect(bus.list()).toEqual([
+      { id: "git.commit", title: "Commit", palette: false, category: "Git" },
+    ]);
+  });
+
+  test("an explicit descriptor category overrides the seeded one", () => {
+    const bus = new CommandBus();
+    bus.seedDescriptors([{ id: "x.y", title: "Y", category: "Custom" }], "X");
+    expect(bus.list()[0].category).toBe("Custom");
+  });
+
   test("dispose is idempotent and only removes its own handler", () => {
     const bus = new CommandBus();
     const first = bus.register("demo.x", () => 1);

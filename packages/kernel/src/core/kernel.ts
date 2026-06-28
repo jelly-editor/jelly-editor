@@ -99,7 +99,7 @@ export class Kernel {
     // Seed command titles from manifest so list() works even before the
     // extension registers its handlers.
     const contributes = reg.extension.manifest.contributes;
-    this.commands.seedDescriptors(contributes?.commands ?? []);
+    this.commands.seedDescriptors(contributes?.commands ?? [], reg.extension.manifest.name);
     // Register declared keybindings into the central store, tracked on the
     // extension's subscriptions so they're removed on deactivate.
     for (const kb of contributes?.keybindings ?? []) {
