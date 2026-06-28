@@ -17,6 +17,8 @@ export type {
   SearchClient,
   SettingsClient,
   TerminalClient,
+  UpdateCheckResult,
+  UpdaterClient,
   WorkspaceClient,
 } from "./clients";
 export type { IpcClient } from "./client";

@@ -5,6 +5,7 @@ import type {
   SearchClient,
   SettingsClient,
   TerminalClient,
+  UpdaterClient,
   WorkspaceClient,
 } from "./clients";
 
@@ -22,4 +23,5 @@ export interface IpcClient {
   workspace: WorkspaceClient;
   settings: SettingsClient;
   keybindings: KeybindingsClient;
+  updater: UpdaterClient;
 }

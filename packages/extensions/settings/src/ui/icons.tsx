@@ -30,6 +30,20 @@ export function GearIcon() {
   );
 }
 
+export function UpdateIcon() {
+  return (
+    <span className="relative flex items-center justify-center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 0 1-15.3 6.4" />
+        <path d="M3 12A9 9 0 0 1 18.3 5.6" />
+        <path d="M18 2v4h-4" />
+        <path d="M6 22v-4h4" />
+      </svg>
+      <span className="absolute -right-[3px] -top-[3px] h-[7px] w-[7px] rounded-full bg-accent ring-2 ring-bg-elevated" />
+    </span>
+  );
+}
+
 /** Activity-bar theme button icon — Sun while dark (click → light), Moon while light. */
 export function ThemeIcon({ ctx }: { ctx: ExtensionContext }) {
   const theme = useSetting(ctx, "ui.theme", "dark");

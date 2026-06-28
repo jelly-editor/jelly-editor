@@ -1,7 +1,8 @@
-import type { Extension, ExtensionContext, SettingsSchema } from "@jelly/sdk";
-import { GearIcon, ThemeIcon } from "./ui/icons";
+import type { Disposable, Extension, ExtensionContext, SettingsSchema } from "@jelly/sdk";
+import { GearIcon, ThemeIcon, UpdateIcon } from "./ui/icons";
 import { SettingsModal } from "./ui/SettingsModal";
 import { useSettingsUi } from "./store";
+import { checkForSettingsUpdate, openAboutAndCheck } from "./updater";
 
 const SCHEMA: SettingsSchema = {
   "ui.theme": { type: "enum", enum: ["dark", "light"], default: "dark" },
@@ -51,6 +52,7 @@ export const settingsExtension: Extension = {
     contributes: {
       commands: [
         { id: "settings.toggle", title: "Toggle Settings" },
+        { id: "settings.checkForUpdates", title: "Check for Updates" },
         { id: "ui.toggleTheme", title: "Toggle Theme" },
       ],
       keybindings: [{ command: "settings.toggle", key: "mod+," }],
@@ -66,11 +68,38 @@ export const settingsExtension: Extension = {
 
     ctx.subscriptions.push(
       ctx.commands.register("settings.toggle", () => useSettingsUi.getState().toggle()),
+      ctx.commands.register("settings.checkForUpdates", () => openAboutAndCheck(ctx)),
       ctx.commands.register("ui.toggleTheme", () => {
         const cur = ctx.settings.get<string>("ui.theme") ?? "dark";
         ctx.settings.set("ui.theme", cur === "dark" ? "light" : "dark");
       }),
     );
+
+    let updateIndicator: Disposable | null = null;
+    const syncUpdateIndicator = () => {
+      const available = useSettingsUi.getState().update.status === "available";
+
+      if (available && !updateIndicator) {
+        updateIndicator = ctx.ui.contributeActivityBarItem({
+          id: "update-available",
+          align: "bottom",
+          order: 80,
+          title: "Update available",
+          icon: () => <UpdateIcon />,
+          onSelect: () => openAboutAndCheck(ctx),
+        });
+        ctx.subscriptions.push(updateIndicator);
+      }
+
+      if (!available && updateIndicator) {
+        updateIndicator.dispose();
+        updateIndicator = null;
+      }
+    };
+
+    const unsubscribeUpdate = useSettingsUi.subscribe(syncUpdateIndicator);
+    ctx.subscriptions.push({ dispose: unsubscribeUpdate });
+    void checkForSettingsUpdate(ctx, { silent: true }).catch(() => undefined);
 
     ctx.ui.contributeActivityBarItem({
       id: "theme",

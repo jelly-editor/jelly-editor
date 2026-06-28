@@ -215,6 +215,8 @@
         "@jelly/sdk": "workspace:*",
         "@tauri-apps/api": "^2.11.1",
         "@tauri-apps/plugin-dialog": "^2.7.1",
+        "@tauri-apps/plugin-process": "^2.3.0",
+        "@tauri-apps/plugin-updater": "^2.9.0",
       },
       "devDependencies": {
         "typescript": "~5.8.3",

@@ -1,17 +1,18 @@
 import type { ExtensionContext } from "@jelly/sdk";
 import { useSetting } from "@jelly/ui";
 import { useEffect, useState } from "react";
+import type { SettingsTab } from "../store";
 import { useSettingsUi } from "../store";
+import { checkForSettingsUpdate, installAndRestart } from "../updater";
 import { KeybindingsTab } from "./KeybindingsTab";
-
-type Tab = "general" | "keybindings";
 
 /** Centered settings dialog. Opened with ⌘, — closed on Esc or backdrop click.
  *  Reads and writes the shared kernel settings via ctx. */
 export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
   const open = useSettingsUi((s) => s.open);
   const setOpen = useSettingsUi((s) => s.setOpen);
-  const [tab, setTab] = useState<Tab>("general");
+  const tab = useSettingsUi((s) => s.tab);
+  const setTab = useSettingsUi((s) => s.setTab);
 
   const theme = useSetting(ctx, "ui.theme", "dark");
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
@@ -42,7 +43,7 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
       >
         <div className="flex items-center justify-between px-5 h-[44px] border-b border-border shrink-0">
           <div className="flex items-center gap-1">
-            {(["general", "keybindings"] as Tab[]).map((t) => (
+            {(["general", "keybindings", "about"] as SettingsTab[]).map((t) => (
               <button
                 key={t}
                 className={`h-[24px] px-2.5 rounded-[5px] text-[12px] capitalize ${
@@ -65,6 +66,8 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
 
         {tab === "keybindings" ? (
           <KeybindingsTab ctx={ctx} />
+        ) : tab === "about" ? (
+          <AboutTab ctx={ctx} />
         ) : (
           <div className="flex flex-col p-5 gap-1">
           <Row label="Theme">
@@ -100,6 +103,94 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AboutTab({ ctx }: { ctx: ExtensionContext }) {
+  const update = useSettingsUi((s) => s.update);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const checking = update.status === "checking";
+  const installing = update.status === "installing";
+  const disabled = checking || installing;
+  const currentVersion = update.currentVersion ?? "Unknown";
+
+  useEffect(() => {
+    if (update.status === "idle") void checkForSettingsUpdate(ctx).catch(() => undefined);
+  }, [ctx, update.status]);
+
+  const check = async () => {
+    setInstallError(null);
+    await checkForSettingsUpdate(ctx).catch(() => undefined);
+  };
+
+  const install = async () => {
+    setInstallError(null);
+    try {
+      await installAndRestart(ctx);
+    } catch (err) {
+      setInstallError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  return (
+    <div className="flex flex-col p-5 gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[13px] font-medium text-text">Jelly</div>
+          <div className="mt-1 text-[12px] text-text-muted">Version {currentVersion}</div>
+        </div>
+        <button
+          className="h-[26px] px-3 rounded-[5px] border border-border bg-bg text-[12px] text-text cursor-pointer hover:bg-bg-active disabled:opacity-60 disabled:cursor-default"
+          onClick={check}
+          disabled={disabled}
+        >
+          {checking ? "Checking..." : "Check for Updates"}
+        </button>
+      </div>
+
+      <div className="rounded-[7px] border border-border bg-bg p-4">
+        {update.status === "available" ? (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[12px] font-medium text-text">
+                Version {update.availableVersion} is available
+              </div>
+              <div className="mt-1 text-[12px] text-text-muted">
+                Install the update and restart Jelly.
+              </div>
+            </div>
+            <button
+              className="h-[26px] px-3 rounded-[5px] bg-accent text-accent-fg text-[12px] font-medium cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-default"
+              onClick={install}
+              disabled={installing}
+            >
+              {installing ? "Installing..." : "Install and Restart"}
+            </button>
+          </div>
+        ) : update.status === "current" ? (
+          <StatusMessage title="Jelly is up to date" detail="No newer release is available." />
+        ) : update.status === "error" ? (
+          <StatusMessage title="Update check failed" detail={update.error ?? "Try again later."} />
+        ) : update.status === "checking" ? (
+          <StatusMessage title="Checking for updates" detail="Contacting the release endpoint." />
+        ) : update.status === "installing" ? (
+          <StatusMessage title="Installing update" detail="Jelly will restart when the update is ready." />
+        ) : (
+          <StatusMessage title="Check for updates" detail="See whether a newer signed release is available." />
+        )}
+      </div>
+
+      {installError && <div className="text-[12px] text-red-400">{installError}</div>}
+    </div>
+  );
+}
+
+function StatusMessage({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div>
+      <div className="text-[12px] font-medium text-text">{title}</div>
+      <div className="mt-1 text-[12px] text-text-muted">{detail}</div>
     </div>
   );
 }

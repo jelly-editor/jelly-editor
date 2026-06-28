@@ -1,12 +1,12 @@
 import "./index.css";
 import { bridgeCoreEvents, getInitialPath, ipc } from "@jelly/ipc";
 import { Kernel, KernelProvider, Shell } from "@jelly/kernel";
+import { listen } from "@tauri-apps/api/event";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { DialogHost } from "./DialogHost";
 import { NotificationHost } from "./NotificationHost";
 import { builtinExtensions } from "./extensions";
-import { checkForUpdates } from "./updater";
 
 /**
  * The thin host: boot the kernel with the real Tauri bridge, attach the native
@@ -30,6 +30,10 @@ async function boot() {
   // single global key dispatcher (replaces per-extension keydown listeners).
   kernel.installKeyDispatch(window);
 
+  await listen("menu:check_for_updates", () => {
+    void kernel.commands.execute("settings.checkForUpdates");
+  });
+
   // If this window was opened via `jelly <path>`, open that folder.
   const initialPath = await getInitialPath();
   if (initialPath) {
@@ -45,9 +49,6 @@ async function boot() {
       </KernelProvider>
     </React.StrictMode>,
   );
-
-  // Fire-and-forget: look for a newer signed release in the background.
-  if (import.meta.env.PROD) void checkForUpdates();
 }
 
 void boot();

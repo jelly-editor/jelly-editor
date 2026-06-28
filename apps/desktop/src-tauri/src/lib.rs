@@ -3,7 +3,7 @@
 //! re-exported commands in a single `generate_handler!`. App-level chrome (the
 //! macOS menu) is the only thing wired here directly.
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -70,10 +70,17 @@ pub fn run() {
                 // Custom menu: keep Cmd+Q (quit) and standard clipboard shortcuts,
                 // but deliberately omit "Close Window" so Cmd+W does NOT close the
                 // window. Cmd+W is handled in the frontend to close the active buffer.
-                use tauri::menu::{MenuBuilder, SubmenuBuilder};
+                use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+
+                let check_updates = MenuItemBuilder::with_id(
+                    "check_for_updates",
+                    "Check for Updates...",
+                )
+                .build(app)?;
 
                 let app_menu = SubmenuBuilder::new(app, "Jelly")
                     .about(None)
+                    .item(&check_updates)
                     .separator()
                     .services()
                     .separator()
@@ -103,6 +110,11 @@ pub fn run() {
                     .items(&[&app_menu, &edit_menu, &window_menu])
                     .build()?;
                 app.set_menu(menu)?;
+                app.on_menu_event(|app, event| {
+                    if event.id().as_ref() == "check_for_updates" {
+                        let _ = app.emit("menu:check_for_updates", ());
+                    }
+                });
             }
 
             // If a path was passed on the CLI, open it in the main window by

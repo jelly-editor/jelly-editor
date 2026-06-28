@@ -59,3 +59,18 @@ export interface KeybindingsClient {
   /** persist the full override map, replacing whatever was on disk */
   save(overrides: Record<string, string>): Promise<void>;
 }
+
+export interface UpdateCheckResult {
+  currentVersion: string;
+  available: boolean;
+  version?: string;
+  date?: string;
+  body?: string;
+}
+
+export interface UpdaterClient {
+  /** Check the configured release endpoint for a newer signed build. */
+  check(): Promise<UpdateCheckResult>;
+  /** Download, install, and relaunch into the latest available build. */
+  installAndRestart(): Promise<void>;
+}

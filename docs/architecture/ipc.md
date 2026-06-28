@@ -13,6 +13,7 @@ interface IpcClient {
   workspace:   { open, recent, removeRecent };
   settings:    { load, save };               // → ~/.jelly/settings.json
   keybindings: { load, save };               // → ~/.jelly/keybindings.json
+  updater:     { check, installAndRestart }; // → Tauri signed updater
 }
 ```
 
