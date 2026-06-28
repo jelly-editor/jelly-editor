@@ -27,6 +27,7 @@ interface RowsProps {
   expandedDirs: Set<string>;
   draft: Draft | null;
   rowEls: Map<string, HTMLElement>;
+  highlightEls: Map<string, HTMLElement>;
   onToggle: (entry: DirEntry) => void;
   onOpen: (entry: DirEntry, pin: boolean) => void;
   onClick: (e: React.MouseEvent, entry: DirEntry) => void;
@@ -56,22 +57,26 @@ export function Rows(props: RowsProps) {
             ref={
               entry.isDir
                 ? (el) => {
-                    if (el) props.rowEls.set(entry.path, el);
-                    else props.rowEls.delete(entry.path);
+                    if (el) props.highlightEls.set(entry.path, el);
+                    else props.highlightEls.delete(entry.path);
                   }
                 : undefined
             }
-            className="rounded-[4px]"
+            className="w-full rounded-[4px]"
           >
             {draft?.renaming === entry.path ? (
               <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />
             ) : (
               <div
+                ref={(el) => {
+                  if (el) props.rowEls.set(entry.path, el);
+                  else props.rowEls.delete(entry.path);
+                }}
                 draggable={false}
                 tabIndex={0}
                 data-path={entry.path}
                 data-dir={entry.isDir ? "1" : "0"}
-                className={`group flex items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
+                className={`group flex w-full box-border items-center gap-[6px] h-[24px] pr-2 cursor-pointer text-[13px] transition-colors duration-[60ms] hover:bg-bg-hover rounded-[2px] outline-none focus-visible:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px] focus-visible:shadow-accent/50 ${
                   isSelected ? "bg-accent/20 text-text" : isActive ? "bg-bg-active text-text" : "text-text-muted"
                 }`}
                 style={{ paddingLeft: depth * INDENT + 10 }}

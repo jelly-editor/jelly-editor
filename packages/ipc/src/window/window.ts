@@ -11,6 +11,7 @@ export function openEditorWindow(): WebviewWindow {
     height: 800,
     titleBarStyle: "overlay",
     backgroundColor: { red: 14, green: 14, blue: 12, alpha: 255 },
+    dragDropEnabled: true,
   });
 }
 

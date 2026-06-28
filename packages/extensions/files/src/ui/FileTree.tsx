@@ -4,7 +4,7 @@ import { ContextMenu, type ContextMenuEntry, useContextMenu } from "@jelly/ui";
 import { useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 import { DraftRow, Rows, type Draft } from "./FileRows";
-import { DragGhost, useFileTreeDnd } from "./useFileTreeDnd";
+import { useFileTreeDnd } from "./useFileTreeDnd";
 
 const {
   list: listDir,
@@ -48,12 +48,14 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // the menu opens, since another window may have copied since the last check.
   const [canPaste, setCanPaste] = useState(false);
   const treeRef = useRef<HTMLDivElement | null>(null);
-  const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
+  const rowEls = useRef(new Map<string, HTMLElement>()); // path -> visible explorer row; root -> tree body
+  const highlightEls = useRef(new Map<string, HTMLElement>()); // destination folder -> visual drop highlight region
   const dnd = useFileTreeDnd({
     ctx,
     root: root ?? "",
     treeRef,
     rowEls,
+    highlightEls,
     canDrop,
     transferAll,
   });
@@ -281,8 +283,13 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
       <div
         ref={(el) => {
           treeRef.current = el;
-          if (el) rowEls.current.set(root, el);
-          else rowEls.current.delete(root);
+          if (el) {
+            rowEls.current.set(root, el);
+            highlightEls.current.set(root, el);
+          } else {
+            rowEls.current.delete(root);
+            highlightEls.current.delete(root);
+          }
         }}
         className="flex flex-col flex-1 overflow-y-auto pb-1 select-none rounded-[2px]"
         onClick={(e) => e.target === e.currentTarget && clearSelection()}
@@ -294,6 +301,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           expandedDirs={expandedDirs}
           draft={draft}
           rowEls={rowEls.current}
+          highlightEls={highlightEls.current}
           onToggle={toggleDir}
           onOpen={openFile}
           onClick={onRowClick}
@@ -308,8 +316,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           <DraftRow draft={draft} onCommit={commitDraft} onCancel={() => setDraft(null)} />
         )}
       </div>
-
-      {dnd.dragGhost && <DragGhost drag={dnd.dragGhost} />}
 
       {menu.state && (
         <ContextMenu

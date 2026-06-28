@@ -172,6 +172,8 @@ interface EditorState {
 
   openPreview: (path: string, name: string) => void;
   openPinned: (path: string, name: string) => void;
+  /** Open a file in a specific pane, used by explicit drag/drop targets. */
+  openPinnedInPane: (paneId: string, path: string, name: string) => void;
   pinTab: (paneId: string, path: string) => void;
   closeTab: (paneId: string, path: string) => void;
   /** Close a path in every pane (e.g. after it is deleted on disk). */
@@ -441,6 +443,44 @@ export const useEditorStore = create<EditorState>((set, get) => {
             },
           },
           activePaneId: pane.id,
+        };
+      }),
+
+    openPinnedInPane: (paneId, path, name) =>
+      set((s) => {
+        const pane = s.panes[paneId];
+        if (!pane) return {};
+        const hiddenPaneIds = new Set(s.hiddenPaneIds);
+        hiddenPaneIds.delete(paneId);
+        if (pane.tabs.some((t) => t.path === path)) {
+          return {
+            panes: {
+              ...s.panes,
+              [paneId]: {
+                ...pane,
+                tabs: pane.tabs.map((t) =>
+                  t.path === path ? { ...t, isPinned: true, isPreview: false } : t,
+                ),
+                activeTabPath: path,
+                activeDiff: null,
+              },
+            },
+            activePaneId: paneId,
+            hiddenPaneIds,
+          };
+        }
+        return {
+          panes: {
+            ...s.panes,
+            [paneId]: {
+              ...pane,
+              tabs: [...pane.tabs, { path, name, isDirty: false, isPinned: true, isPreview: false }],
+              activeTabPath: path,
+              activeDiff: null,
+            },
+          },
+          activePaneId: paneId,
+          hiddenPaneIds,
         };
       }),
 

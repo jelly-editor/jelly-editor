@@ -11,9 +11,14 @@ export const drag: DragClient = {
   start: async (paths, alt, cmd, icon) => {
     const source = getCurrentWebviewWindow().label;
     await invoke<void>("drag_session_write", { paths, alt, cmd, source });
-    return startDrag({ item: paths, icon: icon || DRAG_ICON, mode: alt ? "copy" : "move" }, () =>
-      invoke<void>("drag_session_clear"),
-    );
+    try {
+      return await startDrag({ item: paths, icon: icon || DRAG_ICON, mode: alt ? "copy" : "move" }, () =>
+        invoke<void>("drag_session_clear"),
+      );
+    } catch (err) {
+      await invoke<void>("drag_session_clear").catch(() => {});
+      throw err;
+    }
   },
   updateModifiers: (alt, cmd) => invoke<void>("drag_session_update_modifiers", { alt, cmd }),
   readSession: () => invoke<DragSession | null>("drag_session_read"),
@@ -21,9 +26,9 @@ export const drag: DragClient = {
   onDrop: (handler) =>
     getCurrentWebview().onDragDropEvent(({ payload }) => {
       if (payload.type === "drop" || payload.type === "enter") {
-        handler({ phase: payload.type, paths: payload.paths, x: payload.position.x, y: payload.position.y });
+        handler({ phase: payload.type, paths: payload.paths, x: Number(payload.position.x), y: Number(payload.position.y) });
       } else if (payload.type === "over") {
-        handler({ phase: "over", paths: [], x: payload.position.x, y: payload.position.y });
+        handler({ phase: "over", paths: [], x: Number(payload.position.x), y: Number(payload.position.y) });
       } else {
         handler({ phase: "leave", paths: [], x: 0, y: 0 });
       }

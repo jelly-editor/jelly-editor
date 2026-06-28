@@ -225,6 +225,19 @@ describe("contributed views (terminals)", () => {
     expect(s().panes[termPaneId].tabs.map((t) => t.path)).toEqual(["view:terminal:t1"]);
   });
 
+  test("explicit pane drops can open files in a view pane", () => {
+    s().openPinned("/w/a.ts", "a.ts");
+    const filePaneId = active().id;
+    s().openView("terminal", "t1", "Terminal 1", "group-bottom");
+    const termPaneId = active().id;
+
+    s().openPinnedInPane(termPaneId, "/w/b.ts", "b.ts");
+
+    expect(s().activePaneId).toBe(termPaneId);
+    expect(s().panes[termPaneId].tabs.map((t) => t.path)).toEqual(["view:terminal:t1", "/w/b.ts"]);
+    expect(s().panes[filePaneId].tabs.map((t) => t.path)).toEqual(["/w/a.ts"]);
+  });
+
   test("toggleViewType hides and restores an active terminal pane without closing it", () => {
     s().openPinned("/w/a.ts", "a.ts");
     const filePaneId = active().id;

@@ -1,6 +1,6 @@
-import type { DirEntry, ExtensionContext } from "@jelly/sdk";
+import type { DirEntry, DragSession, ExtensionContext } from "@jelly/sdk";
 import { getCurrentWindowLabel, ipc } from "@jelly/ipc";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useWorkspaceStore } from "../store";
 
 const HIGHLIGHT = ["bg-accent/15", "shadow-[inset_0_0_0_1px]", "shadow-accent/50"];
@@ -11,19 +11,7 @@ interface PendingDrag {
   startY: number;
   paths: string[];
   label: string;
-}
-
-export interface ActiveFileDrag extends PendingDrag {
-  x: number;
-  y: number;
-  copy: boolean;
-}
-
-interface DragSession {
-  paths: string[];
-  alt: boolean;
-  cmd: boolean;
-  source: string;
+  started: boolean;
 }
 
 interface UseFileTreeDndOptions {
@@ -31,6 +19,7 @@ interface UseFileTreeDndOptions {
   root: string;
   treeRef: React.MutableRefObject<HTMLDivElement | null>;
   rowEls: React.MutableRefObject<Map<string, HTMLElement>>;
+  highlightEls: React.MutableRefObject<Map<string, HTMLElement>>;
   canDrop: (srcs: string[], destDir: string, asCopy: boolean) => boolean;
   transferAll: (froms: string[], destDir: string, asCopy: boolean) => Promise<void>;
 }
@@ -39,26 +28,94 @@ function parentOf(path: string) {
   return path.slice(0, path.lastIndexOf("/"));
 }
 
-function destDirAt(el: Element | null, fallbackRoot: string): string {
-  const rowEl = el?.closest<HTMLElement>("[data-path]");
-  if (!rowEl?.dataset.path) return fallbackRoot;
-  return rowEl.dataset.dir === "1" ? rowEl.dataset.path : parentOf(rowEl.dataset.path);
+function pointInRect(x: number, y: number, rect: DOMRect): boolean {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
-export function DragGhost({ drag }: { drag: ActiveFileDrag }) {
-  return (
-    <div
-      className="fixed z-[10000] pointer-events-none flex items-center gap-2 rounded-[5px] bg-bg-elevated/95 border border-border px-2 h-[24px] text-[12px] text-text shadow-lg"
-      style={{ left: drag.x + 12, top: drag.y + 10 }}
-    >
-      {drag.copy && (
-        <span className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-accent text-bg text-[12px] leading-none font-semibold">
-          +
-        </span>
-      )}
-      <span className="max-w-[220px] truncate">{drag.label}</span>
-    </div>
-  );
+function isCopyDrop(session: DragSession | null, windowLabel: string): boolean {
+  if (!session) return true;
+  return session.source === windowLabel ? session.alt : !session.cmd;
+}
+
+function cssVar(name: string, fallback: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function fitLabel(ctx: CanvasRenderingContext2D, label: string, maxWidth: number): string {
+  if (ctx.measureText(label).width <= maxWidth) return label;
+  const ellipsis = "...";
+  let lo = 0;
+  let hi = label.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ctx.measureText(label.slice(0, mid) + ellipsis).width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return label.slice(0, lo) + ellipsis;
+}
+
+function makeDragPreview(label: string): string | undefined {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return undefined;
+
+  const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+  const font = "12px Inter, system-ui, sans-serif";
+  const iconSize = 16;
+  const gap = 7;
+  const padX = 9;
+  const height = 28;
+  const maxTextWidth = 220;
+
+  ctx.font = font;
+  const fitted = fitLabel(ctx, label, maxTextWidth);
+  const textWidth = Math.ceil(ctx.measureText(fitted).width);
+  const width = padX * 2 + iconSize + gap + textWidth;
+
+  canvas.width = Math.ceil(width * dpr);
+  canvas.height = Math.ceil(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(dpr, dpr);
+  ctx.font = font;
+  ctx.textBaseline = "middle";
+
+  roundedRect(ctx, 0.5, 0.5, width - 1, height - 1, 6);
+  ctx.fillStyle = cssVar("--color-bg-elevated", "rgba(30, 30, 30, 0.96)");
+  ctx.fill();
+  ctx.strokeStyle = cssVar("--color-border", "rgba(120, 120, 120, 0.35)");
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const iconX = padX;
+  const iconY = (height - iconSize) / 2;
+  roundedRect(ctx, iconX, iconY, iconSize, iconSize, 3);
+  ctx.fillStyle = cssVar("--color-bg-active", "rgba(80, 80, 80, 0.9)");
+  ctx.fill();
+  ctx.fillStyle = cssVar("--color-accent", "rgb(130, 90, 255)");
+  ctx.fillRect(iconX + 4, iconY + 4, iconSize - 8, 1.5);
+  ctx.fillRect(iconX + 4, iconY + 7, iconSize - 6, 1.5);
+  ctx.fillRect(iconX + 4, iconY + 10, iconSize - 9, 1.5);
+
+  ctx.fillStyle = cssVar("--color-text", "rgb(235, 235, 235)");
+  ctx.fillText(fitted, iconX + iconSize + gap, height / 2 + 0.5);
+
+  return canvas.toDataURL("image/png");
 }
 
 export function useFileTreeDnd({
@@ -66,41 +123,54 @@ export function useFileTreeDnd({
   root,
   treeRef,
   rowEls,
+  highlightEls,
   canDrop,
   transferAll,
 }: UseFileTreeDndOptions) {
   const highlightedDir = useRef<string | null>(null);
   const incoming = useRef<DragSession | null>(null);
+  const incomingPaths = useRef<string[]>([]);
   const incomingRead = useRef(false);
+  const incomingReadPromise = useRef<Promise<void> | null>(null);
   const dndRef = useRef<(e: { phase: string; paths: string[]; x: number; y: number }) => void>(() => {});
   const altDown = useRef(false);
   const cmdDown = useRef(false);
+  const nativeDragActive = useRef(false);
   const pendingDrag = useRef<PendingDrag | null>(null);
-  const activeDrag = useRef<ActiveFileDrag | null>(null);
   const pointerListeners = useRef<{
     move: (ev: PointerEvent) => void;
     up: (ev: PointerEvent) => void;
     cancel: () => void;
   } | null>(null);
   const suppressNextClick = useRef(false);
-  const [dragGhost, setDragGhost] = useState<ActiveFileDrag | null>(null);
   const windowLabel = getCurrentWindowLabel();
 
   function highlight(destDir: string | null) {
     if (highlightedDir.current === destDir) return;
     const prev = highlightedDir.current;
-    if (prev) rowEls.current.get(prev)?.classList.remove(...HIGHLIGHT);
-    if (destDir) rowEls.current.get(destDir)?.classList.add(...HIGHLIGHT);
+    if (prev) highlightEls.current.get(prev)?.classList.remove(...HIGHLIGHT);
+    if (destDir) highlightEls.current.get(destDir)?.classList.add(...HIGHLIGHT);
     highlightedDir.current = destDir;
   }
 
-  function cleanupPointerDrag() {
+  function destDirAtPoint(x: number, y: number): string | null {
+    const tree = treeRef.current;
+    if (!tree || !pointInRect(x, y, tree.getBoundingClientRect())) return null;
+
+    for (const row of rowEls.current.values()) {
+      if (row === tree || !row.dataset.path || !pointInRect(x, y, row.getBoundingClientRect())) continue;
+      return row.dataset.dir === "1" ? row.dataset.path : parentOf(row.dataset.path);
+    }
+
+    return root;
+  }
+
+  function cleanupPointerDrag(clearDropUi = true) {
     pendingDrag.current = null;
-    activeDrag.current = null;
-    setDragGhost(null);
-    highlight(null);
+    if (clearDropUi) highlight(null);
     document.body.style.cursor = "";
-    void ctx.commands.execute("editor.fileDragLeave");
+    document.body.style.userSelect = "";
+    if (clearDropUi) void ctx.commands.execute("editor.fileDragLeave");
     const listeners = pointerListeners.current;
     if (listeners) {
       window.removeEventListener("pointermove", listeners.move);
@@ -110,6 +180,43 @@ export function useFileTreeDnd({
     }
   }
 
+  function resetIncoming() {
+    incoming.current = null;
+    incomingPaths.current = [];
+    incomingRead.current = false;
+    incomingReadPromise.current = null;
+    highlight(null);
+  }
+
+  async function ensureIncoming(paths: string[]) {
+    if (paths.length) incomingPaths.current = paths;
+    if (incomingRead.current) {
+      if (incomingReadPromise.current) await incomingReadPromise.current;
+      return;
+    }
+    incomingRead.current = true;
+    incomingReadPromise.current = ipc.drag
+      .readSession()
+      .then((session) => {
+        incoming.current = session;
+        if (session) {
+          altDown.current = session.alt;
+          cmdDown.current = session.cmd;
+        }
+      })
+      .finally(() => {
+        incomingReadPromise.current = null;
+      });
+    await incomingReadPromise.current;
+  }
+
+  function applyModifierState(alt: boolean, cmd: boolean) {
+    altDown.current = alt;
+    cmdDown.current = cmd;
+    if (incoming.current) incoming.current = { ...incoming.current, alt, cmd };
+    void ipc.drag.updateModifiers(alt, cmd);
+  }
+
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let cancelled = false;
@@ -117,23 +224,19 @@ export function useFileTreeDnd({
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Alt" && e.key !== "Meta") return;
-      if (e.key === "Alt") altDown.current = e.type === "keydown";
-      if (e.key === "Meta") cmdDown.current = e.type === "keydown";
-      if (activeDrag.current) {
-        activeDrag.current = { ...activeDrag.current, copy: altDown.current };
-        document.body.style.cursor = altDown.current ? "copy" : "grabbing";
-        setDragGhost(activeDrag.current);
-      }
+      applyModifierState(
+        e.key === "Alt" ? e.type === "keydown" : altDown.current,
+        e.key === "Meta" ? e.type === "keydown" : cmdDown.current,
+      );
     };
 
     const onBlur = () => {
-      altDown.current = false;
-      cmdDown.current = false;
-      if (activeDrag.current) {
-        activeDrag.current = { ...activeDrag.current, copy: false };
-        document.body.style.cursor = "grabbing";
-        setDragGhost(activeDrag.current);
+      if (nativeDragActive.current) {
+        altDown.current = false;
+        cmdDown.current = false;
+        return;
       }
+      applyModifierState(false, false);
     };
 
     window.addEventListener("keydown", onKey);
@@ -156,14 +259,14 @@ export function useFileTreeDnd({
   }
 
   function onRowPointerDown(e: React.PointerEvent, entry: DirEntry) {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    if (e.button !== 0 || e.ctrlKey || e.shiftKey) return;
     const store = useWorkspaceStore.getState();
-    if (!store.selected.has(entry.path)) store.setSelection([entry.path]);
+    if (!e.metaKey && !store.selected.has(entry.path)) store.setSelection([entry.path]);
     const selected = useWorkspaceStore.getState().selected;
     const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
     const label = paths.length > 1 ? `${paths.length} items` : entry.name;
     cleanupPointerDrag();
-    pendingDrag.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, paths, label };
+    pendingDrag.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, paths, label, started: false };
     const listeners = {
       move: (ev: PointerEvent) => onWindowPointerMove(ev),
       up: (ev: PointerEvent) => void onWindowPointerUp(ev),
@@ -175,65 +278,46 @@ export function useFileTreeDnd({
     window.addEventListener("pointercancel", listeners.cancel, { once: true });
   }
 
-  function updateInternalDrag(ev: PointerEvent): ActiveFileDrag | null {
+  function startNativeDrag(pending: PendingDrag, ev: PointerEvent) {
+    pending.started = true;
+    suppressNextClick.current = true;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
+    const alt = altDown.current || ev.altKey;
+    const cmd = cmdDown.current || ev.metaKey;
+    applyModifierState(alt, cmd);
+    nativeDragActive.current = true;
+    cleanupPointerDrag(false);
+    void ipc.drag
+      .start(pending.paths, alt, cmd, makeDragPreview(pending.label))
+      .catch((err) => {
+        console.error("[files] native file drag failed:", err);
+      })
+      .finally(() => {
+        nativeDragActive.current = false;
+        cleanupPointerDrag();
+      });
+  }
+
+  function updateNativeDrag(ev: PointerEvent): boolean {
     const pending = pendingDrag.current;
-    if (!pending || pending.pointerId !== ev.pointerId) return activeDrag.current;
-
-    let active = activeDrag.current;
-    if (!active) {
-      const dx = ev.clientX - pending.startX;
-      const dy = ev.clientY - pending.startY;
-      if (Math.hypot(dx, dy) < 4) return null;
-      suppressNextClick.current = true;
-      active = { ...pending, x: ev.clientX, y: ev.clientY, copy: altDown.current || ev.altKey };
-    } else {
-      active = { ...active, x: ev.clientX, y: ev.clientY, copy: altDown.current || ev.altKey };
-    }
-
-    activeDrag.current = active;
-    document.body.style.cursor = active.copy ? "copy" : "grabbing";
-    setDragGhost(active);
-    return active;
+    if (!pending || pending.pointerId !== ev.pointerId) return false;
+    if (pending.started) return true;
+    const dx = ev.clientX - pending.startX;
+    const dy = ev.clientY - pending.startY;
+    if (Math.hypot(dx, dy) < 4) return false;
+    startNativeDrag(pending, ev);
+    return true;
   }
 
   function onWindowPointerMove(ev: PointerEvent) {
-    const active = updateInternalDrag(ev);
-    if (!active) return;
+    if (!updateNativeDrag(ev)) return;
     ev.preventDefault();
-
-    const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const overTree = !!(el && treeRef.current?.contains(el));
-    if (overTree) {
-      void ctx.commands.execute("editor.fileDragLeave");
-      const dest = destDirAt(el, root);
-      highlight(canDrop(active.paths, dest, active.copy) ? dest : null);
-      return;
-    }
-
-    highlight(null);
-    void ctx.commands.execute("editor.fileDragOver", ev.clientX, ev.clientY);
   }
 
-  async function onWindowPointerUp(ev: PointerEvent) {
-    const active = activeDrag.current;
-    if (!active || active.pointerId !== ev.pointerId) {
-      cleanupPointerDrag();
-      return;
-    }
+  function onWindowPointerUp(ev: PointerEvent) {
     ev.preventDefault();
-
-    const copy = altDown.current || ev.altKey;
-    const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const overTree = !!(el && treeRef.current?.contains(el));
     cleanupPointerDrag();
-
-    if (overTree && el) {
-      const dest = destDirAt(el, root);
-      if (canDrop(active.paths, dest, copy)) await transferAll(active.paths, dest, copy);
-      return;
-    }
-
-    await ctx.commands.execute("editor.dropFilesAt", active.paths, ev.clientX, ev.clientY);
   }
 
   function onWindowPointerCancel() {
@@ -242,43 +326,34 @@ export function useFileTreeDnd({
 
   async function onNativeDnd(e: { phase: string; paths: string[]; x: number; y: number }) {
     if (e.phase === "leave") {
-      incoming.current = null;
-      incomingRead.current = false;
-      highlight(null);
+      resetIncoming();
       return;
     }
-    if (!incomingRead.current) {
-      incomingRead.current = true;
-      incoming.current = await ipc.drag.readSession();
-    }
+    await ensureIncoming(e.paths);
     const session = incoming.current;
-    if (e.phase === "enter") return;
+    const paths = session?.paths.length ? session.paths : incomingPaths.current;
 
-    const el = document.elementFromPoint(e.x, e.y);
-    const overTree = !!(el && treeRef.current?.contains(el));
-    const copy = session ? (session.source === windowLabel ? session.alt : !session.cmd) : true;
+    const dest = destDirAtPoint(e.x, e.y);
+    const copy = isCopyDrop(session, windowLabel);
 
-    if (e.phase === "over") {
-      const dest = overTree && el ? destDirAt(el, root) : null;
-      highlight(dest && session && canDrop(session.paths, dest, copy) ? dest : null);
+    if (e.phase === "enter" || e.phase === "over") {
+      highlight(dest && canDrop(paths, dest, copy) ? dest : null);
       return;
     }
 
     highlight(null);
-    incoming.current = null;
-    incomingRead.current = false;
-    if (!overTree || !el) return;
+    if (!dest) {
+      resetIncoming();
+      return;
+    }
 
-    const paths = session?.paths.length ? session.paths : e.paths;
-    if (!paths.length) return;
-    const dest = destDirAt(el, root);
     if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
+    resetIncoming();
   }
 
   dndRef.current = onNativeDnd;
 
   return {
-    dragGhost,
     onRowPointerDown,
     consumeSuppressedClick,
   };

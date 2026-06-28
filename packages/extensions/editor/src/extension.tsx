@@ -57,12 +57,28 @@ export const editorExtension: Extension = {
     const store = useEditorStore;
     const largeFileThreshold = () =>
       ctx.settings.get<number>("editor.largeFileThreshold") ?? 1_048_576;
-    const openPinned = async (path: string) => {
-      await ctx.commands.execute("editor.open", path, path.slice(path.lastIndexOf("/") + 1), { pin: true });
+    const openPinnedInPane = async (paneId: string, path: string) => {
+      const name = path.slice(path.lastIndexOf("/") + 1);
+      store.getState().openPinnedInPane(paneId, path, name);
+      await loadFile(path);
+    };
+    const loadFile = async (path: string) => {
+      const ed = store.getState();
+      if (ed.getContent(path) !== undefined) return;
+      try {
+        const content = await ipc.fs.read(path);
+        if (content.length > largeFileThreshold()) ed.markLargeFile(path);
+        ed.setSaved(path, content);
+      } catch (e) {
+        ed.setSaved(path, `// Could not open file: ${e}`);
+      }
     };
 
     const paneTargetAt = (x: number, y: number): { paneId: string; side: Side | null } | null => {
-      const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
+      const hit = document.elementFromPoint(x, y);
+      const tabbar = hit?.closest<HTMLElement>("[data-tabbar]");
+      if (tabbar?.dataset.tabbar) return { paneId: tabbar.dataset.tabbar, side: null };
+      const el = hit?.closest<HTMLElement>("[data-pane-id]");
       if (!el?.dataset.paneId) return null;
       const r = el.getBoundingClientRect();
       const fx = (x - r.left) / r.width;
@@ -88,15 +104,7 @@ export const editorExtension: Extension = {
           const ed = store.getState();
           if (opts?.pin) ed.openPinned(path, name);
           else ed.openPreview(path, name);
-          if (ed.getContent(path) === undefined) {
-            try {
-              const content = await ipc.fs.read(path);
-              if (content.length > largeFileThreshold()) ed.markLargeFile(path);
-              ed.setSaved(path, content);
-            } catch (e) {
-              ed.setSaved(path, `// Could not open file: ${e}`);
-            }
-          }
+          await loadFile(path);
           if (opts?.line !== undefined) {
             ed.requestReveal(path, opts.line);
           }
@@ -120,9 +128,14 @@ export const editorExtension: Extension = {
         const target = paneTargetAt(x, y);
         setDragOver(null);
         if (!target || !paths.length) return false;
-        if (target.side) store.getState().splitOpen(target.paneId, target.side);
-        else store.getState().setActivePane(target.paneId);
-        for (const p of paths) await openPinned(p);
+        let paneId = target.paneId;
+        if (target.side) {
+          store.getState().splitOpen(target.paneId, target.side);
+          paneId = store.getState().activePaneId;
+        } else {
+          store.getState().setActivePane(target.paneId);
+        }
+        for (const p of paths) await openPinnedInPane(paneId, p);
         return true;
       }),
       // Contributed pane views (e.g. terminals): other extensions register a
@@ -418,9 +431,14 @@ export const editorExtension: Extension = {
         incomingPaths = null;
         incomingRead = false;
         if (!target || !paths.length) return;
-        if (target.side) store.getState().splitOpen(target.paneId, target.side);
-        else store.getState().setActivePane(target.paneId);
-        for (const p of paths) await openPinned(p);
+        let paneId = target.paneId;
+        if (target.side) {
+          store.getState().splitOpen(target.paneId, target.side);
+          paneId = store.getState().activePaneId;
+        } else {
+          store.getState().setActivePane(target.paneId);
+        }
+        for (const p of paths) await openPinnedInPane(paneId, p);
       })
       .then((un) => (dropDisposed ? un() : (unlistenDrop = un)));
     ctx.subscriptions.push({ dispose: () => ((dropDisposed = true), unlistenDrop?.()) });
