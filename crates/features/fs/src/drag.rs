@@ -34,6 +34,14 @@ pub fn drag_session_read(session: State<DragSession>) -> Option<DragData> {
 }
 
 #[tauri::command]
+pub fn drag_session_update_modifiers(alt: bool, cmd: bool, session: State<DragSession>) {
+    if let Some(data) = session.0.lock().unwrap().as_mut() {
+        data.alt = alt;
+        data.cmd = cmd;
+    }
+}
+
+#[tauri::command]
 pub fn drag_session_clear(session: State<DragSession>) {
     *session.0.lock().unwrap() = None;
 }

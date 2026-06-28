@@ -14,6 +14,10 @@ export function openEditorWindow(): WebviewWindow {
   });
 }
 
+export function getCurrentWindowLabel(): string {
+  return getCurrentWebviewWindow().label;
+}
+
 /**
  * Returns the initial path queued for this window by a CLI invocation (`jelly .`),
  * or null if the window was opened normally. Consumes the value (one-shot).

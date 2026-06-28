@@ -357,12 +357,11 @@ export const editorExtension: Extension = {
     // near an edge splits the pane. The explorer starts the drag and records the
     // paths in the shared drag session.
     const paneTargetAt = (x: number, y: number): { paneId: string; side: Side | null } | null => {
-      const dpr = window.devicePixelRatio || 1;
-      const el = document.elementFromPoint(x / dpr, y / dpr)?.closest<HTMLElement>("[data-pane-id]");
+      const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-pane-id]");
       if (!el?.dataset.paneId) return null;
       const r = el.getBoundingClientRect();
-      const fx = (x / dpr - r.left) / r.width;
-      const fy = (y / dpr - r.top) / r.height;
+      const fx = (x - r.left) / r.width;
+      const fy = (y - r.top) / r.height;
       const m = Math.min(fx, 1 - fx, fy, 1 - fy);
       const side: Side | null =
         m >= 0.2 ? null : m === fx ? "left" : m === 1 - fx ? "right" : m === fy ? "top" : "bottom";

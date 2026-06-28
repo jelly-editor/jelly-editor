@@ -33,7 +33,12 @@ export interface ClipboardClient {
 
 export interface DragSession {
   paths: string[];
-  copy: boolean;
+  /** Option held at drag start. Copies within the source window. */
+  alt: boolean;
+  /** Command held at drag start. Moves across windows. */
+  cmd: boolean;
+  /** Window label that started the drag. */
+  source: string;
 }
 
 export type DragDropPhase = "enter" | "over" | "drop" | "leave";
@@ -42,7 +47,7 @@ export interface DragDropEvent {
   phase: DragDropPhase;
   /** Dropped file paths — present on `enter`/`drop`, empty otherwise. */
   paths: string[];
-  /** Cursor position in physical pixels relative to the webview. */
+  /** Cursor position in CSS pixels relative to the webview. */
   x: number;
   y: number;
 }
@@ -53,6 +58,8 @@ export interface DragClient {
    *  drag start; the drop window derives copy-vs-move from them and whether the
    *  drag is same- or cross-window. `icon` is an optional PNG data-URI image. */
   start(paths: string[], alt: boolean, cmd: boolean, icon?: string): Promise<void>;
+  /** Update the active Jelly drag session's current modifier state, if any. */
+  updateModifiers(alt: boolean, cmd: boolean): Promise<void>;
   /** The current session, recorded by the source window (null if none). */
   readSession(): Promise<DragSession | null>;
   clearSession(): Promise<void>;

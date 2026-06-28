@@ -1,5 +1,5 @@
 import type { DirEntry, ExtensionContext, FileStatus } from "@jelly/sdk";
-import { ipc } from "@jelly/ipc";
+import { getCurrentWindowLabel, ipc } from "@jelly/ipc";
 import { ContextMenu, type ContextMenuEntry, FileIcon, useContextMenu } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
@@ -97,20 +97,30 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const treeRef = useRef<HTMLDivElement | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>()); // dir path → drop-target node
   const highlightedDir = useRef<string | null>(null);
-  const incoming = useRef<{ paths: string[]; copy: boolean } | null>(null);
+  const incoming = useRef<{ paths: string[]; alt: boolean; cmd: boolean; source: string } | null>(null);
   const incomingRead = useRef(false);
   const dndRef = useRef<(e: { phase: string; paths: string[]; x: number; y: number }) => void>(() => {});
   // Tracked here because WKWebView doesn't report modifier keys on drag events.
   const altDown = useRef(false);
+  const cmdDown = useRef(false);
+  const dragging = useRef(false);
+  const windowLabel = getCurrentWindowLabel();
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let cancelled = false;
     ipc.drag.onDrop((e) => void dndRef.current(e)).then((un) => (cancelled ? un() : (dispose = un)));
     const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Alt" && e.key !== "Meta") return;
       if (e.key === "Alt") altDown.current = e.type === "keydown";
+      if (e.key === "Meta") cmdDown.current = e.type === "keydown";
+      if (dragging.current) void ipc.drag.updateModifiers(altDown.current, cmdDown.current);
     };
-    const onBlur = () => (altDown.current = false);
+    const onBlur = () => {
+      altDown.current = false;
+      cmdDown.current = false;
+      if (dragging.current) void ipc.drag.updateModifiers(false, false);
+    };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKey);
     window.addEventListener("blur", onBlur);
@@ -282,7 +292,12 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     const selected = useWorkspaceStore.getState().selected;
     const paths = selected.has(entry.path) && selected.size > 1 ? [...selected] : [entry.path];
     const label = paths.length > 1 ? `${paths.length} items` : entry.name;
-    void ipc.drag.start(paths, altDown.current, dragImage(label));
+    dragging.current = true;
+    void ipc.drag.start(paths, altDown.current || e.altKey, cmdDown.current || e.metaKey, dragImage(label)).finally(() => {
+      dragging.current = false;
+      altDown.current = false;
+      cmdDown.current = false;
+    });
   }
 
   function destDirAt(el: Element | null, fallbackRoot: string): string {
@@ -307,13 +322,13 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     const session = incoming.current;
     if (e.phase === "enter") return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const el = document.elementFromPoint(e.x / dpr, e.y / dpr);
+    const el = document.elementFromPoint(e.x, e.y);
     const overTree = !!(el && treeRef.current?.contains(el));
+    const copy = session ? (session.source === windowLabel ? session.alt : !session.cmd) : true;
 
     if (e.phase === "over") {
       const dest = overTree && el ? destDirAt(el, root!) : null;
-      highlight(dest && session && canDrop(session.paths, dest, session.copy) ? dest : null);
+      highlight(dest && session && canDrop(session.paths, dest, copy) ? dest : null);
       return;
     }
 
@@ -326,7 +341,6 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
     // is an external (e.g. Finder) drop, which we copy.
     const paths = session?.paths.length ? session.paths : e.paths;
     if (!paths.length) return;
-    const copy = session ? session.copy : true;
     const dest = destDirAt(el, root!);
     if (canDrop(paths, dest, copy)) await transferAll(paths, dest, copy);
   }

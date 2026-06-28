@@ -115,6 +115,7 @@ pub fn run() {
             jelly_fs::clipboard::clipboard_clear,
             jelly_fs::drag::drag_session_write,
             jelly_fs::drag::drag_session_read,
+            jelly_fs::drag::drag_session_update_modifiers,
             jelly_fs::drag::drag_session_clear,
             jelly_terminal::commands::create_terminal,
             jelly_terminal::commands::terminal_input,

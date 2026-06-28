@@ -32,6 +32,7 @@ export function createStubIpc(): IpcClient {
     },
     drag: {
       start: fail("drag.start"),
+      updateModifiers: fail("drag.updateModifiers"),
       readSession: fail("drag.readSession"),
       clearSession: fail("drag.clearSession"),
       onDrop: fail("drag.onDrop"),
