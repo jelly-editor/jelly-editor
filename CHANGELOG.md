@@ -1,5 +1,13 @@
 # Changelog
 
+* chore: fix version (5bf9d69)
+* fix: improve terminal panel behavior (d99d8e3)
+* chore: add github issue templates (d59b893)
+* feat: increase changelog max to 20 and show older updates callout conditionally (62bd786)
+* feat: add changelog route to apps/www loading from github releases (c35a837)
+* feat: add native app menus (4812d9d)
+* ci: use latest changelog entry as release body (d9feb28)
+
 ## [0.1.4](https://github.com/jelly-editor/jelly-editor/compare/v0.1.3...v0.1.4) (2026-06-28)
 
 ### Features
