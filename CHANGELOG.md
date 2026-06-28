@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.5](https://github.com/jelly-editor/jelly-editor/compare/v0.1.4...v0.1.5) (2026-06-28)
+
+### Features
+
+* add changelog route to apps/www loading from github releases ([c35a837](https://github.com/jelly-editor/jelly-editor/commit/c35a8376b31313bca3efa425885dbdae87e2160b))
+* add native app menus ([4812d9d](https://github.com/jelly-editor/jelly-editor/commit/4812d9dbee469bf6e5c0ccab8ccf575f7f8a4e23))
+* **files:** add Reveal in Finder and Open in Terminal context menu actions ([e0438ac](https://github.com/jelly-editor/jelly-editor/commit/e0438ac0b6820c980d4fef102ee206828aed9778))
+* **files:** cross-window copy/cut/paste via host-held file clipboard ([f984735](https://github.com/jelly-editor/jelly-editor/commit/f984735aba0ef889b77cd97900a17f29f08096c2))
+* **files:** cross-window drag-and-drop via OS-native drag, Opt to copy ([6e87ae0](https://github.com/jelly-editor/jelly-editor/commit/6e87ae0e9df4b1331c395fb929b240ba51dcfc06))
+* **files:** multi-selection with Cmd-click for copy/paste, drag-and-drop, and delete ([6d9762a](https://github.com/jelly-editor/jelly-editor/commit/6d9762ab92d3194271c91b99bb8e527e96f80df4))
+* **git:** show change count badge on activity bar icon ([cb01dac](https://github.com/jelly-editor/jelly-editor/commit/cb01dac807022e9e564be9e9dde2f7ef974b997d))
+* increase changelog max to 20 and show older updates callout conditionally ([62bd786](https://github.com/jelly-editor/jelly-editor/commit/62bd786e70c0870709536077d56370d8e8f6a5a7))
+* **terminal:** add left gutter spacing ([fa2adcd](https://github.com/jelly-editor/jelly-editor/commit/fa2adcd86cfdb5d072cb365a0d2291fb0f10cbe1))
+
+### Bug Fixes
+
+* **editor:** hide git change gutter for untracked files ([dd65c79](https://github.com/jelly-editor/jelly-editor/commit/dd65c79d261c71c45f2d2a23f56487fae4da7ee8))
+* **files:** pointer-driven tree drag for snappy in-window DnD, fixed line-number gutter width ([154f093](https://github.com/jelly-editor/jelly-editor/commit/154f093421d4a4d962ca6386e04cb159affecdfa))
+* **files:** read drag copy intent from dropEffect so Opt copies in WKWebView ([6d221ed](https://github.com/jelly-editor/jelly-editor/commit/6d221ed7fbb91893d70a2eadc759bda070fc95ae))
+* **github:** resolve YAML syntax error in bug report template ([782e889](https://github.com/jelly-editor/jelly-editor/commit/782e88901d40ec4bdfd6e67982a9cda7c13d2815))
+* improve terminal panel behavior ([d99d8e3](https://github.com/jelly-editor/jelly-editor/commit/d99d8e38d0a6ed368574191e3bd646ab8b3e4d6d))
+* pane drag detection ([21d2079](https://github.com/jelly-editor/jelly-editor/commit/21d20793f4660fb2f8de19ba90140f4c2bcf9e8b))
+* stabilize file drag and drop ([98abe80](https://github.com/jelly-editor/jelly-editor/commit/98abe80a1fd5af94a6a51c4f908fb156d8e1b081))
+
 * chore: fix version (5bf9d69)
 * fix: improve terminal panel behavior (d99d8e3)
 * chore: add github issue templates (d59b893)
