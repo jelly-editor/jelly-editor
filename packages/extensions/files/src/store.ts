@@ -1,7 +1,7 @@
-import type { DirEntry } from "@jelly/sdk";
+import type { DirEntry, FileStatus } from "@jelly/sdk";
 import { create } from "zustand";
 
-export type { DirEntry };
+export type { DirEntry, FileStatus };
 
 /** Re-list of a directory only returns one level, so carry over the already
  *  loaded `children` of any subfolder that still exists (matched by path).
@@ -41,9 +41,12 @@ interface WorkspaceState {
   /** path of the file active in the editor — drives the tree highlight.
    *  Updated from the editor via the `editor:active_changed` event. */
   activeFilePath: string | null;
+  /** absolute path → git status, from the git extension's `git:status_changed`. */
+  gitStatuses: Record<string, FileStatus>;
 
   setWorkspace: (path: string, tree: DirEntry[]) => void;
   setAllFiles: (files: DirEntry[]) => void;
+  setGitStatuses: (statuses: Record<string, FileStatus>) => void;
   clearWorkspace: () => void;
   setChildren: (parentPath: string, children: DirEntry[]) => void;
   setExpanded: (path: string, expanded: boolean) => void;
@@ -56,12 +59,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   allFiles: [],
   expandedDirs: new Set(),
   activeFilePath: null,
+  gitStatuses: {},
 
   setWorkspace: (path, tree) => set({ path, tree, allFiles: [], expandedDirs: new Set() }),
 
   setAllFiles: (allFiles) => set({ allFiles }),
 
-  clearWorkspace: () => set({ path: null, tree: [], allFiles: [], expandedDirs: new Set() }),
+  setGitStatuses: (gitStatuses) => set({ gitStatuses }),
+
+  clearWorkspace: () =>
+    set({ path: null, tree: [], allFiles: [], expandedDirs: new Set(), gitStatuses: {} }),
 
   setChildren: (parentPath, children) =>
     set((s) =>

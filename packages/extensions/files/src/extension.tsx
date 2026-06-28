@@ -1,4 +1,4 @@
-import type { DirEntry, Extension, ExtensionContext, PaletteItem } from "@jelly/sdk";
+import type { DirEntry, Extension, ExtensionContext, FileStatus, PaletteItem } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { fuzzyMatch } from "@jelly/ui";
 import { FileTree } from "./ui/FileTree";
@@ -108,6 +108,9 @@ export const filesExtension: Extension = {
     ctx.subscriptions.push(
       ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) =>
         store.getState().setActiveFilePath(path),
+      ),
+      ctx.events.on<{ statuses: Record<string, FileStatus> }>("git:status_changed", ({ statuses }) =>
+        store.getState().setGitStatuses(statuses),
       ),
     );
 

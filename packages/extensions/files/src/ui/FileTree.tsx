@@ -1,8 +1,16 @@
-import type { DirEntry, ExtensionContext } from "@jelly/sdk";
+import type { DirEntry, ExtensionContext, FileStatus } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { FileIcon } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
+
+const STATUS_COLOR: Record<FileStatus, string> = {
+  untracked: "text-success",
+  added: "text-success",
+  modified: "text-warning",
+  renamed: "text-accent",
+  deleted: "text-danger",
+};
 
 const {
   list: listDir,
@@ -409,12 +417,14 @@ interface RowsProps {
 function Rows(props: RowsProps) {
   const { nodes, depth, expandedDirs, draft } = props;
   const activeFilePath = useWorkspaceStore((s) => s.activeFilePath);
+  const gitStatuses = useWorkspaceStore((s) => s.gitStatuses);
 
   return (
     <>
       {nodes.map((entry) => {
         const expanded = entry.isDir && expandedDirs.has(entry.path);
         const isActive = entry.path === activeFilePath;
+        const statusColor = entry.isDir ? "" : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
         return (
           <div
             key={entry.path}
@@ -458,7 +468,7 @@ function Rows(props: RowsProps) {
                 {entry.isDir && <Chevron expanded={expanded} />}
                 {!entry.isDir && <span className="w-[10px] shrink-0" />}
                 <FileIcon name={entry.name} isDir={entry.isDir} isOpen={expanded} />
-                <span className="truncate">{entry.name}</span>
+                <span className={`truncate ${statusColor}`}>{entry.name}</span>
               </div>
             )}
 

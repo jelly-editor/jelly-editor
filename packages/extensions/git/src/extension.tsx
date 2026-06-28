@@ -1,4 +1,4 @@
-import type { Extension, ExtensionContext } from "@jelly/sdk";
+import type { Extension, ExtensionContext, FileStatus } from "@jelly/sdk";
 import { GitPanel } from "./ui/GitPanel";
 import { StatusBranch } from "./ui/StatusBranch";
 import { createIgnoreWarningChecker } from "./ignoreWarning";
@@ -49,8 +49,25 @@ export const gitExtension: Extension = {
 
     const checkIgnoreWarning = createIgnoreWarningChecker(ctx);
 
+    // Broadcast a path→status map (absolute paths) so the file tree can colour
+    // entries by git status. Working-tree status wins over the staged one.
+    let prevKey = "";
+    const emitStatuses = () => {
+      const s = store.getState();
+      const ws = s.workspacePath;
+      if (!ws) return;
+      const statuses: Record<string, FileStatus> = {};
+      for (const f of s.staged) statuses[`${ws}/${f.path}`] = f.status;
+      for (const f of [...s.modified, ...s.untracked]) statuses[`${ws}/${f.path}`] = f.status;
+      const key = JSON.stringify(statuses);
+      if (key === prevKey) return;
+      prevKey = key;
+      ctx.events.emit("git:status_changed", { statuses });
+    };
+
     ctx.subscriptions.push(
       { dispose: store.subscribe(checkIgnoreWarning) },
+      { dispose: store.subscribe(emitStatuses) },
       ctx.commands.register("git.refresh", () => refreshGitStatus()),
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => {
         store.getState().setWorkspacePath(path);
