@@ -52,6 +52,17 @@ export const filesExtension: Extension = {
   activate(ctx: ExtensionContext) {
     const store = useWorkspaceStore;
 
+    // Build the recursive "Go to File" index in the background — never block
+    // opening the workspace on it (large repos can take a moment to walk).
+    const loadAllFiles = (root: string) => {
+      ipc.fs
+        .listFiles(root)
+        .then((files) => {
+          if (store.getState().path === root) store.getState().setAllFiles(files);
+        })
+        .catch(() => {});
+    };
+
     ctx.subscriptions.push(
       // Open a folder as the workspace, then announce it. The kernel flips to
       // the editor workbench on this event; git/terminal react to it too.
@@ -59,6 +70,7 @@ export const filesExtension: Extension = {
         const tree = await ipc.workspace.open(path);
         store.getState().setWorkspace(path, tree);
         ctx.events.emit("workspace:opened", { path });
+        loadAllFiles(path); // fire-and-forget; populates the palette index
       }),
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
@@ -75,9 +87,12 @@ export const filesExtension: Extension = {
         id: "files",
         placeholder: "Search files by name…",
         getItems: (q): PaletteItem[] => {
-          const { tree, path } = store.getState();
+          const { tree, allFiles, path } = store.getState();
           const root = path ? path + "/" : "";
-          return flattenFiles(tree)
+          // Prefer the full recursive index; fall back to the loaded tree
+          // until it finishes building in the background.
+          const files = allFiles.length ? allFiles : flattenFiles(tree);
+          return files
             .filter((f) => fuzzyMatch(q, f.name) || fuzzyMatch(q, f.path))
             .map((f) => ({
               id: f.path,
@@ -112,6 +127,9 @@ export const filesExtension: Extension = {
               .catch(() => {});
           }
         }
+        // A file was added/removed/renamed somewhere — rebuild the flat index
+        // so "Go to File" stays in sync.
+        loadAllFiles(root);
       }
       pendingDirs.clear();
     };

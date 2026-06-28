@@ -4,6 +4,9 @@ export interface FsClient {
   read(path: string): Promise<string>;
   save(path: string, content: string): Promise<void>;
   list(path: string): Promise<DirEntry[]>;
+  /** Recursively list every file under `path` (files only), gitignore-aware
+   *  and skipping dependency/build dirs. Powers "Go to File". */
+  listFiles(path: string): Promise<DirEntry[]>;
   create(path: string): Promise<void>;
   createDir(path: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;

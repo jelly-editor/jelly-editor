@@ -153,6 +153,7 @@ pub fn run() {
             jelly_fs::commands::read_file,
             jelly_fs::commands::save_file,
             jelly_fs::commands::list_dir,
+            jelly_fs::commands::list_files,
             jelly_fs::commands::create_file,
             jelly_fs::commands::create_dir,
             jelly_fs::commands::rename,

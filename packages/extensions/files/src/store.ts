@@ -34,12 +34,16 @@ function attachChildren(
 interface WorkspaceState {
   path: string | null;
   tree: DirEntry[];
+  /** Flat, recursive index of every workspace file, loaded async after open.
+   *  Backs "Go to File" so it can match files in unexpanded folders. */
+  allFiles: DirEntry[];
   expandedDirs: Set<string>;
   /** path of the file active in the editor — drives the tree highlight.
    *  Updated from the editor via the `editor:active_changed` event. */
   activeFilePath: string | null;
 
   setWorkspace: (path: string, tree: DirEntry[]) => void;
+  setAllFiles: (files: DirEntry[]) => void;
   clearWorkspace: () => void;
   setChildren: (parentPath: string, children: DirEntry[]) => void;
   setExpanded: (path: string, expanded: boolean) => void;
@@ -49,12 +53,15 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   path: null,
   tree: [],
+  allFiles: [],
   expandedDirs: new Set(),
   activeFilePath: null,
 
-  setWorkspace: (path, tree) => set({ path, tree, expandedDirs: new Set() }),
+  setWorkspace: (path, tree) => set({ path, tree, allFiles: [], expandedDirs: new Set() }),
 
-  clearWorkspace: () => set({ path: null, tree: [], expandedDirs: new Set() }),
+  setAllFiles: (allFiles) => set({ allFiles }),
+
+  clearWorkspace: () => set({ path: null, tree: [], allFiles: [], expandedDirs: new Set() }),
 
   setChildren: (parentPath, children) =>
     set((s) =>

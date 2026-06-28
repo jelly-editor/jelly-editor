@@ -33,6 +33,12 @@ pub async fn list_dir(path: String, files: State<'_, FileManagerHandle>) -> Resu
 }
 
 #[tauri::command]
+pub async fn list_files(path: String, files: State<'_, FileManagerHandle>) -> Result<Vec<DirEntry>, String> {
+    let path = PathBuf::from(path);
+    files.send(|reply| FileManagerMsg::ListFiles { path, reply }).await
+}
+
+#[tauri::command]
 pub async fn create_file(path: String, files: State<'_, FileManagerHandle>) -> Result<(), String> {
     let path = PathBuf::from(path);
     files.send(|reply| FileManagerMsg::CreateFile { path, reply }).await

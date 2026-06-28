@@ -17,6 +17,7 @@ export function createStubIpc(): IpcClient {
       read: fail("fs.read"),
       save: fail("fs.save"),
       list: fail("fs.list"),
+      listFiles: fail("fs.listFiles"),
       create: fail("fs.create"),
       createDir: fail("fs.createDir"),
       rename: fail("fs.rename"),

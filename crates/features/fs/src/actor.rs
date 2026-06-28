@@ -13,6 +13,7 @@ pub enum FileManagerMsg {
     ReadFile { path: PathBuf, reply: Reply<String> },
     SaveFile { path: PathBuf, content: String, reply: Reply<()> },
     ListDir { path: PathBuf, reply: Reply<Vec<DirEntry>> },
+    ListFiles { path: PathBuf, reply: Reply<Vec<DirEntry>> },
     CreateFile { path: PathBuf, reply: Reply<()> },
     CreateDir { path: PathBuf, reply: Reply<()> },
     Rename { from: PathBuf, to: PathBuf, reply: Reply<()> },
@@ -64,6 +65,9 @@ pub fn spawn() -> FileManagerHandle {
                 }
                 FileManagerMsg::ListDir { path, reply } => {
                     let _ = reply.send(list_dir(&path));
+                }
+                FileManagerMsg::ListFiles { path, reply } => {
+                    let _ = reply.send(list_files(&path));
                 }
                 FileManagerMsg::CreateFile { path, reply } => {
                     let res = if path.exists() {
@@ -159,5 +163,59 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirEntry>, String> {
         _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
 
+    Ok(entries)
+}
+
+/// Directory names always skipped during a recursive listing, regardless of
+/// gitignore rules — so "Go to File" never wanders into dependency or build
+/// trees even in repos that don't ignore them.
+const SKIP_DIRS: &[&str] = &[
+    ".git",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    "out",
+    ".next",
+    ".turbo",
+    ".cache",
+    "coverage",
+    ".venv",
+    "__pycache__",
+];
+
+/// Recursively list every file under `dir` (files only, no directories),
+/// gitignore-aware and skipping the dependency/build dirs in `SKIP_DIRS`.
+/// Sorted by path. Powers the "Go to File" palette.
+pub fn list_files(dir: &Path) -> Result<Vec<DirEntry>, String> {
+    if !dir.is_dir() {
+        return Err(format!("Not a directory: {}", dir.display()));
+    }
+
+    let mut entries: Vec<DirEntry> = WalkBuilder::new(dir)
+        .hidden(false)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .parents(true)
+        .filter_entry(|e| {
+            let is_dir = e.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            !(is_dir && SKIP_DIRS.contains(&e.file_name().to_string_lossy().as_ref()))
+        })
+        .build()
+        .filter_map(Result::ok)
+        .filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false))
+        .filter_map(|e| {
+            let path = e.path();
+            let name = path.file_name()?.to_string_lossy().to_string();
+            Some(DirEntry {
+                name,
+                path: path.to_string_lossy().to_string(),
+                is_dir: false,
+            })
+        })
+        .collect();
+
+    entries.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
     Ok(entries)
 }
