@@ -29,11 +29,34 @@ interface Session {
 // panes (which unmounts/remounts the host) without losing its PTY or scrollback.
 const sessions = new Map<string, Session>();
 
+// Sessions whose tabs were removed from the layout but whose PTY is still
+// running. A layout restore (folder switch) will remount the TerminalView and
+// cancel the timer before disposal fires. An explicit user-close that is never
+// remounted will let the timer expire and kill the PTY.
+const ORPHAN_TTL = 10_000;
+const orphaned = new Map<string, ReturnType<typeof setTimeout>>();
+
 // A starting cwd for a not-yet-mounted terminal, keyed by its view id (set by
 // "Open in Terminal"). Consumed once when the session is created.
 const pendingCwd = new Map<string, string>();
 export function setTerminalCwd(id: string, cwd: string) {
   pendingCwd.set(id, cwd);
+}
+
+/**
+ * Schedule a session for disposal after ORPHAN_TTL ms. If the TerminalView
+ * remounts before the timer fires (e.g. layout restored on folder switch back),
+ * the disposal is cancelled.
+ */
+export function scheduleDisposeSession(id: string): void {
+  if (!sessions.has(id) || orphaned.has(id)) return;
+  orphaned.set(
+    id,
+    setTimeout(() => {
+      orphaned.delete(id);
+      disposeSession(id);
+    }, ORPHAN_TTL),
+  );
 }
 
 function themeOf(ctx: ExtensionContext) {
@@ -65,8 +88,13 @@ function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Se
   const offOut = ctx.events.on<{ id: string; data: string }>("terminal:output", (p) => {
     if (p.id === id) term.write(decode(p.data));
   });
+  // When the PTY exits, dispose immediately (no grace period needed — the
+  // process is done) then close the tab.
   const offExit = ctx.events.on<{ id: string }>("terminal:exit", (p) => {
-    if (p.id === id) void ctx.commands.execute("editor.closeView", "terminal", id);
+    if (p.id === id) {
+      disposeSession(id);
+      void ctx.commands.execute("editor.closeView", "terminal", id);
+    }
   });
 
   const cwd = pendingCwd.get(id) ?? useTerminalStore.getState().cwd;
@@ -77,8 +105,13 @@ function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Se
   return session;
 }
 
-/** Tear a terminal down for good (PTY + xterm). Called when its tab closes. */
+/** Tear a terminal down for good (PTY + xterm). */
 export function disposeSession(id: string) {
+  const timer = orphaned.get(id);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    orphaned.delete(id);
+  }
   const s = sessions.get(id);
   if (!s) return;
   sessions.delete(id);
@@ -96,6 +129,15 @@ export function TerminalView({ ctx, id, active }: { ctx: ExtensionContext; id: s
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+
+    // Cancel any pending disposal — this session is being remounted (e.g.
+    // the user switched back to the folder whose layout includes this terminal).
+    const timer = orphaned.get(id);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      orphaned.delete(id);
+    }
+
     const session = sessions.get(id) ?? createSession(ctx, id, host);
     if (session.el.parentNode !== host) host.appendChild(session.el);
 
