@@ -42,9 +42,6 @@ export const searchExtension: Extension = {
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => {
         store.getState().setWorkspacePath(path);
       }),
-      ctx.events.on<{ path: string }>("workspace:folder_changed", ({ path }) => {
-        store.getState().setWorkspacePath(path);
-      }),
       // Stream results from the Rust search actor into the store.
       ctx.events.on<SearchFileResult>("search:result", (r) => store.getState().addResult(r)),
       ctx.events.on<SearchDone>("search:done", ({ searchId, capped }) =>

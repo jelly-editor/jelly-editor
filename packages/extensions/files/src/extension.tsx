@@ -137,17 +137,9 @@ export const filesExtension: Extension = {
         store.getState().addFolder(path);
       }),
 
-      ctx.commands.register("workspace.switchFolder", async (path: string) => {
+      ctx.commands.register("workspace.switchFolder", (path: string) => {
         if (store.getState().path === path) return;
-        // Switch the active file tree without emitting `workspace:opened` — that
-        // event triggers a full editor layout restore which would close all open
-        // terminal sessions. Folder switching only changes which tree is visible;
-        // open tabs and terminal PTYs should survive.
-        const tree = await ipc.workspace.open(path);
-        store.getState().setWorkspace(path, tree);
-        ctx.events.emit("workspace:folder_changed", { path });
-        loadAllFiles(path);
-        void restoreExpanded(path);
+        return ctx.commands.execute("workspace.open", path);
       }),
 
       ctx.commands.register("workspace.removeFolder", async (path: string) => {
