@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.10](https://github.com/jelly-editor/jelly-editor/compare/v0.1.9...v0.1.10) (2026-06-29)
+
+### Bug Fixes
+
+* **terminal:** make Shift+Enter insert a newline instead of running the line ([508e181](https://github.com/jelly-editor/jelly-editor/commit/508e181c41e0d8250da8b0fd1f0707ecf3736bcb))
+
 ## [0.1.9](https://github.com/jelly-editor/jelly-editor/compare/v0.1.8...v0.1.9) (2026-06-29)
 
 ### Features
