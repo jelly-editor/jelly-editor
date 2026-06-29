@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.11](https://github.com/jelly-editor/jelly-editor/compare/v0.1.10...v0.1.11) (2026-06-29)
+
+### Features
+
+* **activity-bar:** add right-click context menu to move sidebar ([2f6f8d1](https://github.com/jelly-editor/jelly-editor/commit/2f6f8d16778acc129cfbf153d463769e3e2bb5b1))
+* add MCP server support ([b6ce234](https://github.com/jelly-editor/jelly-editor/commit/b6ce234e34aa5ce1b441d88f3d396a701577966c))
+* **editor:** add markdown preview with GFM and syntax highlighting (Cmd+Opt+V) ([ab3393d](https://github.com/jelly-editor/jelly-editor/commit/ab3393d8d8025f369e721e7afb6c8a181960cf02))
+* **files:** shift folder switcher left when window is fullscreen ([8dc90ec](https://github.com/jelly-editor/jelly-editor/commit/8dc90ec8681633ae376d0d5fb2fa20574deae7a8))
+* **notes:** add notes extension with per-folder markdown notes ([d8d4c48](https://github.com/jelly-editor/jelly-editor/commit/d8d4c487151c497e58d18ecd7a1b94744e8c6a70))
+* **settings:** show changelog prompt after update ([47a51e3](https://github.com/jelly-editor/jelly-editor/commit/47a51e36e16fa53c9e3e8b3c5d2994dd8765028a))
+* **sidebar:** add sidebar position setting with right-click context menu ([5f30b80](https://github.com/jelly-editor/jelly-editor/commit/5f30b80ff21269de07890db076205217abdd0934))
+* **telemetry:** add PostHog analytics with opt-out setting ([e39eb37](https://github.com/jelly-editor/jelly-editor/commit/e39eb3779844a69e381fc6adfdeab9ffa00d477b))
+
+### Bug Fixes
+
+* **editor:** prevent text/line-number selection while dragging a tab ([5960a4e](https://github.com/jelly-editor/jelly-editor/commit/5960a4eb5b95d18ee8fb69dd941bffe97791fd75))
+* **files:** restore folder switcher with fullscreen-aware positioning ([d7a970d](https://github.com/jelly-editor/jelly-editor/commit/d7a970d98c782fee1df301c5c035909bca8a78af))
+* **palette:** rank file results by name relevance, drop path fuzzy matching ([8e6b1fb](https://github.com/jelly-editor/jelly-editor/commit/8e6b1fb6777a0ee1868b330ae381df808d966550))
+* prefetch Windows Rust dependencies ([001ad19](https://github.com/jelly-editor/jelly-editor/commit/001ad1929259e4a408160dce2cf5aeb0c515ec89))
+* **welcome:** cap recents to 5, fix tab layout shift with fixed height ([8002493](https://github.com/jelly-editor/jelly-editor/commit/800249358b25dc89c52a948a7632a33e05dcb563))
+* **window:** reopen welcome screen when last window is closed ([30a4774](https://github.com/jelly-editor/jelly-editor/commit/30a4774b3882b92807269c15be1e2ddd644659e1))
+
 ## [0.1.10](https://github.com/jelly-editor/jelly-editor/compare/v0.1.9...v0.1.10) (2026-06-29)
 
 ### Bug Fixes
