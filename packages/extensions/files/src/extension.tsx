@@ -311,6 +311,6 @@ export const filesExtension: Extension = {
     });
     ctx.ui.contributeSidebarPanel({ id: "files", render: () => <FileTree ctx={ctx} /> });
     ctx.ui.mountSlot("titlebar", <WorkspaceTitle ctx={ctx} />, { id: "files.title" });
-    ctx.ui.mountSlot("titlebar", <FolderSwitcher ctx={ctx} />, { id: "files.folderSwitcher" });
+    ctx.ui.mountSlot("folder-switcher", <FolderSwitcher ctx={ctx} />, { id: "files.folderSwitcher" });
   },
 };
