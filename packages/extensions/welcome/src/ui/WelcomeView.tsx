@@ -3,22 +3,36 @@ import { ipc, pickFolder } from "@jelly/ipc";
 import { useSetting } from "@jelly/ui";
 import { useEffect, useState } from "react";
 
+interface SavedWorkspace {
+  id: string;
+  folders: string[];
+  name: string;
+  lastOpened: number;
+}
+
+type Tab = "recent" | "workspaces";
+
 /** The full-screen welcome surface: open a folder or pick a recent one. */
 export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
   const theme = useSetting(ctx, "ui.theme", "dark");
+  const [tab, setTab] = useState<Tab>("recent");
   const [recents, setRecents] = useState<string[]>([]);
+  const [workspaces, setWorkspaces] = useState<SavedWorkspace[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     ipc.workspace.recent().then(setRecents).catch(() => {});
+    ctx.commands
+      .execute<SavedWorkspace[]>("workspace.listSaved")
+      .then((ws) => setWorkspaces((ws ?? []).sort((a, b) => b.lastOpened - a.lastOpened)))
+      .catch(() => {});
   }, []);
 
-  async function open(path: string) {
+  async function openFolder(path: string) {
     setLoading(true);
     try {
       await ctx.commands.execute("workspace.open", path);
     } catch {
-      // folder may no longer exist — drop it from recents
       await ipc.workspace.removeRecent(path).catch(() => {});
       setRecents((r) => r.filter((f) => f !== path));
     } finally {
@@ -26,15 +40,30 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
     }
   }
 
+  async function openWorkspace(id: string) {
+    setLoading(true);
+    try {
+      await ctx.commands.execute("workspace.openWorkspace", id);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleOpen() {
     const path = await pickFolder();
-    if (path) await open(path);
+    if (path) await openFolder(path);
   }
 
   async function handleRemoveRecent(e: React.MouseEvent, path: string) {
     e.stopPropagation();
     await ipc.workspace.removeRecent(path).catch(() => {});
     setRecents((r) => r.filter((f) => f !== path));
+  }
+
+  async function handleRemoveWorkspace(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    await ctx.commands.execute("workspace.removeSaved", id).catch(() => {});
+    setWorkspaces((ws) => ws.filter((w) => w.id !== id));
   }
 
   const formatPath = (p: string) => p.replace(/^\/Users\/[^/]+/, "~");
@@ -65,6 +94,7 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
           </svg>
         )}
       </button>
+
       <div className="flex flex-col items-start gap-9 w-full max-w-[320px]">
         <div className="flex flex-col gap-[5px]">
           <img src="/jelly.svg" alt="jelly" className="w-[48px] h-[48px]" draggable={false} />
@@ -79,34 +109,79 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
           {loading ? "Opening…" : "Open Folder"}
         </button>
 
-        {recents.length > 0 && (
-          <div className="w-full flex flex-col gap-[10px]">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.1em]">
-              Recent
-            </span>
-            <ul className="list-none flex flex-col gap-px">
-              {recents.map((folder) => (
-                <li key={folder} className="group flex items-center rounded-[4px] hover:bg-bg-hover">
-                  <button
-                    className="flex-1 flex flex-col items-start gap-[2px] py-[7px] px-2 bg-transparent cursor-pointer text-left disabled:opacity-45 disabled:cursor-default"
-                    onClick={() => open(folder)}
-                    disabled={loading}
-                  >
-                    <span className="text-[13px] text-text">{folderName(folder)}</span>
-                    <span className="text-[11px] text-text-muted">{formatPath(folder)}</span>
-                  </button>
-                  <button
-                    className="py-1 px-2 bg-transparent text-text-dim text-[14px] leading-none cursor-pointer opacity-0 transition-[opacity,color] duration-[80ms] group-hover:opacity-100 hover:text-danger"
-                    onClick={(e) => handleRemoveRecent(e, folder)}
-                    title="Remove from recents"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
+        <div className="w-full flex flex-col gap-[10px]">
+          <div className="flex gap-[2px]">
+            {(["recent", "workspaces"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                className={`px-[8px] h-[22px] text-[10px] font-semibold uppercase tracking-[0.1em] rounded-[3px] cursor-pointer transition-colors duration-[80ms] ${
+                  tab === t ? "bg-bg-active text-text" : "text-text-muted hover:text-text"
+                }`}
+                onClick={() => setTab(t)}
+              >
+                {t === "recent" ? "Folders" : "Workspaces"}
+              </button>
+            ))}
           </div>
-        )}
+
+          {tab === "recent" && (
+            recents.length === 0 ? (
+              <span className="text-[12px] text-text-dim">No recent folders</span>
+            ) : (
+              <ul className="list-none flex flex-col gap-px">
+                {recents.map((folder) => (
+                  <li key={folder} className="group flex items-center rounded-[4px] hover:bg-bg-hover">
+                    <button
+                      className="flex-1 flex flex-col items-start gap-[2px] py-[7px] px-2 bg-transparent cursor-pointer text-left disabled:opacity-45 disabled:cursor-default"
+                      onClick={() => openFolder(folder)}
+                      disabled={loading}
+                    >
+                      <span className="text-[13px] text-text">{folderName(folder)}</span>
+                      <span className="text-[11px] text-text-muted">{formatPath(folder)}</span>
+                    </button>
+                    <button
+                      className="py-1 px-2 bg-transparent text-text-dim text-[14px] leading-none cursor-pointer opacity-0 transition-[opacity,color] duration-[80ms] group-hover:opacity-100 hover:text-danger"
+                      onClick={(e) => handleRemoveRecent(e, folder)}
+                      title="Remove from recents"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+
+          {tab === "workspaces" && (
+            workspaces.length === 0 ? (
+              <span className="text-[12px] text-text-dim">
+                No saved workspaces yet. Add a second folder via the workspace title menu to create one.
+              </span>
+            ) : (
+              <ul className="list-none flex flex-col gap-px">
+                {workspaces.map((ws) => (
+                  <li key={ws.id} className="group flex items-center rounded-[4px] hover:bg-bg-hover">
+                    <button
+                      className="flex-1 flex flex-col items-start gap-[2px] py-[7px] px-2 bg-transparent cursor-pointer text-left disabled:opacity-45 disabled:cursor-default"
+                      onClick={() => openWorkspace(ws.id)}
+                      disabled={loading}
+                    >
+                      <span className="text-[13px] text-text">{ws.name}</span>
+                      <span className="text-[11px] text-text-muted">{ws.folders.length} folders</span>
+                    </button>
+                    <button
+                      className="py-1 px-2 bg-transparent text-text-dim text-[14px] leading-none cursor-pointer opacity-0 transition-[opacity,color] duration-[80ms] group-hover:opacity-100 hover:text-danger"
+                      onClick={(e) => handleRemoveWorkspace(e, ws.id)}
+                      title="Remove workspace"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+        </div>
 
         <div className="text-[11px] text-text-muted">
           <kbd className="inline-block py-[1px] px-[5px] border border-border rounded-[3px] text-[10px] text-text-muted">

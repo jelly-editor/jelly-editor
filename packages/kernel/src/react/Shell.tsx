@@ -25,6 +25,7 @@ function Workbench() {
     <div className="flex flex-col h-full pt-[38px] overflow-hidden animate-[fadeIn_100ms_ease]">
       <TitleBar />
       <div className="flex flex-row flex-1 overflow-hidden">
+        <Slot slot="folder-switcher" />
         <ActivityBar />
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">

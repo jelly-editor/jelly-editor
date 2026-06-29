@@ -1,9 +1,17 @@
-import type { DirEntry, Extension, ExtensionContext, FileStatus, PaletteItem } from "@jelly/sdk";
+import type { DirEntry, Extension, ExtensionContext, PaletteItem } from "@jelly/sdk";
 import { ipc, pickFolder } from "@jelly/ipc";
 import { fuzzyMatch } from "@jelly/ui";
 import { FileTree } from "./ui/FileTree";
+import { FolderSwitcher } from "./ui/FolderSwitcher";
 import { WorkspaceTitle } from "./ui/WorkspaceTitle";
 import { useWorkspaceStore } from "./store";
+
+interface SavedWorkspace {
+  id: string;
+  folders: string[];
+  name: string;
+  lastOpened: number;
+}
 
 function flattenFiles(entries: DirEntry[]): DirEntry[] {
   const out: DirEntry[] = [];
@@ -43,6 +51,11 @@ export const filesExtension: Extension = {
       commands: [
         { id: "workspace.open", title: "Open Folder" },
         { id: "workspace.openFolder", title: "Open Folder", palette: false },
+        { id: "workspace.addFolder", title: "Add Folder to Workspace" },
+        { id: "workspace.switchFolder", title: "Switch Folder", palette: false },
+        { id: "workspace.openWorkspace", title: "Open Workspace", palette: false },
+        { id: "workspace.listSaved", title: "List Saved Workspaces", palette: false },
+        { id: "workspace.removeSaved", title: "Remove Saved Workspace", palette: false },
         { id: "workspace.getPath", title: "Get Workspace Path", palette: false },
         { id: "files.list", title: "List Files", palette: false },
         { id: "files.refresh", title: "Refresh Explorer", palette: false },
@@ -53,8 +66,32 @@ export const filesExtension: Extension = {
   activate(ctx: ExtensionContext) {
     const store = useWorkspaceStore;
 
-    // Build the recursive "Go to File" index in the background — never block
-    // opening the workspace on it (large repos can take a moment to walk).
+    // ── Saved workspace helpers ────────────────────────────────────────────
+
+    async function getSaved(): Promise<SavedWorkspace[]> {
+      return (await ctx.storage.get<SavedWorkspace[]>("savedWorkspaces")) ?? [];
+    }
+
+    async function upsertSaved(folders: string[]): Promise<void> {
+      const saved = await getSaved();
+      const key = [...folders].sort().join("\n");
+      const existing = saved.find((w) => [...w.folders].sort().join("\n") === key);
+      if (existing) {
+        existing.lastOpened = Date.now();
+        existing.folders = folders;
+      } else {
+        saved.push({
+          id: crypto.randomUUID(),
+          folders,
+          name: folders.map((f) => f.split("/").pop() ?? f).join(", "),
+          lastOpened: Date.now(),
+        });
+      }
+      await ctx.storage.set("savedWorkspaces", saved);
+    }
+
+    // ── File tree helpers ──────────────────────────────────────────────────
+
     const loadAllFiles = (root: string) => {
       ipc.fs
         .listFiles(root)
@@ -64,8 +101,6 @@ export const filesExtension: Extension = {
         .catch(() => {});
     };
 
-    // Re-expand the folders that were open last session (parents first so each
-    // child's loaded subtree nests correctly).
     const restoreExpanded = async (root: string) => {
       const dirs = (await ctx.storage.get<string[]>(`expanded:${root}`)) ?? [];
       dirs.sort((a, b) => a.split("/").length - b.split("/").length);
@@ -79,28 +114,57 @@ export const filesExtension: Extension = {
       }
     };
 
+    // ── Commands ───────────────────────────────────────────────────────────
+
     ctx.subscriptions.push(
-      // Open a folder as the workspace, then announce it. The kernel flips to
-      // the editor workbench on this event; git/terminal react to it too.
       ctx.commands.register("workspace.open", async (path: string) => {
         const tree = await ipc.workspace.open(path);
         store.getState().setWorkspace(path, tree);
         ctx.events.emit("workspace:opened", { path });
-        loadAllFiles(path); // fire-and-forget; populates the palette index
+        loadAllFiles(path);
         void restoreExpanded(path);
       }),
+
       ctx.commands.register("workspace.openFolder", async () => {
         const path = await pickFolder();
         if (path) await ctx.commands.execute("workspace.open", path);
       }),
+
+      ctx.commands.register("workspace.addFolder", async () => {
+        const path = await pickFolder();
+        if (!path || store.getState().folders.includes(path)) return;
+        store.getState().addFolder(path);
+      }),
+
+      ctx.commands.register("workspace.switchFolder", (path: string) => {
+        if (store.getState().path === path) return;
+        return ctx.commands.execute("workspace.open", path);
+      }),
+
+      ctx.commands.register("workspace.openWorkspace", async (id: string) => {
+        const saved = await getSaved();
+        const ws = saved.find((w) => w.id === id);
+        if (!ws || !ws.folders.length) return;
+        await ctx.commands.execute("workspace.open", ws.folders[0]);
+        if (ws.folders.length > 1) store.getState().setFolders(ws.folders);
+        ws.lastOpened = Date.now();
+        await ctx.storage.set("savedWorkspaces", saved);
+      }),
+
+      ctx.commands.register("workspace.listSaved", () => getSaved()),
+
+      ctx.commands.register("workspace.removeSaved", async (id: string) => {
+        const saved = await getSaved();
+        await ctx.storage.set("savedWorkspaces", saved.filter((w) => w.id !== id));
+      }),
+
       ctx.commands.register("workspace.getPath", () => store.getState().path),
       ctx.commands.register("files.list", () => flattenFiles(store.getState().tree)),
       ctx.commands.register("files.refresh", async (dir?: string) => {
         const root = store.getState().path;
         if (!root) return;
-        const target = dir ?? root;
-        const children = await ipc.fs.list(target);
-        store.getState().setChildren(target, children);
+        const children = await ipc.fs.list(dir ?? root);
+        store.getState().setChildren(dir ?? root, children);
       }),
 
       // "Go to File" — the default (prefix-less) palette source.
@@ -110,8 +174,6 @@ export const filesExtension: Extension = {
         getItems: (q): PaletteItem[] => {
           const { tree, allFiles, path } = store.getState();
           const root = path ? path + "/" : "";
-          // Prefer the full recursive index; fall back to the loaded tree
-          // until it finishes building in the background.
           const files = allFiles.length ? allFiles : flattenFiles(tree);
           return files
             .filter((f) => fuzzyMatch(q, f.name) || fuzzyMatch(q, f.path))
@@ -125,14 +187,38 @@ export const filesExtension: Extension = {
       }),
     );
 
-    // Keep the tree highlight in sync with the editor's active file.
-    // Expand (lazily loading as needed) every ancestor folder so the active
-    // file is revealed in the tree, however deeply nested.
+    // ── Restore folder list on first workspace:opened ──────────────────────
+
+    let foldersInitialized = false;
+    ctx.subscriptions.push(
+      ctx.events.on<{ path: string }>("workspace:opened", async ({ path }) => {
+        if (foldersInitialized) return;
+        foldersInitialized = true;
+        const saved = (await ctx.storage.get<string[]>("workspace.folders")) ?? [];
+        const others = saved.filter((f) => f !== path);
+        if (others.length > 0) store.getState().setFolders([path, ...others]);
+      }),
+    );
+
+    // ── Persist folder list + auto-save multi-folder workspaces ───────────
+
+    let prevFolders = store.getState().folders;
+    ctx.subscriptions.push({
+      dispose: store.subscribe((s) => {
+        if (s.folders === prevFolders) return;
+        prevFolders = s.folders;
+        void ctx.storage.set("workspace.folders", s.folders);
+        if (s.folders.length > 1) void upsertSaved(s.folders);
+      }),
+    });
+
+    // ── Keep active file + git status in sync ─────────────────────────────
+
     const revealInTree = async (filePath: string) => {
       const root = store.getState().path;
       if (!root || !filePath.startsWith(root + "/")) return;
       const segments = filePath.slice(root.length + 1).split("/");
-      segments.pop(); // drop the filename
+      segments.pop();
       let dir = root;
       for (const seg of segments) {
         dir = `${dir}/${seg}`;
@@ -140,7 +226,7 @@ export const filesExtension: Extension = {
           try {
             store.getState().setChildren(dir, await ipc.fs.list(dir));
           } catch {
-            return; // folder vanished — stop here
+            return;
           }
         }
         store.getState().setExpanded(dir, true);
@@ -152,12 +238,13 @@ export const filesExtension: Extension = {
         store.getState().setActiveFilePath(path);
         if (path) void revealInTree(path);
       }),
-      ctx.events.on<{ statuses: Record<string, FileStatus> }>("git:status_changed", ({ statuses }) =>
+      ctx.events.on<{ statuses: Record<string, import("@jelly/sdk").FileStatus> }>("git:status_changed", ({ statuses }) =>
         store.getState().setGitStatuses(statuses),
       ),
     );
 
-    // Persist the set of expanded folders (debounced) so it survives restarts.
+    // ── Persist expanded dirs ─────────────────────────────────────────────
+
     let expandedTimer: ReturnType<typeof setTimeout> | undefined;
     let prevExpanded = store.getState().expandedDirs;
     ctx.subscriptions.push(
@@ -175,9 +262,8 @@ export const filesExtension: Extension = {
       },
     );
 
-    // Reflect external changes (e.g. a .gitignore written by another feature)
-    // by re-listing each affected, already-loaded directory. Coalesced since
-    // file events can arrive in bursts.
+    // ── React to external file changes ────────────────────────────────────
+
     const pendingDirs = new Set<string>();
     let extTimer: ReturnType<typeof setTimeout> | undefined;
     const flushExternal = () => {
@@ -191,8 +277,6 @@ export const filesExtension: Extension = {
               .catch(() => {});
           }
         }
-        // A file was added/removed/renamed somewhere — rebuild the flat index
-        // so "Go to File" stays in sync.
         loadAllFiles(root);
       }
       pendingDirs.clear();
@@ -206,6 +290,8 @@ export const filesExtension: Extension = {
       { dispose: () => clearTimeout(extTimer) },
     );
 
+    // ── UI contributions ──────────────────────────────────────────────────
+
     ctx.ui.contributeActivityBarItem({
       id: "files",
       order: 10,
@@ -213,6 +299,7 @@ export const filesExtension: Extension = {
       icon: () => <FolderIcon />,
     });
     ctx.ui.contributeSidebarPanel({ id: "files", render: () => <FileTree ctx={ctx} /> });
-    ctx.ui.mountSlot("titlebar", <WorkspaceTitle />, { id: "files.title" });
+    ctx.ui.mountSlot("titlebar", <WorkspaceTitle ctx={ctx} />, { id: "files.title" });
+    ctx.ui.mountSlot("folder-switcher", <FolderSwitcher ctx={ctx} />, { id: "files.folderSwitcher" });
   },
 };

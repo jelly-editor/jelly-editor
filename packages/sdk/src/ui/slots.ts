@@ -3,6 +3,7 @@ export type SlotId =
   | "welcome"
   | "titlebar"
   | "activitybar"
+  | "folder-switcher"
   | "sidebar.panel"
   | "editor.surface"
   | "panel.tab"

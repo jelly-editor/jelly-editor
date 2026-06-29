@@ -34,6 +34,8 @@ function attachChildren(
 interface WorkspaceState {
   path: string | null;
   tree: DirEntry[];
+  /** All folder paths currently in this workspace (active folder is `path`). */
+  folders: string[];
   /** Flat, recursive index of every workspace file, loaded async after open.
    *  Backs "Go to File" so it can match files in unexpanded folders. */
   allFiles: DirEntry[];
@@ -47,6 +49,10 @@ interface WorkspaceState {
   selected: Set<string>;
 
   setWorkspace: (path: string, tree: DirEntry[]) => void;
+  /** Replace the full folder list (used when restoring a saved workspace). */
+  setFolders: (folders: string[]) => void;
+  /** Add a folder path to the workspace without switching to it. */
+  addFolder: (path: string) => void;
   setAllFiles: (files: DirEntry[]) => void;
   setGitStatuses: (statuses: Record<string, FileStatus>) => void;
   clearWorkspace: () => void;
@@ -61,6 +67,7 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   path: null,
   tree: [],
+  folders: [],
   allFiles: [],
   expandedDirs: new Set(),
   activeFilePath: null,
@@ -68,14 +75,29 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selected: new Set(),
 
   setWorkspace: (path, tree) =>
-    set({ path, tree, allFiles: [], expandedDirs: new Set(), selected: new Set() }),
+    set((s) => ({
+      path,
+      tree,
+      allFiles: [],
+      expandedDirs: new Set(),
+      selected: new Set(),
+      // Preserve the existing folder list; add path if it isn't there yet.
+      folders: s.folders.includes(path) ? s.folders : [...s.folders, path],
+    })),
+
+  setFolders: (folders) => set({ folders }),
+
+  addFolder: (path) =>
+    set((s) => ({
+      folders: s.folders.includes(path) ? s.folders : [...s.folders, path],
+    })),
 
   setAllFiles: (allFiles) => set({ allFiles }),
 
   setGitStatuses: (gitStatuses) => set({ gitStatuses }),
 
   clearWorkspace: () =>
-    set({ path: null, tree: [], allFiles: [], expandedDirs: new Set(), gitStatuses: {}, selected: new Set() }),
+    set({ path: null, tree: [], folders: [], allFiles: [], expandedDirs: new Set(), gitStatuses: {}, selected: new Set() }),
 
   setChildren: (parentPath, children) =>
     set((s) =>
