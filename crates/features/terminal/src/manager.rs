@@ -58,6 +58,8 @@ impl TerminalManager {
             cmd.cwd(dir);
         }
         cmd.env("TERM", "xterm-256color");
+        cmd.env("TERM_PROGRAM", "jelly");
+        cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
 
         let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
         // Drop the slave handle so the PTY reports EOF when the shell exits.

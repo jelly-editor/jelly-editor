@@ -79,6 +79,20 @@ function createSession(ctx: ExtensionContext, id: string, host: HTMLElement): Se
     theme: terminalTheme(themeOf(ctx)),
     allowProposedApi: true,
   });
+  term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+    if (e.type !== "keydown") return true;
+    if (e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && e.key === "Enter") {
+      e.preventDefault();
+      void terminalInput(id, "\x1b[200~\r\x1b[201~");
+      return false;
+    }
+    if (e.metaKey && e.key === "Backspace") {
+      e.preventDefault();
+      void terminalInput(id, "\x15");
+      return false;
+    }
+    return true;
+  });
   const fit = new FitAddon();
   term.loadAddon(fit);
   term.open(el);
