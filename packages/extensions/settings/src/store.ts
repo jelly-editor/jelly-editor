@@ -34,12 +34,20 @@ interface SettingsUiState {
   setUpdateError: (error: unknown) => void;
   setInstalling: () => void;
   resetUpdate: () => void;
+  changelogOpen: boolean;
+  changelogVersion: string | null;
+  openChangelog: (version: string) => void;
+  closeChangelog: () => void;
 }
 
 export const useSettingsUi = create<SettingsUiState>((set) => ({
   open: false,
   tab: "general",
   update: initialUpdate,
+  changelogOpen: false,
+  changelogVersion: null,
+  openChangelog: (version) => set({ changelogOpen: true, changelogVersion: version }),
+  closeChangelog: () => set({ changelogOpen: false }),
   setOpen: (open) => set({ open }),
   setTab: (tab) => set({ tab }),
   toggle: () => set((s) => ({ open: !s.open })),

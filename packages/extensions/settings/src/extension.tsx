@@ -1,8 +1,10 @@
 import type { Disposable, Extension, ExtensionContext, SettingsSchema } from "@jelly/sdk";
 import { GearIcon, ThemeIcon, UpdateIcon } from "./ui/icons";
 import { SettingsModal } from "./ui/SettingsModal";
+import { ChangelogModal } from "./ui/ChangelogModal";
 import { useSettingsUi } from "./store";
 import { checkForSettingsUpdate, openAboutAndCheck } from "./updater";
+import { checkChangelog } from "./changelog";
 
 const SCHEMA: SettingsSchema = {
   "ui.theme": { type: "enum", enum: ["dark", "light"], default: "dark" },
@@ -100,7 +102,9 @@ export const settingsExtension: Extension = {
 
     const unsubscribeUpdate = useSettingsUi.subscribe(syncUpdateIndicator);
     ctx.subscriptions.push({ dispose: unsubscribeUpdate });
-    void checkForSettingsUpdate(ctx, { silent: true }).catch(() => undefined);
+    void checkForSettingsUpdate(ctx, { silent: true })
+      .then((result) => checkChangelog(ctx, result.currentVersion))
+      .catch(() => undefined);
 
     ctx.ui.contributeActivityBarItem({
       id: "theme",
@@ -120,5 +124,6 @@ export const settingsExtension: Extension = {
     });
 
     ctx.ui.mountSlot("modal", <SettingsModal ctx={ctx} />, { id: "settings.modal" });
+    ctx.ui.mountSlot("modal", <ChangelogModal />, { id: "settings.changelog" });
   },
 };

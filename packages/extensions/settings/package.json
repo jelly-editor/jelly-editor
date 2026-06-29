@@ -14,7 +14,9 @@
     "@jelly/sdk": "workspace:*",
     "@jelly/ui": "workspace:*",
     "@jelly/ipc": "workspace:*",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "react": "^19"
