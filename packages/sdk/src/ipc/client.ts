@@ -4,6 +4,7 @@ import type {
   FsClient,
   GitClient,
   KeybindingsClient,
+  McpClient,
   SearchClient,
   SettingsClient,
   StorageClient,
@@ -30,4 +31,5 @@ export interface IpcClient {
   storage: StorageClient;
   keybindings: KeybindingsClient;
   updater: UpdaterClient;
+  mcp: McpClient;
 }

@@ -13,6 +13,7 @@ export interface CoreEventMap {
   "terminal:exit": { id: string; code?: number };
   "search:result": SearchFileResult;
   "search:done": SearchDone;
+  "notes:changed": { folder: string; paths?: string[] };
 }
 
 export type CoreEventName = keyof CoreEventMap;
@@ -25,4 +26,5 @@ export const CORE_EVENT_NAMES: CoreEventName[] = [
   "terminal:exit",
   "search:result",
   "search:done",
+  "notes:changed",
 ];

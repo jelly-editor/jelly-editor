@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { UpdateCheckResult } from "@jelly/sdk";
 
-export type SettingsTab = "general" | "keybindings" | "about";
+export type SettingsTab = "general" | "keybindings" | "mcp" | "about";
 export type UpdateStatus = "idle" | "checking" | "available" | "current" | "installing" | "error";
 
 export interface UpdateState {

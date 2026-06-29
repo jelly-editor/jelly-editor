@@ -17,7 +17,7 @@ impl AppState {
         Self { inner: Mutex::new(inner) }
     }
 
-    fn save(&self) {
+    pub fn save(&self) {
         let inner = self.inner.lock().unwrap();
         crate::persist::save_json("state.json", &*inner);
     }

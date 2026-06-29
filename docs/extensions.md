@@ -161,6 +161,7 @@ possible, and your extension would not survive becoming a runtime add-on.
 const text = await ctx.ipc.fs.read(path);
 await ctx.ipc.fs.save(path, text);
 const status = await ctx.ipc.git.status(workspace);
+await ctx.ipc.mcp.start(3282, ["list_notes"]);
 ```
 
 If you need a native capability that doesn't exist yet, add it to the Rust `features/`

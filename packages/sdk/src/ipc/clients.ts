@@ -141,3 +141,24 @@ export interface UpdaterClient {
   /** Download, install, and relaunch into the latest available build. */
   installAndRestart(): Promise<void>;
 }
+
+export interface McpStatus {
+  running: boolean;
+  port: number | null;
+  error?: string | null;
+}
+
+export interface McpToolInfo {
+  name: string;
+  label: string;
+  description: string;
+  group: string;
+}
+
+export interface McpClient {
+  start(port: number, allowedTools: string[]): Promise<void>;
+  stop(): Promise<void>;
+  status(): Promise<McpStatus>;
+  tools(): Promise<McpToolInfo[]>;
+  updateTools(tools: string[]): Promise<void>;
+}

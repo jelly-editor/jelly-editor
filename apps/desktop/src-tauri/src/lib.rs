@@ -51,6 +51,7 @@ pub fn run() {
     let builder = jelly_watcher::register(builder);
     let builder = jelly_terminal::register(builder);
     let builder = jelly_search::register(builder);
+    let builder = jelly_mcp::register(builder);
 
     builder
         .on_window_event(|window, event| {
@@ -143,6 +144,11 @@ pub fn run() {
             jelly_search::commands::start_search,
             jelly_search::commands::cancel_search,
             jelly_search::commands::replace_in_file,
+            jelly_mcp::commands::mcp_start,
+            jelly_mcp::commands::mcp_stop,
+            jelly_mcp::commands::mcp_status,
+            jelly_mcp::commands::mcp_tools,
+            jelly_mcp::commands::mcp_update_tools,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

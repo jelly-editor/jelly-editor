@@ -2,9 +2,15 @@ import type { ExtensionContext } from "@jelly/sdk";
 import { useEffect } from "react";
 import type { SettingsTab } from "../store";
 import { useSettingsUi } from "../store";
-import { AboutTab, GeneralTab, KeybindingsTab } from "./tabs";
+import { AboutTab, GeneralTab, KeybindingsTab, MCPTab } from "./tabs";
 
-const TABS: SettingsTab[] = ["general", "keybindings", "about"];
+const TABS: SettingsTab[] = ["general", "keybindings", "mcp", "about"];
+const TAB_LABELS: Record<SettingsTab, string> = {
+  general: "General",
+  keybindings: "Keybindings",
+  mcp: "MCP",
+  about: "About",
+};
 
 /** Centered settings dialog. Opened with ⌘, — closed on Esc or backdrop click.
  *  Owns only the frame and tab routing; each tab renders its own content. */
@@ -39,12 +45,12 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
             {TABS.map((t) => (
               <button
                 key={t}
-                className={`h-[24px] px-2.5 rounded-[5px] text-[12px] capitalize ${
+                className={`h-[24px] px-2.5 rounded-[5px] text-[12px] ${
                   tab === t ? "bg-bg-active text-text font-medium" : "text-text-muted hover:text-text"
                 }`}
                 onClick={() => setTab(t)}
               >
-                {t}
+                {TAB_LABELS[t]}
               </button>
             ))}
           </div>
@@ -61,6 +67,8 @@ export function SettingsModal({ ctx }: { ctx: ExtensionContext }) {
           <KeybindingsTab ctx={ctx} />
         ) : tab === "about" ? (
           <AboutTab ctx={ctx} />
+        ) : tab === "mcp" ? (
+          <MCPTab ctx={ctx} />
         ) : (
           <GeneralTab ctx={ctx} />
         )}

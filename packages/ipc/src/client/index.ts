@@ -4,6 +4,7 @@ import { drag } from "./drag";
 import { fs } from "./fs";
 import { git } from "./git";
 import { keybindings } from "./keybindings";
+import { mcp } from "./mcp";
 import { search } from "./search";
 import { settings } from "./settings";
 import { storage } from "./storage";
@@ -24,6 +25,7 @@ export const ipc: IpcClient = {
   storage,
   keybindings,
   updater,
+  mcp,
 };
 
-export { fs, clipboard, drag, git, search, terminal, workspace, settings, storage, keybindings, updater };
+export { fs, clipboard, drag, git, search, terminal, workspace, settings, storage, keybindings, updater, mcp };

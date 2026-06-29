@@ -14,7 +14,14 @@ crates/
     git/       GitActor (git2 crate)
     search/    SearchManager — streaming find/replace (grep + ignore crates)
     terminal/  TerminalActor (portable-pty crate)
+    mcp/       Loopback MCP HTTP server for selected Jelly tools
 ```
+
+MCP tools live under `crates/features/mcp/src/tools/`. Each tool group owns its
+metadata and dispatch; `tools/mod.rs` aggregates the groups for both the MCP
+`tools/list` response and the Settings UI metadata command. Tools that mutate
+files should emit the same core events as native features, for example
+`file:changed_externally`, so open editor buffers reconcile live.
 
 Each feature crate exposes:
 1. an **actor** (tokio task + `mpsc` receiver loop), and

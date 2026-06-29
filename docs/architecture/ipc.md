@@ -16,8 +16,16 @@ interface IpcClient {
   settings:    { load, save };               // → ~/.jelly/settings.json
   keybindings: { load, save };               // → ~/.jelly/keybindings.json
   updater:     { check, installAndRestart }; // → Tauri signed updater
+  mcp:         { start, stop, status, tools, updateTools }; // local MCP HTTP server
 }
 ```
+
+The MCP client controls Jelly's loopback-only MCP server. It is intentionally
+managed through the same IPC boundary as other privileged capabilities: the
+frontend can enable/disable the server and choose exposed tools, but the Rust
+feature crate owns the socket, transport handling, and native file/state access.
+The settings UI reads available tools through `mcp.tools()`, so new backend tool
+groups can show up without hardcoding them in the Settings extension.
 
 ---
 

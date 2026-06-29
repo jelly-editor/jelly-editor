@@ -79,5 +79,12 @@ export function createStubIpc(): IpcClient {
       check: fail("updater.check"),
       installAndRestart: fail("updater.installAndRestart"),
     },
+    mcp: {
+      start: fail("mcp.start"),
+      stop: fail("mcp.stop"),
+      status: fail("mcp.status"),
+      tools: fail("mcp.tools"),
+      updateTools: fail("mcp.updateTools"),
+    },
   };
 }

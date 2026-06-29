@@ -83,6 +83,7 @@ jelly/
 │   │   ├── command-system.md       # command registry, keybindings, palette providers
 │   │   ├── ui-slots.md             # UI registry, layout slots, event bus
 │   │   ├── ipc.md                  # IPC client + trust boundary
+│   │   ├── mcp.md                  # Local MCP server + tool registry
 │   │   ├── extensions.md           # end-to-end extension example
 │   │   ├── backend.md              # Rust crate architecture + actor model
 │   │   └── tooling-and-testing.md  # Bun/Turbo/Cargo tooling + testing philosophy
@@ -117,6 +118,7 @@ sdk  ←  kernel, ui, ipc  ←  extensions (packages/extensions/*)  ←  desktop
 | [command-system.md](./command-system.md) | Command registry, keybindings, palette providers |
 | [ui-slots.md](./ui-slots.md) | UI registry, layout slots, event bus |
 | [ipc.md](./ipc.md) | IPC client, trust boundary, security model |
+| [mcp.md](./mcp.md) | Local MCP server, live updates, tool registry |
 | [extensions.md](./extensions.md) | End-to-end extension example + desktop wiring |
 | [backend.md](./backend.md) | Rust crate architecture, actor model, Tauri builder |
 | [tooling-and-testing.md](./tooling-and-testing.md) | Bun/Turbo/Cargo tooling, testing philosophy |

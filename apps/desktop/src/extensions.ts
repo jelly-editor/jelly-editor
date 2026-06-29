@@ -10,6 +10,7 @@ import { commandPaletteExtension } from "@jelly/command-palette";
 import { gamesExtension } from "@jelly/games";
 import { typingTestExtension } from "@jelly/typing-test";
 import { notesExtension } from "@jelly/notes";
+import { mcpExtension } from "@jelly/mcp";
 import { telemetryExtension } from "@jelly/telemetry";
 
 /**
@@ -30,4 +31,5 @@ export const builtinExtensions: Extension[] = [
   gamesExtension,
   typingTestExtension,
   notesExtension,
+  mcpExtension,
 ];

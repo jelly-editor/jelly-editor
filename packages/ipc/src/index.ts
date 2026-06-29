@@ -5,7 +5,7 @@
  * command client (implementing the SDK IpcClient), the native event bridge, and
  * the dialog/window host utilities.
  */
-export { ipc, fs, git, search, terminal, workspace, settings, keybindings, updater } from "./client";
+export { ipc, fs, git, search, terminal, workspace, settings, keybindings, updater, mcp } from "./client";
 export { CORE_EVENT_NAMES, bridgeCoreEvents, type CoreEventMap, type CoreEventName } from "./events";
 export { confirm, pickFolder } from "./dialog";
 export { openEditorWindow, getCurrentWindowLabel, getInitialPath, installShellCommand, onFullscreenChange } from "./window";

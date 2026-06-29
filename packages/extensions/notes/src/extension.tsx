@@ -39,7 +39,15 @@ export const notesExtension: Extension = {
       return `${base}/notes/${slugify(workspacePath)}`;
     }
 
-    async function loadNotes(workspacePath: string) {
+    async function loadNotes(workspacePath: string, fresh = false) {
+      if (fresh) {
+        const all: Record<string, unknown> = await ctx.ipc.storage.load().catch(() => ({}));
+        const saved = (all[`jelly.notes:notes:${workspacePath}`] as Note[] | undefined) ?? [];
+        store.getState().setNotes(saved);
+        await ctx.storage.set(`notes:${workspacePath}`, saved).catch(() => {});
+        return;
+      }
+
       const saved = (await ctx.storage.get<Note[]>(`notes:${workspacePath}`)) ?? [];
       store.getState().setNotes(saved);
     }
@@ -64,6 +72,15 @@ export const notesExtension: Extension = {
 
       ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) => {
         store.getState().setActiveNotePath(path);
+      }),
+
+      ctx.events.on<{ folder: string; paths?: string[] }>("notes:changed", ({ folder, paths }) => {
+        if (store.getState().workspacePath === folder) {
+          void loadNotes(folder, true);
+        }
+        for (const path of paths ?? []) {
+          ctx.events.emit("file:changed_externally", { path });
+        }
       }),
     );
 

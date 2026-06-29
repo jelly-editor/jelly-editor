@@ -30,6 +30,7 @@
         "@jelly/git": "workspace:*",
         "@jelly/ipc": "workspace:*",
         "@jelly/kernel": "workspace:*",
+        "@jelly/mcp": "workspace:*",
         "@jelly/notes": "workspace:*",
         "@jelly/sdk": "workspace:*",
         "@jelly/search": "workspace:*",
@@ -166,6 +167,15 @@
       },
       "peerDependencies": {
         "react": "^19",
+      },
+    },
+    "packages/extensions/mcp": {
+      "name": "@jelly/mcp",
+      "dependencies": {
+        "@jelly/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "~5.8.3",
       },
     },
     "packages/extensions/notes": {
@@ -602,6 +612,8 @@
     "@jelly/ipc": ["@jelly/ipc@workspace:packages/ipc"],
 
     "@jelly/kernel": ["@jelly/kernel@workspace:packages/kernel"],
+
+    "@jelly/mcp": ["@jelly/mcp@workspace:packages/extensions/mcp"],
 
     "@jelly/notes": ["@jelly/notes@workspace:packages/extensions/notes"],
 

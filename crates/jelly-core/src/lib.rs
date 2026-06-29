@@ -3,7 +3,7 @@
 
 pub mod cli;
 pub mod keybindings;
-mod persist;
+pub mod persist;
 mod recents;
 pub mod settings;
 pub mod state;
