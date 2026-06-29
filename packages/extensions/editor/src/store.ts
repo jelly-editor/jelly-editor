@@ -253,8 +253,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
     if (visibleFilePaneId) return { root: s.root, panes: s.panes, pane: s.panes[visibleFilePaneId] };
 
     const np = emptyPane();
+    const newRoot: LayoutNode = {
+      type: "split",
+      id: newSplitId(),
+      dir: "column",
+      children: [leaf(np.id), s.root],
+      sizes: [0.72, 0.28],
+    };
     return {
-      root: splitRoot(s.root, np.id, "top"),
+      root: newRoot,
       panes: { ...s.panes, [np.id]: np },
       pane: np,
     };
@@ -323,6 +330,20 @@ export const useEditorStore = create<EditorState>((set, get) => {
           const group = Object.values(s.panes).find((p) => p.tabs.some((t) => t.kind === "view" && t.viewType === viewType));
           if (group) return addTo(group);
           const np: Pane = { ...emptyPane(), tabs: [tab], activeTabPath: path };
+
+          // If the current layout is a single empty pane, discard it rather than
+          // leaving a phantom "Open a file" pane above the terminal. A code pane
+          // will be created on demand by fileTarget when the user opens a file.
+          if (s.root.type === "leaf") {
+            const sole = s.panes[s.root.paneId];
+            if (sole && sole.tabs.length === 0 && !sole.activeDiff) {
+              const panes = { ...s.panes };
+              delete panes[s.root.paneId];
+              panes[np.id] = np;
+              return { root: leaf(np.id), panes, activePaneId: np.id };
+            }
+          }
+
           const root: LayoutNode =
             s.root.type === "split" && s.root.dir === "column"
               ? {

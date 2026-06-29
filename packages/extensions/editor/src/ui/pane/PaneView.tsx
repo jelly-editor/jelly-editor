@@ -91,10 +91,13 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
   const value = activeTab && !isView ? getContent(activeTab.path) : undefined;
   const isLargeFile = activeTab && !isView ? largeFiles.has(activeTab.path) : false;
 
+  const isTerminalPane = pane.tabs.length > 0 && pane.tabs.every((t) => t.kind === "view" && t.viewType === "terminal");
+  const onNewTerminal = isTerminalPane ? () => void ctx.commands.execute("terminal.new") : undefined;
+
   return (
     <div data-pane-id={pane.id} className={`relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg`} onMouseDown={focusPane}>
       {fileOverlay}
-      {pane.tabs.length > 0 && <TabBar pane={pane} beginDrag={beginDrag} />}
+      {pane.tabs.length > 0 && <TabBar pane={pane} beginDrag={beginDrag} onNewTerminal={onNewTerminal} />}
       {isLargeFile && <LargeFileBanner />}
       <div className="flex-1 overflow-hidden">
         {!activeTab ? (

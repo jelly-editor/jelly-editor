@@ -2,7 +2,7 @@ import { ContextMenu, useContextMenu } from "@jelly/ui";
 import { type Pane, useEditorStore } from "../../store";
 import type { BeginDrag } from "./drag";
 
-export function TabBar({ pane, beginDrag }: { pane: Pane; beginDrag: BeginDrag }) {
+export function TabBar({ pane, beginDrag, onNewTerminal }: { pane: Pane; beginDrag: BeginDrag; onNewTerminal?: () => void }) {
   const pinTab = useEditorStore((s) => s.pinTab);
   const requestClose = useEditorStore((s) => s.requestClose);
   const splitTab = useEditorStore((s) => s.splitTab);
@@ -45,6 +45,15 @@ export function TabBar({ pane, beginDrag }: { pane: Pane; beginDrag: BeginDrag }
           </div>
         );
       })}
+      {onNewTerminal && (
+        <button
+          className="flex items-center justify-center w-[28px] h-[34px] shrink-0 text-text-muted text-[16px] leading-none hover:text-text transition-colors duration-[80ms] cursor-pointer bg-transparent border-r border-border"
+          onClick={onNewTerminal}
+          title="New Terminal"
+        >
+          +
+        </button>
+      )}
       {menu.state && (
         <ContextMenu
           x={menu.state.x}
