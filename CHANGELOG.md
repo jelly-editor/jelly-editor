@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.9](https://github.com/jelly-editor/jelly-editor/compare/v0.1.8...v0.1.9) (2026-06-29)
+
+### Features
+
+* folder switcher in titlebar with context menu and dropdown outside-click fix ([b838774](https://github.com/jelly-editor/jelly-editor/commit/b83877459bbdb9c3a9a693d244609555f7808b5f))
+* **menu:** add 'Add Folder to Workspace' to File menu ([6d016ab](https://github.com/jelly-editor/jelly-editor/commit/6d016abf60f52af3381214aa36b86d624c2e306e))
+* multi-folder workspaces with folder switcher and welcome screen tabs ([4c268c1](https://github.com/jelly-editor/jelly-editor/commit/4c268c154b36d58df4063baaa55a8d57c9f24ff4))
+* **terminal:** add + button to terminal panel and fix file target for empty pane ([11d69e2](https://github.com/jelly-editor/jelly-editor/commit/11d69e294fd22a595f612145d443fc0b59f14336))
+* **workspace-title:** show recent folders and fix chevron alignment ([dddc8e3](https://github.com/jelly-editor/jelly-editor/commit/dddc8e3e916a11e4e7f9c788575272c2ea1791e2))
+
+### Bug Fixes
+
+* prevent editor text selection during file/tab drag ([54610c5](https://github.com/jelly-editor/jelly-editor/commit/54610c5094e97907ce84b75edcb57f7f6c5b6b2d))
+* **terminal:** preserve PTY sessions across folder switches ([1aca56b](https://github.com/jelly-editor/jelly-editor/commit/1aca56b639bb36a5c77f7134740734daf8dffb63))
+* **workspace:** preserve terminal sessions on folder switch ([d919b28](https://github.com/jelly-editor/jelly-editor/commit/d919b2829550dc011d66ad526467cd5b6ee2690b))
+
+### Reverts
+
+* Revert "fix(workspace): preserve terminal sessions on folder switch" ([371423f](https://github.com/jelly-editor/jelly-editor/commit/371423fd26cf8a373f4aad83594b08dd91efa12e))
+
 ## [0.1.8](https://github.com/jelly-editor/jelly-editor/compare/v0.1.7...v0.1.8) (2026-06-29)
 
 ## [0.1.7](https://github.com/jelly-editor/jelly-editor/compare/v0.1.6...v0.1.7) (2026-06-29)
