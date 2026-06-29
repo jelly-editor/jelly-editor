@@ -77,13 +77,12 @@ export function useTabDrag() {
     const startX = e.clientX;
     const startY = e.clientY;
     let started = false;
-    document.body.style.userSelect = "none";
+    document.body.setAttribute("data-dragging", "1");
     const move = (ev: PointerEvent) => {
       if (!started) {
         if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
         started = true;
         setName(info.name);
-        document.body.setAttribute("data-dragging", "1");
         document.body.style.cursor = "grabbing";
       }
       position(ev.clientX, ev.clientY);
@@ -96,7 +95,6 @@ export function useTabDrag() {
       window.removeEventListener("pointerup", up);
       document.body.removeAttribute("data-dragging");
       document.body.style.cursor = "";
-      document.body.style.userSelect = "";
       if (started) {
         const t = targetRef.current;
         if (t?.kind === "move") moveTab(info.fromPaneId, t.paneId, info.path);

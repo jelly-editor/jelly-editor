@@ -129,6 +129,13 @@
     -webkit-user-select: text;
   }
 
+  /* suppress text selection everywhere while dragging a tab, so the pointer
+     sweeping over the editor doesn't select its content or line numbers */
+  body[data-dragging] * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
