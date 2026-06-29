@@ -124,6 +124,7 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
             ))}
           </div>
 
+          <div className="h-[264px]">
           {tab === "recent" && (
             recents.length === 0 ? (
               <span className="text-[12px] text-text-dim">No recent folders</span>
@@ -181,6 +182,7 @@ export function WelcomeView({ ctx }: { ctx: ExtensionContext }) {
               </ul>
             )
           )}
+          </div>
         </div>
 
         <div className="text-[11px] text-text-muted">

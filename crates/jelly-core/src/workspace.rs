@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 
 use crate::recents::Recents;
 
-const MAX_RECENTS: usize = 10;
+const MAX_RECENTS: usize = 5;
 
 /// Open a folder as the workspace: list its top level, start watching it for
 /// external changes (replacing any prior watch), and record it in recents.
