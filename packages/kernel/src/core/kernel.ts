@@ -135,6 +135,12 @@ export class Kernel {
       void this.ipc.settings.save(key, value);
     });
 
+    const pos = this.settings.get<"left" | "right">("ui.sidebarPosition") ?? "left";
+    this.workbench.setSidebarPosition(pos);
+    this.settings.onChange("ui.sidebarPosition", (v) =>
+      this.workbench.setSidebarPosition((v as "left" | "right") ?? "left"),
+    );
+
     // User keybinding overrides overlay manifest defaults. They reference
     // commands by id (not the not-yet-registered default entries), so loading
     // them here — before extensions activate — is safe.

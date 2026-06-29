@@ -6,6 +6,7 @@ export interface WorkbenchState {
   /** id of the sidebar panel currently shown (null = sidebar collapsed) */
   activePanelId: string | null;
   sidebarWidth: number;
+  sidebarPosition: "left" | "right";
 }
 
 /**
@@ -18,6 +19,7 @@ export class Workbench extends Store {
     workspaceOpen: false,
     activePanelId: "files",
     sidebarWidth: 240,
+    sidebarPosition: "left",
   };
 
   // Tracks the last non-null panel so toggle-without-id can reopen it.
@@ -53,5 +55,9 @@ export class Workbench extends Store {
 
   setSidebarWidth(sidebarWidth: number): void {
     if (this.state.sidebarWidth !== sidebarWidth) this.set({ sidebarWidth });
+  }
+
+  setSidebarPosition(sidebarPosition: "left" | "right"): void {
+    if (this.state.sidebarPosition !== sidebarPosition) this.set({ sidebarPosition });
   }
 }

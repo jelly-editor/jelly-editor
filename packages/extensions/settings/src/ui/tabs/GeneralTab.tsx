@@ -5,6 +5,7 @@ import { Row, Segmented, Stepper, Toggle } from "../controls";
 /** Editor and appearance preferences. Reads and writes shared kernel settings. */
 export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
   const theme = useSetting(ctx, "ui.theme", "dark");
+  const sidebarPosition = useSetting<"left" | "right">(ctx, "ui.sidebarPosition", "left");
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
   const wordWrap = useSetting(ctx, "editor.wordWrap", false);
@@ -21,6 +22,17 @@ export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
             { label: "Light", value: "light" },
           ]}
           onChange={(v) => set("ui.theme", v)}
+        />
+      </Row>
+
+      <Row label="Sidebar Position">
+        <Segmented
+          value={sidebarPosition}
+          options={[
+            { label: "Left", value: "left" },
+            { label: "Right", value: "right" },
+          ]}
+          onChange={(v) => set("ui.sidebarPosition", v)}
         />
       </Row>
 

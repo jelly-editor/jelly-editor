@@ -21,16 +21,21 @@ export function Shell() {
 }
 
 function Workbench() {
+  const { sidebarPosition } = useWorkbenchState();
+  const right = sidebarPosition === "right";
+
   return (
     <div className="flex flex-col h-full pt-[38px] overflow-hidden animate-[fadeIn_100ms_ease]">
       <TitleBar />
       <div className="flex flex-row flex-1 overflow-hidden">
-        <ActivityBar />
-        <Sidebar />
+        {!right && <ActivityBar />}
+        {!right && <Sidebar />}
         <div className="flex flex-col flex-1 overflow-hidden">
           <Slot slot="editor.surface" />
           <Slot slot="panel.tab" />
         </div>
+        {right && <Sidebar />}
+        {right && <ActivityBar />}
       </div>
       <StatusBar />
     </div>

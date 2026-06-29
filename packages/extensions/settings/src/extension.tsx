@@ -6,6 +6,7 @@ import { checkForSettingsUpdate, openAboutAndCheck } from "./updater";
 
 const SCHEMA: SettingsSchema = {
   "ui.theme": { type: "enum", enum: ["dark", "light"], default: "dark" },
+  "ui.sidebarPosition": { type: "enum", enum: ["left", "right"], default: "left" },
   "editor.fontSize": { type: "number", default: 13 },
   "editor.tabSize": { type: "number", default: 2 },
   "editor.wordWrap": { type: "boolean", default: false },
