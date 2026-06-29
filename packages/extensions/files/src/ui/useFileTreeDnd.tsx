@@ -168,6 +168,7 @@ export function useFileTreeDnd({ ctx, root, treeRef, highlightEls, canDrop, tran
       } catch {
         /* capture may already be gone */
       }
+      document.body.removeAttribute("data-dragging");
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
       highlight(null);
@@ -193,6 +194,7 @@ export function useFileTreeDnd({ ctx, root, treeRef, highlightEls, canDrop, tran
         started = true;
         copyShown = ev.altKey;
         suppressNextClick.current = true;
+        document.body.setAttribute("data-dragging", "1");
         document.body.style.userSelect = "none";
         document.body.style.cursor = ev.altKey ? "copy" : "grabbing";
         setPreview({ name: entry.name, isDir: entry.isDir, count: paths.length, copy: ev.altKey });

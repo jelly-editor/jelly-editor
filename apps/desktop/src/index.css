@@ -14,3 +14,7 @@
 @source "../../../packages/ui/src";
 @source "../../../packages/kernel/src";
 @source "../../../packages/extensions";
+
+/* Prevent the editor from picking up pointer events (and starting a text
+   selection) while any custom drag is in flight. */
+body[data-dragging] .cm-editor { pointer-events: none; }

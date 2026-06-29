@@ -83,6 +83,7 @@ export function useTabDrag() {
         if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
         started = true;
         setName(info.name);
+        document.body.setAttribute("data-dragging", "1");
         document.body.style.cursor = "grabbing";
       }
       position(ev.clientX, ev.clientY);
@@ -93,6 +94,7 @@ export function useTabDrag() {
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      document.body.removeAttribute("data-dragging");
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       if (started) {
