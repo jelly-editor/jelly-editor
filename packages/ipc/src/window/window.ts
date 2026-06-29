@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow";
+
+/** Calls `cb` with the current fullscreen state and on every change. */
+export async function onFullscreenChange(cb: (fullscreen: boolean) => void): Promise<UnlistenFn> {
+  const win = getCurrentWebviewWindow();
+  void win.isFullscreen().then(cb);
+  return win.onResized(() => void win.isFullscreen().then(cb));
+}
 
 /** Open a fresh editor window (the ⌘⇧N "new window" action). */
 export function openEditorWindow(): WebviewWindow {
