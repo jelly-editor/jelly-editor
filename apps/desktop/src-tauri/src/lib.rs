@@ -53,6 +53,19 @@ pub fn run() {
     let builder = jelly_search::register(builder);
 
     builder
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle().clone();
+                if app.webview_windows().len() <= 1 {
+                    api.prevent_close();
+                    let win = window.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = jelly_core::window::open_new_window(app).await;
+                        let _ = win.close();
+                    });
+                }
+            }
+        })
         .setup(move |app| {
             let win = app.get_webview_window("main").unwrap();
 
