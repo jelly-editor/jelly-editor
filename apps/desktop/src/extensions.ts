@@ -9,6 +9,7 @@ import { settingsExtension } from "@jelly/settings";
 import { commandPaletteExtension } from "@jelly/command-palette";
 import { gamesExtension } from "@jelly/games";
 import { typingTestExtension } from "@jelly/typing-test";
+import { notesExtension } from "@jelly/notes";
 
 /**
  * The built-in extensions, in load order. `files` precedes `git`/`terminal`
@@ -26,4 +27,5 @@ export const builtinExtensions: Extension[] = [
   commandPaletteExtension,
   gamesExtension,
   typingTestExtension,
+  notesExtension,
 ];

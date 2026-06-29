@@ -18,7 +18,7 @@ packages/sdk/        the extension contract (types only, depends on nothing)
 packages/kernel/     registry, command/event buses, layout slots, <Shell/>
 packages/ui/         design system, theme tokens, primitives, icons
 packages/ipc/        the ONLY module that talks to @tauri-apps/api
-packages/extensions/ first-party extensions (files, editor, terminal, git, search, settings, welcome)
+packages/extensions/ first-party extensions (files, editor, terminal, git, search, settings, welcome, notes)
 crates/              Rust workspace: jelly-core, jelly-protocol, crates/features/{fs,watcher,git,search,terminal}
 docs/                architecture.md, extensions.md, product.md
 ```
@@ -58,7 +58,19 @@ Scope any FE task to a package with `--filter <package>` (e.g.
 
 ## Conventions
 
-- Split files by concern; `index.ts` re-exports only, folders group related code.
+- Split files by concern; `index.ts` re-exports only, folders group related code. For extensions, follow this layout:
+  ```
+  src/
+    index.ts          re-exports the extension object only
+    extension.tsx     manifest + activate(), UI contributions
+    store.ts          zustand store and types
+    utils.ts          pure helpers (formatting, id generation, etc.)
+    ui/
+      icons.tsx       SVG icon components
+      ComponentA.tsx  one component per file, named after the component
+      ComponentB.tsx
+  ```
+  Never put multiple unrelated components or utilities in a single file.
 - **Releases:** Managed by `release-it`. Trigger from **GitHub Actions → Release
   → Run workflow**, pick `patch` / `minor` / `major`. CI bumps `apps/desktop/package.json`,
   writes `CHANGELOG.md`, commits, and pushes a `v<version>` tag. The build workflow

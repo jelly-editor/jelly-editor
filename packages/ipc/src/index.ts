@@ -10,3 +10,4 @@ export { CORE_EVENT_NAMES, bridgeCoreEvents, type CoreEventMap, type CoreEventNa
 export { confirm, pickFolder } from "./dialog";
 export { openEditorWindow, getCurrentWindowLabel, getInitialPath, installShellCommand, onFullscreenChange } from "./window";
 export type { InstallResult } from "./window";
+export { getJellyDir } from "./path";

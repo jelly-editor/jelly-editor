@@ -66,8 +66,12 @@ export function CodeEditor({
       const ws = await ctx.commands
         .execute<string | null>("workspace.getPath")
         .catch(() => null);
-      if (!ws || !path) return;
-      const rel = path.startsWith(ws + "/") ? path.slice(ws.length + 1) : path;
+      if (!ws || !path || !path.startsWith(ws + "/")) {
+        baselineRef.current = null;
+        viewRef.current?.dispatch({ effects: setGitBaseline.of(null) });
+        return;
+      }
+      const rel = path.slice(ws.length + 1);
 
       // Untracked files have no HEAD baseline, so skip the gutter for them.
       try {
