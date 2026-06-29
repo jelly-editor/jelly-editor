@@ -18,6 +18,7 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
 
     let new_window = command_item("window.new", "New Window", "CmdOrCtrl+Shift+N")?;
     let open_folder = command_item("workspace.openFolder", "Open Folder...", "CmdOrCtrl+O")?;
+    let add_folder = plain_item("workspace.addFolder", "Add Folder to Workspace...")?;
     let save = command_item("editor.save", "Save", "CmdOrCtrl+S")?;
     let close_tab = command_item("editor.closeActiveTab", "Close Tab", "CmdOrCtrl+W")?;
     let preferences = command_item("settings.toggle", "Settings...", "CmdOrCtrl+,")?;
@@ -53,6 +54,7 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
         .item(&new_window)
         .separator()
         .item(&open_folder)
+        .item(&add_folder)
         .separator()
         .item(&save)
         .separator()
@@ -66,6 +68,7 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
         .item(&new_window)
         .separator()
         .item(&open_folder)
+        .item(&add_folder)
         .separator()
         .item(&save)
         .separator()
