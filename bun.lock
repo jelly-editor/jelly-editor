@@ -26,6 +26,7 @@
         "@jelly/command-palette": "workspace:*",
         "@jelly/editor": "workspace:*",
         "@jelly/files": "workspace:*",
+        "@jelly/games": "workspace:*",
         "@jelly/git": "workspace:*",
         "@jelly/ipc": "workspace:*",
         "@jelly/kernel": "workspace:*",
@@ -33,6 +34,7 @@
         "@jelly/search": "workspace:*",
         "@jelly/settings": "workspace:*",
         "@jelly/terminal": "workspace:*",
+        "@jelly/typing-test": "workspace:*",
         "@jelly/ui": "workspace:*",
         "@jelly/welcome": "workspace:*",
         "@lezer/highlight": "^1.2.3",
@@ -129,6 +131,21 @@
         "react": "^19",
       },
     },
+    "packages/extensions/games": {
+      "name": "@jelly/games",
+      "dependencies": {
+        "@jelly/sdk": "workspace:*",
+        "@jelly/ui": "workspace:*",
+        "zustand": "^5.0.14",
+      },
+      "devDependencies": {
+        "@types/react": "^19",
+        "typescript": "~5.8.3",
+      },
+      "peerDependencies": {
+        "react": "^19",
+      },
+    },
     "packages/extensions/git": {
       "name": "@jelly/git",
       "dependencies": {
@@ -185,6 +202,21 @@
         "@jelly/ui": "workspace:*",
         "@xterm/addon-fit": "^0.11.0",
         "@xterm/xterm": "^6.0.0",
+        "zustand": "^5.0.14",
+      },
+      "devDependencies": {
+        "@types/react": "^19",
+        "typescript": "~5.8.3",
+      },
+      "peerDependencies": {
+        "react": "^19",
+      },
+    },
+    "packages/extensions/typing-test": {
+      "name": "@jelly/typing-test",
+      "dependencies": {
+        "@jelly/sdk": "workspace:*",
+        "@jelly/ui": "workspace:*",
         "zustand": "^5.0.14",
       },
       "devDependencies": {
@@ -525,6 +557,8 @@
 
     "@jelly/files": ["@jelly/files@workspace:packages/extensions/files"],
 
+    "@jelly/games": ["@jelly/games@workspace:packages/extensions/games"],
+
     "@jelly/git": ["@jelly/git@workspace:packages/extensions/git"],
 
     "@jelly/ipc": ["@jelly/ipc@workspace:packages/ipc"],
@@ -538,6 +572,8 @@
     "@jelly/settings": ["@jelly/settings@workspace:packages/extensions/settings"],
 
     "@jelly/terminal": ["@jelly/terminal@workspace:packages/extensions/terminal"],
+
+    "@jelly/typing-test": ["@jelly/typing-test@workspace:packages/extensions/typing-test"],
 
     "@jelly/ui": ["@jelly/ui@workspace:packages/ui"],
 

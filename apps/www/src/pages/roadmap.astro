@@ -11,9 +11,9 @@ const milestones = [
   {
     version: "v0.2",
     label: "Core Editing",
-    status: "in-progress",
+    status: "completed",
     description:
-      "Everything you need to use Jelly as a daily driver. Fast navigation, search, a polished terminal, and the essentials that make editing feel native.",
+      "The foundation of a great writing and coding experience. Fast navigation, powerful search, and the essential tools you need to get work done smoothly.",
     items: [
       { title: "Command palette (⌘P)", tag: "ux" },
       { title: "Quick open — file switcher (⌘O)", tag: "files" },
@@ -29,10 +29,10 @@ const milestones = [
   },
   {
     version: "v0.3",
-    label: "Git Workflow",
-    status: "planned",
+    label: "Version Control",
+    status: "in-progress",
     description:
-      "A complete, native git experience — stage files and hunks, commit, push, branch, view history, and resolve conflicts without leaving the editor.",
+      "Seamlessly manage your project's history. Review changes, save your work, and collaborate with others without ever leaving the app.",
     items: [
       { title: "Stage & unstage files", tag: "git" },
       { title: "Stage individual hunks", tag: "git" },
@@ -47,10 +47,10 @@ const milestones = [
   },
   {
     version: "v0.4",
-    label: "Extension Ecosystem",
+    label: "Plugins & Customization",
     status: "planned",
     description:
-      "Runtime extension loading from disk — third-party features, a sandboxed context, and the scaffolding for a future marketplace.",
+      "Make Jelly your own. Add new features, connect with your favorite tools, and explore a growing library of community plugins.",
     items: [
       { title: "Runtime extension loading", tag: "extensions" },
       { title: "Sandboxed extension context", tag: "extensions" },
@@ -59,10 +59,10 @@ const milestones = [
   },
   {
     version: "v0.5",
-    label: "Quality of Life",
+    label: "Everyday Polish",
     status: "planned",
     description:
-      "The polish and ergonomics that turn a good tool into one you reach for every day.",
+      "Thoughtful touches and smart features that make using the app a joy every single day.",
     items: [
       { title: "Session restore (tabs & workspace)", tag: "ux" },
       { title: "Toast / notification system", tag: "ux" },
@@ -80,7 +80,7 @@ const milestones = [
     label: "General Release",
     status: "horizon",
     description:
-      "Stable, signed, and shipped. A complete editor that feels complete — fast, extensible, and purpose-built for the agentic coding era.",
+      "Our first major public release. A fast, powerful, and beautifully designed workspace ready for everyone.",
     items: [
       { title: "Linux & Windows support", tag: "ux" },
       { title: "Auto-update in-app", tag: "ux" },
@@ -101,10 +101,11 @@ const tagColors: Record<string, { bg: string; text: string }> = {
   git:         { bg: "bg-[#1d76db]/12",  text: "text-[#1d76db]" },
 };
 
-const statusMeta: Record<string, { label: string; dot: string }> = {
-  "in-progress": { label: "In progress", dot: "bg-jelly-magenta" },
-  "planned":     { label: "Planned",     dot: "bg-ink-muted" },
-  "horizon":     { label: "Horizon",     dot: "bg-jelly-cream" },
+const statusMeta: Record<string, { label: string; dot: string; text: string; bg: string }> = {
+  "completed":   { label: "Completed",   dot: "bg-emerald-500", text: "text-emerald-500", bg: "bg-emerald-500/10" },
+  "in-progress": { label: "In progress", dot: "bg-orange-500",  text: "text-orange-500",  bg: "bg-orange-500/10" },
+  "planned":     { label: "Planned",     dot: "bg-ink-muted",   text: "text-ink-faint",   bg: "bg-surface-2" },
+  "horizon":     { label: "Horizon",     dot: "bg-ink-muted",   text: "text-ink-faint",   bg: "bg-surface-2" },
 };
 ---
 
@@ -148,11 +149,10 @@ const statusMeta: Record<string, { label: string; dot: string }> = {
               Roadmap
             </p>
             <h1 class="text-balance text-[44px] font-semibold leading-[1.04] tracking-[-0.03em] text-ink md:text-[56px]">
-              The road to v1.
+              What's coming next.
             </h1>
             <p class="mt-5 max-w-xl text-[16.5px] leading-[1.6] text-ink-muted">
-              A curated view of what we're building and in what order — from the
-              day-to-day essentials to a fully extensible, general-release editor.
+              A look at our journey from early foundational features to a complete, polished release for everyone.
             </p>
           </div>
 
@@ -171,17 +171,20 @@ const statusMeta: Record<string, { label: string; dot: string }> = {
         <section class="mx-auto max-w-[1240px] px-6 pb-28">
           <div class="relative">
 
-            <!-- Vertical spine (desktop) -->
-            <div class="absolute left-[7px] top-3 bottom-3 hidden w-px bg-rule md:block" aria-hidden="true"></div>
-
-            <ol class="space-y-16">
+            <ol>
               {milestones.map((ms, i) => {
                 const sm = statusMeta[ms.status];
+                const isLast = i === milestones.length - 1;
                 return (
-                  <li class="relative md:pl-10">
+                  <li class={`relative md:pl-10 ${isLast ? "" : "pb-16"}`}>
+                    <!-- Line to next item -->
+                    {!isLast && (
+                      <div class={`absolute left-[7px] top-[13px] hidden h-full w-px md:block ${ms.status === "completed" ? "bg-emerald-500" : "bg-rule"}`} aria-hidden="true"></div>
+                    )}
+
                     <!-- Dot on spine -->
                     <div
-                      class={`absolute left-0 top-[6px] hidden h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background md:flex ${ms.status === "horizon" ? "bg-ink-faint" : ms.status === "in-progress" ? "bg-jelly-magenta" : "bg-ink-muted"}`}
+                      class={`absolute left-0 top-[6px] hidden h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-background md:flex ${sm.dot}`}
                       aria-hidden="true"
                     ></div>
 
@@ -194,7 +197,7 @@ const statusMeta: Record<string, { label: string; dot: string }> = {
                             <span class="font-mono text-[12px] font-semibold tracking-tight text-ink-muted">
                               {ms.version}
                             </span>
-                            <span class={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ${ms.status === "in-progress" ? "bg-jelly-magenta/10 text-jelly-magenta" : ms.status === "horizon" ? "bg-ink-faint/10 text-ink-faint" : "bg-surface-2 text-ink-faint"}`}>
+                            <span class={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ${sm.bg} ${sm.text}`}>
                               <span class={`h-1 w-1 rounded-full ${sm.dot}`}></span>
                               {sm.label}
                             </span>
@@ -205,27 +208,9 @@ const statusMeta: Record<string, { label: string; dot: string }> = {
                         </div>
                       </div>
 
-                      <p class="mb-6 max-w-2xl text-[14.5px] leading-[1.6] text-ink-muted">
+                      <p class="max-w-2xl text-[14.5px] leading-[1.6] text-ink-muted">
                         {ms.description}
                       </p>
-
-                      <!-- Items grid -->
-                      <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {ms.items.map((item) => {
-                          const tc = tagColors[item.tag] ?? { bg: "bg-surface-2", text: "text-ink-muted" };
-                          return (
-                            <li class="flex items-center gap-2.5 rounded-lg border border-rule/50 bg-background/50 px-3.5 py-2.5">
-                              <span class={`h-1.5 w-1.5 shrink-0 rounded-full ${tc.bg.replace("/30", "").replace("/20", "").replace("/15", "").replace("/12", "")} border border-current ${tc.text}`}></span>
-                              <span class="text-[13px] text-ink-muted">
-                                {item.title}
-                              </span>
-                              <span class={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] ${tc.bg} ${tc.text}`}>
-                                {item.tag}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
                     </div>
                   </li>
                 );
