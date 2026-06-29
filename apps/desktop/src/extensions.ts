@@ -7,10 +7,13 @@ import { gitExtension } from "@jelly/git";
 import { searchExtension } from "@jelly/search";
 import { settingsExtension } from "@jelly/settings";
 import { commandPaletteExtension } from "@jelly/command-palette";
+import { gamesExtension } from "@jelly/games";
+import { typingTestExtension } from "@jelly/typing-test";
 
 /**
  * The built-in extensions, in load order. `files` precedes `git`/`terminal`
  * because they query its `workspace.getPath` command during activation.
+ * `games` precedes game extensions so `games.register` is available on activate.
  */
 export const builtinExtensions: Extension[] = [
   welcomeExtension,
@@ -21,4 +24,6 @@ export const builtinExtensions: Extension[] = [
   searchExtension,
   settingsExtension,
   commandPaletteExtension,
+  gamesExtension,
+  typingTestExtension,
 ];

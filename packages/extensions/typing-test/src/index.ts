@@ -1,0 +1,1 @@
+export { typingTestExtension } from "./extension";
