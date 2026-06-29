@@ -43,6 +43,7 @@ export const terminalExtension: Extension = {
 
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => store.getState().setCwd(path)),
+      ctx.events.on<{ path: string }>("workspace:folder_changed", ({ path }) => store.getState().setCwd(path)),
       ctx.commands.register("terminal.new", () => openTerminal()),
       ctx.commands.register("terminal.openAt", (path: string) => openTerminal(path)),
       ctx.commands.register("terminal.toggle", async () => {

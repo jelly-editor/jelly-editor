@@ -83,6 +83,10 @@ export const gitExtension: Extension = {
         store.getState().setWorkspacePath(path);
         refreshGitStatus();
       }),
+      ctx.events.on<{ path: string }>("workspace:folder_changed", ({ path }) => {
+        store.getState().setWorkspacePath(path);
+        refreshGitStatus();
+      }),
       ctx.events.on("file:saved", refreshSoon),
       ctx.events.on("file:changed_externally", refreshSoon),
       ctx.events.on("git:changed", refreshSoon),
