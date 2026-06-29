@@ -9,6 +9,7 @@ export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
   const fontSize = useSetting(ctx, "editor.fontSize", 13);
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
   const wordWrap = useSetting(ctx, "editor.wordWrap", false);
+  const telemetryEnabled = useSetting(ctx, "telemetry.enabled", true);
 
   const set = <T,>(key: string, value: T) => ctx.settings.set(key, value);
 
@@ -54,6 +55,10 @@ export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
 
       <Row label="Word Wrap">
         <Toggle value={wordWrap} onChange={(v) => set("editor.wordWrap", v)} />
+      </Row>
+
+      <Row label="Send Usage Data" description="Anonymous events only — no file names, paths, or content.">
+        <Toggle value={telemetryEnabled} onChange={(v) => set("telemetry.enabled", v)} />
       </Row>
     </div>
   );

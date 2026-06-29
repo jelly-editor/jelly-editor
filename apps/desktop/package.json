@@ -35,6 +35,7 @@
     "@jelly/terminal": "workspace:*",
     "@jelly/typing-test": "workspace:*",
     "@jelly/notes": "workspace:*",
+    "@jelly/telemetry": "workspace:*",
     "@jelly/ui": "workspace:*",
     "@jelly/welcome": "workspace:*",
     "@lezer/highlight": "^1.2.3",

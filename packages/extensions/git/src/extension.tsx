@@ -92,7 +92,17 @@ export const gitExtension: Extension = {
       { dispose: () => clearTimeout(timer) },
     );
 
-    ctx.ui.contributeActivityBarItem({ id: "git", order: 20, title: "Git", icon: () => <GitIcon />, badge: () => <GitBadge /> });
+    ctx.ui.contributeActivityBarItem({
+      id: "git",
+      order: 20,
+      title: "Git",
+      icon: () => <GitIcon />,
+      badge: () => <GitBadge />,
+      onSelect: () => {
+        void ctx.commands.execute("workbench.togglePanel", "git");
+        ctx.events.emit("git:panel_viewed", {});
+      },
+    });
     ctx.ui.contributeSidebarPanel({ id: "git", render: () => <GitPanel ctx={ctx} /> });
     ctx.ui.contributeStatusBarItem({
       id: "git.branch",

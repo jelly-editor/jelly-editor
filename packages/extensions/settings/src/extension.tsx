@@ -70,11 +70,17 @@ export const settingsExtension: Extension = {
     ctx.subscriptions.push(ctx.settings.onChange("ui.theme", applyTheme));
 
     ctx.subscriptions.push(
-      ctx.commands.register("settings.toggle", () => useSettingsUi.getState().toggle()),
+      ctx.commands.register("settings.toggle", () => {
+        const wasOpen = useSettingsUi.getState().open;
+        useSettingsUi.getState().toggle();
+        if (!wasOpen) ctx.events.emit("settings:opened", {});
+      }),
       ctx.commands.register("settings.checkForUpdates", () => openAboutAndCheck(ctx)),
       ctx.commands.register("ui.toggleTheme", () => {
         const cur = ctx.settings.get<string>("ui.theme") ?? "dark";
-        ctx.settings.set("ui.theme", cur === "dark" ? "light" : "dark");
+        const next = cur === "dark" ? "light" : "dark";
+        ctx.settings.set("ui.theme", next);
+        ctx.events.emit("theme:changed", { theme: next });
       }),
     );
 

@@ -10,6 +10,7 @@ import { commandPaletteExtension } from "@jelly/command-palette";
 import { gamesExtension } from "@jelly/games";
 import { typingTestExtension } from "@jelly/typing-test";
 import { notesExtension } from "@jelly/notes";
+import { telemetryExtension } from "@jelly/telemetry";
 
 /**
  * The built-in extensions, in load order. `files` precedes `git`/`terminal`
@@ -17,6 +18,7 @@ import { notesExtension } from "@jelly/notes";
  * `games` precedes game extensions so `games.register` is available on activate.
  */
 export const builtinExtensions: Extension[] = [
+  telemetryExtension,
   welcomeExtension,
   filesExtension,
   editorExtension,
