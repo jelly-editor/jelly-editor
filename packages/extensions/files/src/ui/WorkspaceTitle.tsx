@@ -1,14 +1,24 @@
 import type { ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 
 export function WorkspaceTitle({ ctx }: { ctx: ExtensionContext }) {
   const path = useWorkspaceStore((s) => s.path);
   const [open, setOpen] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
   const name = path ? path.split("/").pop() : null;
   if (!name) return null;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   const handleOpen = () => {
     if (!open) ipc.workspace.recent().then((r) => setRecents(r.filter((f) => f !== path).slice(0, 3))).catch(() => {});
@@ -19,11 +29,10 @@ export function WorkspaceTitle({ ctx }: { ctx: ExtensionContext }) {
   const formatPath = (p: string) => p.replace(/^\/Users\/[^/]+/, "~");
 
   return (
-    <div className="relative [-webkit-app-region:no-drag]">
+    <div ref={rootRef} className="relative [-webkit-app-region:no-drag]">
       <button
         className="flex items-center gap-[5px] px-[8px] h-[24px] text-[12px] font-medium text-text-muted hover:text-text rounded-[4px] hover:bg-bg-active transition-colors duration-[80ms] cursor-pointer"
         onClick={handleOpen}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
       >
         {name}
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="mt-px shrink-0 opacity-60">

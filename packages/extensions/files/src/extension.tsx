@@ -55,6 +55,7 @@ export const filesExtension: Extension = {
         { id: "workspace.switchFolder", title: "Switch Folder", palette: false },
         { id: "workspace.openWorkspace", title: "Open Workspace", palette: false },
         { id: "workspace.listSaved", title: "List Saved Workspaces", palette: false },
+        { id: "workspace.removeFolder", title: "Remove Folder from Workspace", palette: false },
         { id: "workspace.removeSaved", title: "Remove Saved Workspace", palette: false },
         { id: "workspace.getPath", title: "Get Workspace Path", palette: false },
         { id: "files.list", title: "List Files", palette: false },
@@ -139,6 +140,16 @@ export const filesExtension: Extension = {
       ctx.commands.register("workspace.switchFolder", (path: string) => {
         if (store.getState().path === path) return;
         return ctx.commands.execute("workspace.open", path);
+      }),
+
+      ctx.commands.register("workspace.removeFolder", async (path: string) => {
+        const { folders, path: active } = store.getState();
+        if (folders.length <= 1) return;
+        store.getState().removeFolder(path);
+        if (active === path) {
+          const next = store.getState().folders[0];
+          if (next) await ctx.commands.execute("workspace.open", next);
+        }
       }),
 
       ctx.commands.register("workspace.openWorkspace", async (id: string) => {
@@ -300,6 +311,6 @@ export const filesExtension: Extension = {
     });
     ctx.ui.contributeSidebarPanel({ id: "files", render: () => <FileTree ctx={ctx} /> });
     ctx.ui.mountSlot("titlebar", <WorkspaceTitle ctx={ctx} />, { id: "files.title" });
-    ctx.ui.mountSlot("folder-switcher", <FolderSwitcher ctx={ctx} />, { id: "files.folderSwitcher" });
+    ctx.ui.mountSlot("titlebar", <FolderSwitcher ctx={ctx} />, { id: "files.folderSwitcher" });
   },
 };

@@ -53,6 +53,8 @@ interface WorkspaceState {
   setFolders: (folders: string[]) => void;
   /** Add a folder path to the workspace without switching to it. */
   addFolder: (path: string) => void;
+  /** Remove a folder path from the workspace. */
+  removeFolder: (path: string) => void;
   setAllFiles: (files: DirEntry[]) => void;
   setGitStatuses: (statuses: Record<string, FileStatus>) => void;
   clearWorkspace: () => void;
@@ -91,6 +93,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set((s) => ({
       folders: s.folders.includes(path) ? s.folders : [...s.folders, path],
     })),
+
+  removeFolder: (path) =>
+    set((s) => ({ folders: s.folders.filter((f) => f !== path) })),
 
   setAllFiles: (allFiles) => set({ allFiles }),
 
