@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.6](https://github.com/jelly-editor/jelly-editor/compare/v0.1.5...v0.1.6) (2026-06-29)
+
+### Features
+
+* add games hub and typing test mini game extension ([d84e631](https://github.com/jelly-editor/jelly-editor/commit/d84e631f0fd1385ee236ddb4dce990ba055b58e0))
+
 ## [0.1.5](https://github.com/jelly-editor/jelly-editor/compare/v0.1.4...v0.1.5) (2026-06-28)
 
 ### Features
