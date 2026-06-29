@@ -1,6 +1,6 @@
 import type { DirEntry, Extension, ExtensionContext, PaletteItem } from "@jelly/sdk";
 import { ipc, pickFolder } from "@jelly/ipc";
-import { fuzzyMatch } from "@jelly/ui";
+import { fuzzyScore } from "@jelly/ui";
 import { FileTree } from "./ui/FileTree";
 import { FolderSwitcher } from "./ui/FolderSwitcher";
 import { WorkspaceTitle } from "./ui/WorkspaceTitle";
@@ -187,8 +187,10 @@ export const filesExtension: Extension = {
           const root = path ? path + "/" : "";
           const files = allFiles.length ? allFiles : flattenFiles(tree);
           return files
-            .filter((f) => fuzzyMatch(q, f.name) || fuzzyMatch(q, f.path))
-            .map((f) => ({
+            .map((f) => ({ f, score: fuzzyScore(q, f.name) }))
+            .filter(({ score }) => score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(({ f }) => ({
               id: f.path,
               label: f.name,
               detail: f.path.startsWith(root) ? f.path.slice(root.length) : f.path,
