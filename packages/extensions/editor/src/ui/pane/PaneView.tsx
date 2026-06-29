@@ -2,6 +2,7 @@ import type { ExtensionContext } from "@jelly/sdk";
 import { type Pane, useEditorStore } from "../../store";
 import { CodeEditor } from "../CodeEditor";
 import { DiffView } from "../DiffView";
+import { MarkdownPreview } from "../MarkdownPreview";
 import type { BeginDrag } from "./drag";
 import { TabBar } from "./TabBar";
 
@@ -44,6 +45,7 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
   const closeDiff = useEditorStore((s) => s.closeDiff);
   const revealTarget = useEditorStore((s) => s.revealTarget);
   const isActive = useEditorStore((s) => s.activePaneId === pane.id);
+  const mdPreviewPaths = useEditorStore((s) => s.mdPreviewPaths);
   const dragOver = useEditorStore((s) => (s.dragOver?.paneId === pane.id ? s.dragOver : null));
 
   const focusPane = () => {
@@ -90,6 +92,7 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
   const isView = activeTab?.kind === "view";
   const value = activeTab && !isView ? getContent(activeTab.path) : undefined;
   const isLargeFile = activeTab && !isView ? largeFiles.has(activeTab.path) : false;
+  const isMdPreview = !isView && !!activeTab?.path.endsWith(".md") && mdPreviewPaths.has(activeTab.path);
 
   const isTerminalPane = pane.tabs.length > 0 && pane.tabs.every((t) => t.kind === "view" && t.viewType === "terminal");
   const onNewTerminal = isTerminalPane ? () => void ctx.commands.execute("terminal.new") : undefined;
@@ -108,6 +111,8 @@ export function PaneView({ ctx, theme, beginDrag, pane }: PaneProps & { pane: Pa
           <ViewHost viewType={activeTab.viewType!} viewId={activeTab.viewId!} active={isActive} />
         ) : value === undefined ? (
           <div className="flex items-center justify-center h-full text-text-dim text-[12px]">Loading…</div>
+        ) : isMdPreview ? (
+          <MarkdownPreview value={value} />
         ) : (
           <CodeEditor
             key={activeTab.path}

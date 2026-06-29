@@ -154,7 +154,10 @@ interface EditorState {
   hiddenPaneIds: Set<string>;
   /** Pane currently under a file drag, plus the edge being targeted (null = center). */
   dragOver: { paneId: string; side: Side | null } | null;
+  /** Paths currently shown as rendered markdown (toggled by editor.toggleMarkdownPreview). */
+  mdPreviewPaths: Set<string>;
 
+  toggleMdPreview: (path: string) => void;
   getActivePane: () => Pane;
   setDragOver: (v: { paneId: string; side: Side | null } | null) => void;
   /** Open a fresh pane split off `targetPaneId` on `side`, and make it active. */
@@ -283,7 +286,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
     viewVersion: 0,
     hiddenPaneIds: new Set(),
     dragOver: null,
+    mdPreviewPaths: new Set(),
 
+    toggleMdPreview: (path) =>
+      set((s) => {
+        const mdPreviewPaths = new Set(s.mdPreviewPaths);
+        if (mdPreviewPaths.has(path)) mdPreviewPaths.delete(path);
+        else mdPreviewPaths.add(path);
+        return { mdPreviewPaths };
+      }),
     getActivePane: () => active(get()),
     setDragOver: (dragOver) => set({ dragOver }),
     splitOpen: (targetPaneId, side) =>

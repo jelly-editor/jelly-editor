@@ -40,6 +40,7 @@ export const editorExtension: Extension = {
         { id: "editor.unfold", title: "Unfold" },
         { id: "editor.foldAll", title: "Fold All" },
         { id: "editor.unfoldAll", title: "Unfold All" },
+        { id: "editor.toggleMarkdownPreview", title: "Toggle Markdown Preview" },
       ],
       keybindings: [
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
@@ -49,6 +50,7 @@ export const editorExtension: Extension = {
         { command: "editor.unfold", key: "mod+alt+]", when: "workspaceOpen" },
         { command: "editor.foldAll", key: "mod+k mod+0", when: "workspaceOpen" },
         { command: "editor.unfoldAll", key: "mod+k mod+j", when: "workspaceOpen" },
+        { command: "editor.toggleMarkdownPreview", key: "mod+alt+v", when: "workspaceOpen" },
       ],
     },
   },
@@ -158,6 +160,10 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
       ctx.commands.register("editor.foldAll", () => runFold(foldAll)),
       ctx.commands.register("editor.unfoldAll", () => runFold(unfoldAll)),
+      ctx.commands.register("editor.toggleMarkdownPreview", () => {
+        const path = store.getState().getActivePane().activeTabPath;
+        if (path?.endsWith(".md")) store.getState().toggleMdPreview(path);
+      }),
     );
 
     // A file or folder was renamed/moved in the tree — remap any open tabs so

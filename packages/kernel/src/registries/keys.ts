@@ -82,7 +82,15 @@ const SYMBOL_CODE: Record<string, string> = {
 
 /** Does the event's key — by glyph or physical symbol code — equal `key`? */
 function keyMatches(e: KeyboardEvent, key: string): boolean {
-  return eventKey(e) === key || SYMBOL_CODE[e.code] === key;
+  if (eventKey(e) === key) return true;
+  if (SYMBOL_CODE[e.code] === key) return true;
+  if (e.altKey) {
+    const codeBase = e.code.startsWith("Key") ? e.code.slice(3).toLowerCase()
+      : e.code.startsWith("Digit") ? e.code.slice(5)
+      : null;
+    if (codeBase === key) return true;
+  }
+  return false;
 }
 
 /** True if the event is just a modifier being pressed (no real key yet). */
