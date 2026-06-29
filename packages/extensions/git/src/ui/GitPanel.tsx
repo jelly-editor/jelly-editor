@@ -2,10 +2,11 @@ import type { ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { useEffect, useState } from "react";
 import { refreshGitStatus } from "../refresh";
-import { useGitStore, type FileStatus, type GitFile } from "../store";
+import { useGitStore, type FileStatus, type GitFile, type GitStash } from "../store";
 import { FileIcon } from "@jelly/ui";
+import { StashRow } from "./StashRow";
 
-const { stage: gitStage, unstage: gitUnstage, discard: gitDiscard, commit: gitCommit } = ipc.git;
+const { stage: gitStage, unstage: gitUnstage, discard: gitDiscard, commit: gitCommit, stash: gitStash, stashApply: gitStashApply, stashDrop: gitStashDrop } = ipc.git;
 
 function DiscardIcon() {
   return (
@@ -92,25 +93,39 @@ function Section({
   title,
   count,
   action,
+  collapsible,
   children,
 }: {
   title: string;
   count: number;
   action?: { label: string; onClick: () => void; title: string };
+  collapsible?: boolean;
   children: React.ReactNode;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   if (count === 0) return null;
   return (
     <div className="flex flex-col">
-      <div className="group flex items-center justify-between pl-3 pr-2 h-[24px]">
-        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.08em]">
+      <div
+        className={`group flex items-center justify-between pl-3 pr-2 h-[24px] ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setCollapsed((c) => !c) : undefined}
+      >
+        <span className="flex items-center gap-[5px] text-[10px] font-semibold text-text-muted uppercase tracking-[0.08em]">
+          {collapsible && (
+            <svg
+              width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+              className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}
+            >
+              <path d="M0 2l4 4 4-4z" />
+            </svg>
+          )}
           {title}
         </span>
         <div className="flex items-center gap-1">
-          {action && (
+          {action && !collapsed && (
             <button
               className="text-[14px] leading-none text-text-muted opacity-0 group-hover:opacity-100 hover:text-text cursor-pointer px-1"
-              onClick={action.onClick}
+              onClick={(e) => { e.stopPropagation(); action.onClick(); }}
               title={action.title}
             >
               {action.label}
@@ -119,7 +134,7 @@ function Section({
           <span className="text-[10px] text-text-dim tabular-nums">{count}</span>
         </div>
       </div>
-      {children}
+      {!collapsed && children}
     </div>
   );
 }
@@ -160,9 +175,10 @@ function CappedRows({
 }
 
 export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
-  const { branch, staged, modified, untracked, isRepo, workspacePath } = useGitStore();
+  const { branch, staged, modified, untracked, stashes, isRepo, workspacePath } = useGitStore();
   const [message, setMessage] = useState("");
   const [committing, setCommitting] = useState(false);
+  const [stashing, setStashing] = useState(false);
 
   useEffect(() => {
     refreshGitStatus();
@@ -220,8 +236,40 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
       setCommitting(false);
     }
   }
+  async function stash() {
+    if (!workspacePath) return;
+    const hasChanges = staged.length > 0 || unstagedFiles.length > 0;
+    if (!hasChanges) return;
+    setStashing(true);
+    try {
+      await gitStash(workspacePath, message.trim() || undefined);
+      setMessage("");
+      refreshGitStatus();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStashing(false);
+    }
+  }
+  async function applyStash(s: GitStash) {
+    if (!workspacePath) return;
+    await gitStashApply(workspacePath, s.index).catch(() => {});
+    refreshGitStatus();
+  }
+  async function dropStash(s: GitStash) {
+    if (!workspacePath) return;
+    const ok = await ctx.dialog.confirm(`Drop stash "${s.message || `stash@{${s.index}}`}"? This is irreversible.`, {
+      title: "Drop Stash",
+      danger: true,
+      confirmLabel: "Drop",
+    });
+    if (!ok) return;
+    await gitStashDrop(workspacePath, s.index).catch(() => {});
+    refreshGitStatus();
+  }
 
   const canCommit = staged.length > 0 && message.trim().length > 0 && !committing;
+  const canStash = (staged.length > 0 || unstagedFiles.length > 0) && !stashing;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -258,13 +306,23 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
               className="w-full resize-none bg-bg border border-border rounded-[5px] px-2 py-[6px] text-[12px] text-text placeholder:text-text-dim outline-none focus:border-accent"
               spellCheck={false}
             />
-            <button
-              className="w-full h-[28px] rounded-[5px] bg-accent text-accent-fg text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-[0.86] disabled:opacity-40 disabled:cursor-default"
-              onClick={commit}
-              disabled={!canCommit}
-            >
-              {committing ? "Committing…" : `Commit${staged.length ? ` (${staged.length})` : ""}`}
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 h-[28px] rounded-[5px] bg-accent text-accent-fg text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-[0.86] disabled:opacity-40 disabled:cursor-default"
+                onClick={commit}
+                disabled={!canCommit}
+              >
+                {committing ? "Committing…" : `Commit${staged.length ? ` (${staged.length})` : ""}`}
+              </button>
+              <button
+                className="h-[28px] px-3 rounded-[5px] bg-bg-active border border-border text-text-muted text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-[0.86] hover:text-text disabled:opacity-40 disabled:cursor-default"
+                onClick={stash}
+                disabled={!canStash}
+                title="Stash changes"
+              >
+                {stashing ? "Stashing…" : "Stash"}
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto py-1">
@@ -294,6 +352,16 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
               <div className="px-3 py-4 text-[11px] text-text-dim">No changes</div>
             )}
           </div>
+
+          {stashes.length > 0 && (
+            <div className="shrink-0 border-t border-border">
+              <Section title="Stashes" count={stashes.length} collapsible>
+                {stashes.map((s) => (
+                  <StashRow key={s.index} stash={s} onApply={applyStash} onDrop={dropStash} />
+                ))}
+              </Section>
+            </div>
+          )}
         </>
       )}
     </div>

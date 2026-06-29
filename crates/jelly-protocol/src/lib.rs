@@ -10,4 +10,4 @@ pub use events::{
     SearchResultPayload,
 };
 pub use fs::DirEntry;
-pub use git::{GitDiff, GitFile, GitStatus};
+pub use git::{GitDiff, GitFile, GitStash, GitStatus};

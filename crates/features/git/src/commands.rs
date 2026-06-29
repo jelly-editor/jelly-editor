@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use git2::{Repository, Status, StatusOptions};
-use jelly_protocol::{GitDiff, GitFile, GitStatus};
+use jelly_protocol::{GitDiff, GitFile, GitStash, GitStatus};
 
 /// Cap untracked entries sent to the front end so an unignored `node_modules`
 /// can't flood the IPC payload or the panel. The warning prompts the user to
@@ -194,4 +194,39 @@ pub fn git_commit(workspace: String, message: String) -> Result<(), String> {
     repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn git_stash(workspace: String, message: Option<String>) -> Result<(), String> {
+    let mut repo = open(&workspace)?;
+    let sig = repo
+        .signature()
+        .map_err(|_| "No git identity configured (set user.name and user.email)".to_string())?;
+    let msg = message.as_deref().unwrap_or("");
+    repo.stash_save(&sig, msg, None).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn git_stash_list(workspace: String) -> Result<Vec<GitStash>, String> {
+    let mut repo = open(&workspace)?;
+    let mut stashes = Vec::new();
+    repo.stash_foreach(|index, message, _oid| {
+        stashes.push(GitStash { index, message: message.to_string() });
+        true
+    })
+    .map_err(|e| e.to_string())?;
+    Ok(stashes)
+}
+
+#[tauri::command]
+pub fn git_stash_apply(workspace: String, index: usize) -> Result<(), String> {
+    let mut repo = open(&workspace)?;
+    repo.stash_apply(index, None).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn git_stash_drop(workspace: String, index: usize) -> Result<(), String> {
+    let mut repo = open(&workspace)?;
+    repo.stash_drop(index).map_err(|e| e.to_string())
 }

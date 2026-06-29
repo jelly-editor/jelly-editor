@@ -3,6 +3,7 @@ export type {
   FileStatus,
   GitDiffResult,
   GitFile,
+  GitStash,
   GitStatus,
   ReplaceOptions,
   SearchDone,

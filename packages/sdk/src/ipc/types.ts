@@ -33,6 +33,11 @@ export interface GitDiffResult {
   modified: string;
 }
 
+export interface GitStash {
+  index: number;
+  message: string;
+}
+
 export interface SearchOptions {
   /** absolute workspace root to search under */
   workspace: string;

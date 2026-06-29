@@ -1,4 +1,4 @@
-import type { DirEntry, GitDiffResult, GitStatus, ReplaceOptions, SearchOptions } from "./types";
+import type { DirEntry, GitDiffResult, GitStash, GitStatus, ReplaceOptions, SearchOptions } from "./types";
 
 export interface FsClient {
   read(path: string): Promise<string>;
@@ -77,6 +77,10 @@ export interface GitClient {
   /** Discard working-tree changes: restore tracked files to HEAD, delete untracked. */
   discard(workspace: string, path: string): Promise<void>;
   commit(workspace: string, message: string): Promise<void>;
+  stash(workspace: string, message?: string): Promise<void>;
+  stashList(workspace: string): Promise<GitStash[]>;
+  stashApply(workspace: string, index: number): Promise<void>;
+  stashDrop(workspace: string, index: number): Promise<void>;
 }
 
 export interface TerminalClient {

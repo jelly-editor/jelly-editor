@@ -45,6 +45,10 @@ export function createStubIpc(): IpcClient {
       unstage: fail("git.unstage"),
       discard: fail("git.discard"),
       commit: fail("git.commit"),
+      stash: fail("git.stash"),
+      stashList: fail("git.stashList"),
+      stashApply: fail("git.stashApply"),
+      stashDrop: fail("git.stashDrop"),
     },
     search: {
       start: fail("search.start"),

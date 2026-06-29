@@ -25,3 +25,10 @@ pub struct GitDiff {
     pub original: String,
     pub modified: String,
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStash {
+    pub index: usize,
+    pub message: String,
+}
