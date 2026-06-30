@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2](https://github.com/jelly-editor/jelly-editor/compare/v0.2.1...v0.2.2) (2026-06-30)
+
+### Features
+
+* **terminal:** always dock terminal as toggleable bottom pane; cmd+n opens terminal in focused pane ([eef1492](https://github.com/jelly-editor/jelly-editor/commit/eef1492a635343b585633db3e3830fa482cc31f6))
+
 ## [0.2.1](https://github.com/jelly-editor/jelly-editor/compare/v0.2.0...v0.2.1) (2026-06-30)
 
 ### Features
