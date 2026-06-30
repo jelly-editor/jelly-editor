@@ -38,8 +38,13 @@ export function TabBar({ pane, beginDrag, onNewTerminal }: { pane: Pane; beginDr
             <span className="flex-1">{tab.name}</span>
             <span className="relative flex items-center justify-center w-[15px] h-[15px] shrink-0">
               {tab.isPinned ? (
-                <span className="text-text-dim opacity-60">
-                  <PinIcon />
+                <span className="flex items-center gap-[3px]">
+                  {tab.isDirty && (
+                    <span className="w-[6px] h-[6px] rounded-full bg-accent shrink-0" />
+                  )}
+                  <span className="text-text-dim opacity-60">
+                    <PinIcon />
+                  </span>
                 </span>
               ) : (
                 <>

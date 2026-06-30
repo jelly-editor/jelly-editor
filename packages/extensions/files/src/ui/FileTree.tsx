@@ -1,7 +1,7 @@
 import type { DirEntry, ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
 import { ContextMenu, type ContextMenuEntry, useContextMenu } from "@jelly/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 import { DraftRow, Rows, type Draft } from "./FileRows";
 import { useFileTreeDnd } from "./useFileTreeDnd";
@@ -53,9 +53,18 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   // Whether the shared clipboard holds something pasteable. Refreshed each time
   // the menu opens, since another window may have copied since the last check.
   const [canPaste, setCanPaste] = useState(false);
+  const activeFilePath = useWorkspaceStore((s) => s.activeFilePath);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>()); // path -> visible explorer row; root -> tree body
   const highlightEls = useRef(new Map<string, HTMLElement>()); // destination folder -> visual drop highlight region
+
+  useEffect(() => {
+    if (!activeFilePath) return;
+    requestAnimationFrame(() => {
+      rowEls.current.get(activeFilePath)?.scrollIntoView({ block: "nearest" });
+    });
+  }, [activeFilePath]);
+
   const dnd = useFileTreeDnd({
     ctx,
     root: root ?? "",
