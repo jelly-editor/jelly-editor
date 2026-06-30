@@ -258,6 +258,33 @@ describe("contributed views (terminals)", () => {
   test("toggleViewType returns false when no view of that type exists", () => {
     expect(s().toggleViewType("terminal")).toBe(false);
   });
+
+  test("group-bottom docks the terminal below an empty editor pane when no files are open", () => {
+    s().openView("terminal", "t1", "Terminal 1", "group-bottom");
+
+    expect(paneCount()).toBe(2);
+    const root = s().root as Extract<LayoutNode, { type: "split" }>;
+    expect(root.dir).toBe("column");
+    const termPane = paneWith("view:terminal:t1")!;
+    expect(termPane.tabs.map((t) => t.viewId)).toEqual(["t1"]);
+    const editorPane = Object.values(s().panes).find((p) => p.id !== termPane.id)!;
+    expect(editorPane.tabs).toHaveLength(0);
+  });
+
+  test("toggleViewType hides a terminal that is the only pane by revealing an editor pane", () => {
+    s().openView("terminal", "t1", "Terminal 1");
+    const termPaneId = active().id;
+    expect(paneCount()).toBe(1);
+
+    expect(s().toggleViewType("terminal")).toBe(true);
+    expect(s().hiddenPaneIds.has(termPaneId)).toBe(true);
+    expect(active().id).not.toBe(termPaneId);
+    expect(active().tabs).toHaveLength(0);
+
+    expect(s().toggleViewType("terminal")).toBe(true);
+    expect(s().hiddenPaneIds.has(termPaneId)).toBe(false);
+    expect(s().activePaneId).toBe(termPaneId);
+  });
 });
 
 describe("diffs", () => {

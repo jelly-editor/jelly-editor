@@ -343,19 +343,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
           if (group) return addTo(group);
           const np: Pane = { ...emptyPane(), tabs: [tab], activeTabPath: path };
 
-          // If the current layout is a single empty pane, discard it rather than
-          // leaving a phantom "Open a file" pane above the terminal. A code pane
-          // will be created on demand by fileTarget when the user opens a file.
-          if (s.root.type === "leaf") {
-            const sole = s.panes[s.root.paneId];
-            if (sole && sole.tabs.length === 0 && !sole.activeDiff) {
-              const panes = { ...s.panes };
-              delete panes[s.root.paneId];
-              panes[np.id] = np;
-              return { root: leaf(np.id), panes, activePaneId: np.id };
-            }
-          }
-
+          // Always dock the terminal as a bottom pane, keeping the editor pane
+          // (even an empty "Open a file" one) above it so it stays a toggleable
+          // panel rather than taking over the whole grid.
           const root: LayoutNode =
             s.root.type === "split" && s.root.dir === "column"
               ? {
@@ -380,31 +370,27 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const viewPathIn = (pane: Pane) =>
         pane.tabs.find((tab) => tab.kind === "view" && tab.viewType === viewType)?.path;
 
-      const activePane = state.panes[state.activePaneId];
-      const activeViewPath = activePane ? viewPathIn(activePane) : undefined;
-      const activePaneShowsView =
-        activePane &&
-        !state.hiddenPaneIds.has(activePane.id) &&
-        activePane.activeTabPath === activeViewPath;
-
-      if (activePaneShowsView) {
-        const visibleIds = leafIds(state.root).filter(
-          (id) => id !== activePane.id && !state.hiddenPaneIds.has(id),
-        );
-        if (visibleIds.length === 0) return true;
-
+      // Toggle on visibility (not focus): hide the panel if it shows, reveal it
+      // if it's hidden — so cmd+j works regardless of which pane has focus.
+      const visible = panesWithView.find((pane) => !state.hiddenPaneIds.has(pane.id));
+      if (visible) {
+        const others = leafIds(state.root).filter((id) => id !== visible.id && !state.hiddenPaneIds.has(id));
+        if (others.length > 0) {
+          set({ hiddenPaneIds: new Set([...state.hiddenPaneIds, visible.id]), activePaneId: others[0] });
+          return true;
+        }
+        // Sole visible pane: surface an empty editor pane above so it can hide.
+        const np = emptyPane();
         set({
-          hiddenPaneIds: new Set([...state.hiddenPaneIds, activePane.id]),
-          activePaneId: visibleIds[0],
+          root: { type: "split", id: newSplitId(), dir: "column", children: [leaf(np.id), state.root], sizes: [0.72, 0.28] },
+          panes: { ...state.panes, [np.id]: np },
+          hiddenPaneIds: new Set([...state.hiddenPaneIds, visible.id]),
+          activePaneId: np.id,
         });
         return true;
       }
 
-      const target =
-        panesWithView.find((pane) => !state.hiddenPaneIds.has(pane.id)) ??
-        panesWithView.find((pane) => state.hiddenPaneIds.has(pane.id));
-      if (!target) return false;
-
+      const target = panesWithView[0];
       const path = viewPathIn(target);
       if (!path) return false;
       const hiddenPaneIds = new Set(state.hiddenPaneIds);
@@ -412,10 +398,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set({
         hiddenPaneIds,
         activePaneId: target.id,
-        panes: {
-          ...state.panes,
-          [target.id]: { ...target, activeTabPath: path, activeDiff: null },
-        },
+        panes: { ...state.panes, [target.id]: { ...target, activeTabPath: path, activeDiff: null } },
       });
       return true;
     },

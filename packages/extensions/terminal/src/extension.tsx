@@ -10,6 +10,7 @@ export const terminalExtension: Extension = {
     contributes: {
       commands: [
         { id: "terminal.new", title: "New Terminal" },
+        { id: "terminal.newInActivePane", title: "New Terminal in Active Pane", palette: false },
         { id: "terminal.toggle", title: "Toggle Terminal" },
         { id: "terminal.openAt", title: "Open in Terminal", palette: false },
       ],
@@ -23,10 +24,10 @@ export const terminalExtension: Extension = {
   activate(ctx: ExtensionContext) {
     const store = useTerminalStore;
     let counter = 0;
-    const openTerminal = (cwd?: string) => {
+    const openTerminal = (cwd?: string, placement: "active" | "group-bottom" = "group-bottom") => {
       const id = crypto.randomUUID();
       if (cwd) setTerminalCwd(id, cwd);
-      void ctx.commands.execute("editor.openView", "terminal", id, `Terminal ${++counter}`, "group-bottom");
+      void ctx.commands.execute("editor.openView", "terminal", id, `Terminal ${++counter}`, placement);
     };
 
     void Promise.resolve(ctx.commands.execute<string | null>("workspace.getPath"))
@@ -44,6 +45,7 @@ export const terminalExtension: Extension = {
     ctx.subscriptions.push(
       ctx.events.on<{ path: string }>("workspace:opened", ({ path }) => store.getState().setCwd(path)),
       ctx.commands.register("terminal.new", () => openTerminal()),
+      ctx.commands.register("terminal.newInActivePane", () => openTerminal(undefined, "active")),
       ctx.commands.register("terminal.openAt", (path: string) => openTerminal(path)),
       ctx.commands.register("terminal.toggle", async () => {
         const toggled = await ctx.commands.execute<boolean>("editor.toggleViewType", "terminal");

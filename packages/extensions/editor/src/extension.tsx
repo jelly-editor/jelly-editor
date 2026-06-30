@@ -34,6 +34,7 @@ export const editorExtension: Extension = {
         { id: "editor.closeFile", title: "Close File" },
         { id: "editor.closeActiveTab", title: "Close Tab", palette: false },
         { id: "editor.toggleViewType", title: "Toggle View Type", palette: false },
+        { id: "editor.newTerminal", title: "New Terminal", palette: false },
         { id: "editor.splitRight", title: "Split Editor Right" },
         { id: "editor.splitDown", title: "Split Editor Down" },
         { id: "editor.fold", title: "Fold" },
@@ -47,6 +48,7 @@ export const editorExtension: Extension = {
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
         { command: "editor.closeActiveTab", key: "mod+w", when: "workspaceOpen" },
         { command: "editor.splitRight", key: "mod+\\", when: "workspaceOpen" },
+        { command: "editor.newTerminal", key: "mod+n", when: "workspaceOpen" },
         { command: "editor.fold", key: "mod+alt+[", when: "workspaceOpen" },
         { command: "editor.unfold", key: "mod+alt+]", when: "workspaceOpen" },
         { command: "editor.foldAll", key: "mod+k mod+0", when: "workspaceOpen" },
@@ -158,6 +160,14 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.toggleViewType", (viewType: string) =>
         store.getState().toggleViewType(viewType),
       ),
+      // New terminal: into the terminal pane if it's focused, else as a tab in
+      // the active editor pane ("in the buffer").
+      ctx.commands.register("editor.newTerminal", () => {
+        const pane = store.getState().getActivePane();
+        const activeTab = pane.tabs.find((t) => t.path === pane.activeTabPath);
+        const inTerminal = activeTab?.kind === "view" && activeTab.viewType === "terminal";
+        void ctx.commands.execute(inTerminal ? "terminal.new" : "terminal.newInActivePane");
+      }),
       ctx.commands.register("editor.fold", () => runFold(foldNearest)),
       ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
       ctx.commands.register("editor.foldAll", () => runFold(foldAll)),
@@ -447,7 +457,9 @@ export const editorExtension: Extension = {
             activeDiff: null,
           };
           if (!root) {
-            root = { type: "leaf", paneId: viewPaneId };
+            const edId = newPaneId();
+            panes[edId] = { id: edId, tabs: [], activeTabPath: null, activeDiff: null };
+            root = { type: "split", id: `split-r-2-${Math.random().toString(36).slice(2, 8)}`, dir: "column", children: [{ type: "leaf", paneId: edId }, { type: "leaf", paneId: viewPaneId }], sizes: [0.72, 0.28] };
           } else if (root.type === "split" && root.dir === "column") {
             const sum = root.sizes.reduce((a, b) => a + b, 0);
             const weight = viewSize < 1 ? (viewSize / (1 - viewSize)) * sum : sum;
