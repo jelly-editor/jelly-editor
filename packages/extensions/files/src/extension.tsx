@@ -249,6 +249,7 @@ export const filesExtension: Extension = {
     ctx.subscriptions.push(
       ctx.events.on<{ path: string | null }>("editor:active_changed", ({ path }) => {
         store.getState().setActiveFilePath(path);
+        store.getState().clearSelection();
         if (path) void revealInTree(path);
       }),
       ctx.events.on<{ statuses: Record<string, import("@jelly/sdk").FileStatus> }>("git:status_changed", ({ statuses }) =>
