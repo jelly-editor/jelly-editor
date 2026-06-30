@@ -81,6 +81,8 @@ export interface GitClient {
   stashList(workspace: string): Promise<GitStash[]>;
   stashApply(workspace: string, index: number): Promise<void>;
   stashDrop(workspace: string, index: number): Promise<void>;
+  push(workspace: string): Promise<void>;
+  pull(workspace: string): Promise<void>;
 }
 
 export interface TerminalClient {

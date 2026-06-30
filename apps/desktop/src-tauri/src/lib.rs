@@ -145,6 +145,8 @@ pub fn run() {
             jelly_git::commands::git_stash_list,
             jelly_git::commands::git_stash_apply,
             jelly_git::commands::git_stash_drop,
+            jelly_git::commands::git_push,
+            jelly_git::commands::git_pull,
             jelly_search::commands::start_search,
             jelly_search::commands::cancel_search,
             jelly_search::commands::replace_in_file,

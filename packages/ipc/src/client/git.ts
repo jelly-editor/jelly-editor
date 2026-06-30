@@ -12,4 +12,6 @@ export const git: GitClient = {
   stashList: (workspace) => invoke<GitStash[]>("git_stash_list", { workspace }),
   stashApply: (workspace, index) => invoke<void>("git_stash_apply", { workspace, index }),
   stashDrop: (workspace, index) => invoke<void>("git_stash_drop", { workspace, index }),
+  push: (workspace) => invoke<void>("git_push", { workspace }),
+  pull: (workspace) => invoke<void>("git_pull", { workspace }),
 };

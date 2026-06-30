@@ -230,3 +230,31 @@ pub fn git_stash_drop(workspace: String, index: usize) -> Result<(), String> {
     let mut repo = open(&workspace)?;
     repo.stash_drop(index).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn git_push(workspace: String) -> Result<(), String> {
+    let out = std::process::Command::new("git")
+        .args(["push"])
+        .current_dir(&workspace)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
+}
+
+#[tauri::command]
+pub fn git_pull(workspace: String) -> Result<(), String> {
+    let out = std::process::Command::new("git")
+        .args(["pull"])
+        .current_dir(&workspace)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
+}

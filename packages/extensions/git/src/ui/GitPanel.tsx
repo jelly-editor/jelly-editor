@@ -3,10 +3,10 @@ import { ipc } from "@jelly/ipc";
 import { useEffect, useState } from "react";
 import { refreshGitStatus } from "../refresh";
 import { useGitStore, type FileStatus, type GitFile, type GitStash } from "../store";
-import { FileIcon } from "@jelly/ui";
+import { ContextMenu, FileIcon, useContextMenu } from "@jelly/ui";
 import { StashRow } from "./StashRow";
 
-const { stage: gitStage, unstage: gitUnstage, discard: gitDiscard, commit: gitCommit, stash: gitStash, stashApply: gitStashApply, stashDrop: gitStashDrop } = ipc.git;
+const { stage: gitStage, unstage: gitUnstage, discard: gitDiscard, commit: gitCommit, stash: gitStash, stashApply: gitStashApply, stashDrop: gitStashDrop, push: gitPush, pull: gitPull } = ipc.git;
 
 function DiscardIcon() {
   return (
@@ -179,6 +179,8 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
   const [message, setMessage] = useState("");
   const [committing, setCommitting] = useState(false);
   const [stashing, setStashing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const menu = useContextMenu<null>();
 
   useEffect(() => {
     refreshGitStatus();
@@ -268,6 +270,31 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
     refreshGitStatus();
   }
 
+  async function push() {
+    if (!workspacePath) return;
+    setSyncing(true);
+    try {
+      await gitPush(workspacePath);
+      refreshGitStatus();
+    } catch (e) {
+      await ctx.dialog.show({ title: "Push failed", message: `${e}`, buttons: [{ id: "ok", label: "OK", variant: "primary" }] });
+    } finally {
+      setSyncing(false);
+    }
+  }
+  async function pull() {
+    if (!workspacePath) return;
+    setSyncing(true);
+    try {
+      await gitPull(workspacePath);
+      refreshGitStatus();
+    } catch (e) {
+      await ctx.dialog.show({ title: "Pull failed", message: `${e}`, buttons: [{ id: "ok", label: "OK", variant: "primary" }] });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   const canCommit = staged.length > 0 && message.trim().length > 0 && !committing;
   const canStash = (staged.length > 0 || unstagedFiles.length > 0) && !stashing;
 
@@ -278,7 +305,7 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
           Source Control
         </span>
         {isRepo && branch && (
-          <span className="ml-auto flex items-center gap-[5px] text-[11px] text-text-muted">
+          <span className="ml-2 flex items-center gap-[5px] text-[11px] text-text-muted">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="6" y1="3" x2="6" y2="15" />
               <circle cx="18" cy="6" r="3" />
@@ -288,7 +315,37 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
             {branch}
           </span>
         )}
+        {isRepo && (
+          <button
+            className="ml-auto flex items-center justify-center w-[22px] h-[22px] rounded text-text-muted/50 hover:text-text-muted hover:bg-bg-active transition-colors cursor-pointer"
+            onClick={(e) => menu.open(e, null)}
+            title="More actions"
+            disabled={syncing}
+          >
+            {syncing ? (
+              <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M12 2a10 10 0 0 1 10 10" />
+                <circle cx="12" cy="12" r="10" opacity="0.2" />
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
+      {menu.state && (
+        <ContextMenu
+          x={menu.state.x}
+          y={menu.state.y}
+          onClose={menu.close}
+          items={[
+            { label: "Pull", onSelect: () => { menu.close(); void pull(); } },
+            { label: "Push", onSelect: () => { menu.close(); void push(); } },
+          ]}
+        />
+      )}
 
       {!isRepo ? (
         <div className="px-3 py-4 text-[11px] text-text-dim">Not a git repository</div>
