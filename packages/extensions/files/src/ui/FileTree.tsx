@@ -146,6 +146,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
         await createDir(target);
       } else {
         await createFile(target);
+        void ctx.commands.execute("editor.open", target, name.trim());
       }
       await refreshDir(d.parentPath);
     } catch (e) {
