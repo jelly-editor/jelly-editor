@@ -1,5 +1,5 @@
 import type { Extension, ExtensionContext } from "@jelly/sdk";
-import { scheduleDisposeSession, setTerminalCwd, TerminalView } from "./ui/TerminalView";
+import { disposeSession, setTerminalCwd, TerminalView } from "./ui/TerminalView";
 import { useTerminalStore } from "./store";
 
 export const terminalExtension: Extension = {
@@ -50,11 +50,7 @@ export const terminalExtension: Extension = {
         if (!toggled) openTerminal();
       }),
       ctx.events.on<{ viewType: string; viewId: string }>("editor:view_closed", ({ viewType, viewId }) => {
-        // Use a grace window instead of immediate disposal: if the layout is
-        // restored quickly (folder switch), the TerminalView remounts and
-        // cancels the timer. If the tab is genuinely user-closed and never
-        // remounted, the PTY is killed after ORPHAN_TTL.
-        if (viewType === "terminal") scheduleDisposeSession(viewId);
+        if (viewType === "terminal") disposeSession(viewId);
       }),
     );
   },
