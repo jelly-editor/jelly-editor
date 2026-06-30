@@ -276,8 +276,9 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
     try {
       await gitPush(workspacePath);
       refreshGitStatus();
+      ctx.notifications.info("Pushed successfully");
     } catch (e) {
-      await ctx.dialog.show({ title: "Push failed", message: `${e}`, buttons: [{ id: "ok", label: "OK", variant: "primary" }] });
+      ctx.notifications.error(`Push failed: ${e}`);
     } finally {
       setSyncing(false);
     }
@@ -288,8 +289,9 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
     try {
       await gitPull(workspacePath);
       refreshGitStatus();
+      ctx.notifications.info("Pulled successfully");
     } catch (e) {
-      await ctx.dialog.show({ title: "Pull failed", message: `${e}`, buttons: [{ id: "ok", label: "OK", variant: "primary" }] });
+      ctx.notifications.error(`Pull failed: ${e}`);
     } finally {
       setSyncing(false);
     }
@@ -306,32 +308,32 @@ export function GitPanel({ ctx }: { ctx: ExtensionContext }) {
         </span>
         {isRepo && branch && (
           <span className="ml-2 flex items-center gap-[5px] text-[11px] text-text-muted">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="6" y1="3" x2="6" y2="15" />
-              <circle cx="18" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M18 9a9 9 0 0 1-9 9" />
-            </svg>
-            {branch}
+            {syncing ? (
+              <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M12 2a10 10 0 0 1 10 10" className="text-accent" />
+                <circle cx="12" cy="12" r="10" opacity="0.2" />
+              </svg>
+            ) : (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="6" y1="3" x2="6" y2="15" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 0 1-9 9" />
+              </svg>
+            )}
+            <span className={syncing ? "text-accent" : ""}>{branch}</span>
           </span>
         )}
         {isRepo && (
           <button
-            className="ml-auto flex items-center justify-center w-[22px] h-[22px] rounded text-text-muted/50 hover:text-text-muted hover:bg-bg-active transition-colors cursor-pointer"
+            className="ml-auto flex items-center justify-center w-[22px] h-[22px] rounded text-text-muted/50 hover:text-text-muted hover:bg-bg-active transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
             onClick={(e) => menu.open(e, null)}
             title="More actions"
             disabled={syncing}
           >
-            {syncing ? (
-              <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 2a10 10 0 0 1 10 10" />
-                <circle cx="12" cy="12" r="10" opacity="0.2" />
-              </svg>
-            ) : (
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
-              </svg>
-            )}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+            </svg>
           </button>
         )}
       </div>

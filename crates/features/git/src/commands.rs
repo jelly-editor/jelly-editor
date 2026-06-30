@@ -231,30 +231,40 @@ pub fn git_stash_drop(workspace: String, index: usize) -> Result<(), String> {
     repo.stash_drop(index).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub fn git_push(workspace: String) -> Result<(), String> {
-    let out = std::process::Command::new("git")
-        .args(["push"])
-        .current_dir(&workspace)
-        .output()
-        .map_err(|e| e.to_string())?;
-    if out.status.success() {
-        Ok(())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+const GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+async fn run_git(workspace: &str, args: &[&str]) -> Result<(), String> {
+    let child = tokio::process::Command::new("git")
+        .args(args)
+        .current_dir(workspace)
+        .output();
+    match tokio::time::timeout(GIT_TIMEOUT, child).await {
+        Err(_) => Err(format!("git {} timed out after 60s", args[0])),
+        Ok(Err(e)) => Err(e.to_string()),
+        Ok(Ok(out)) => {
+            if out.status.success() {
+                Ok(())
+            } else {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let msg = [stderr.trim(), stdout.trim()]
+                    .iter()
+                    .filter(|s| !s.is_empty())
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Err(msg)
+            }
+        }
     }
 }
 
 #[tauri::command]
-pub fn git_pull(workspace: String) -> Result<(), String> {
-    let out = std::process::Command::new("git")
-        .args(["pull"])
-        .current_dir(&workspace)
-        .output()
-        .map_err(|e| e.to_string())?;
-    if out.status.success() {
-        Ok(())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
-    }
+pub async fn git_push(workspace: String) -> Result<(), String> {
+    run_git(&workspace, &["push"]).await
+}
+
+#[tauri::command]
+pub async fn git_pull(workspace: String) -> Result<(), String> {
+    run_git(&workspace, &["pull"]).await
 }
