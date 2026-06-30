@@ -1,12 +1,20 @@
 import type { ExtensionContext } from "@jelly/sdk";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { calcWpm, type HighScore, type Mode, useTypingStore } from "../store";
 
 const MODES: Mode[] = ["15", "30", "60"];
+const CURSOR_FRAC = 0.25; // cursor sits at 25% from the left
 
 export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const wordsRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
+
+  const [translateX, setTranslateX] = useState(0);
+  const [cursorX, setCursorX] = useState(0);
+  const [showScoreboard, setShowScoreboard] = useState(false);
 
   const {
     mode, words, wordIndex, typed, wordResults,
@@ -43,61 +51,61 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     ctx.storage.set("highScores", updated);
   }, [finished]);
 
+  const currentTyped = typed[wordIndex] ?? "";
+
+  // Recompute translate so the cursor stays fixed and text flows past it.
   useEffect(() => {
-    if (!wordsRef.current) return;
+    if (!containerRef.current || !wordsRef.current) return;
+    const cx = containerRef.current.offsetWidth * CURSOR_FRAC;
+    setCursorX(cx);
     const activeWord = wordsRef.current.querySelector("[data-active='true']") as HTMLElement | null;
     if (!activeWord) return;
-    const container = wordsRef.current;
-    const scrollTarget = activeWord.offsetLeft - container.offsetWidth / 2 + activeWord.offsetWidth / 2;
-    container.scrollLeft = Math.max(0, scrollTarget);
-  }, [wordIndex]);
+    const firstChar = activeWord.querySelector("span") as HTMLElement | null;
+    const charWidth = firstChar ? firstChar.offsetWidth : 0;
+    setTranslateX(cx - activeWord.offsetLeft - currentTyped.length * charWidth);
+  }, [wordIndex, currentTyped.length]);
 
   useEffect(() => {
-    if (active && !finished) {
-      inputRef.current?.focus();
-    }
+    if (active && !finished) inputRef.current?.focus();
   }, [active, finished]);
 
-  const handleKeyDownCapture = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Tab" || e.key === "Enter") {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!activeRef.current) return;
+      if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") return;
       e.preventDefault();
       e.stopPropagation();
-      if (finished) {
-        reset();
+      const state = useTypingStore.getState();
+      if (state.finished || e.key === "Escape") {
+        state.reset();
         setTimeout(() => inputRef.current?.focus(), 0);
-      } else if (e.key === "Tab") {
-        finishWord();
+      } else if (e.key === "Tab" || e.key === "Enter") {
+        state.finishWord();
         inputRef.current?.focus();
       }
-    }
-  }, [finished, finishWord, reset]);
+    };
+    document.addEventListener("keydown", handler, { capture: true });
+    return () => document.removeEventListener("keydown", handler, { capture: true });
+  }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (finished) return;
-
     if (e.key === " ") {
       e.preventDefault();
       finishWord();
       return;
     }
-
     if (e.key === "Backspace") {
       e.preventDefault();
       backspace();
       return;
     }
-
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       typeChar(e.key);
     }
   }, [finished, finishWord, backspace, typeChar]);
 
-  const focusInput = useCallback(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const wpm = calcWpm(wordResults, parseInt(mode, 10));
-  const currentTyped = typed[wordIndex] ?? "";
 
   if (finished) {
     return <ResultsView onRestart={reset} />;
@@ -107,8 +115,7 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     <div
       className="flex flex-col h-full w-full items-center justify-center bg-bg overflow-hidden"
       style={{ fontFamily: "var(--font-mono, monospace)" }}
-      onClick={focusInput}
-      onKeyDownCapture={handleKeyDownCapture}
+      onClick={() => inputRef.current?.focus()}
     >
       <div className="w-full max-w-[750px] px-6 flex flex-col gap-8">
         <div className="flex items-center justify-between">
@@ -117,11 +124,10 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
               <button
                 key={m}
                 className={`px-3 py-1 rounded text-[13px] transition-colors cursor-pointer ${
-                  mode === m
-                    ? "text-accent font-medium"
-                    : "text-text-muted hover:text-text"
+                  mode === m ? "text-accent font-medium" : "text-text-muted hover:text-text"
                 }`}
                 onClick={(e) => { e.stopPropagation(); setMode(m); setTimeout(() => inputRef.current?.focus(), 0); }}
+                tabIndex={-1}
               >
                 {m}s
               </button>
@@ -131,52 +137,56 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
             {started && (
               <span className="text-[13px] text-text-muted tabular-nums">{wpm} wpm</span>
             )}
-            <span
-              className={`text-[28px] font-light tabular-nums transition-colors ${
-                timeLeft <= 5 ? "text-danger" : "text-accent"
-              }`}
-            >
+            <span className={`text-[28px] font-light tabular-nums transition-colors ${timeLeft <= 5 ? "text-danger" : "text-accent"}`}>
               {timeLeft}
             </span>
+            <button
+              className="text-text-muted/40 hover:text-text-muted transition-colors cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); reset(); setTimeout(() => inputRef.current?.focus(), 0); }}
+              title="Restart (Esc)"
+              tabIndex={-1}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </button>
+            <button
+              className={`transition-colors cursor-pointer ${showScoreboard ? "text-accent" : "text-text-muted/40 hover:text-text-muted"}`}
+              onClick={(e) => { e.stopPropagation(); setShowScoreboard((v) => !v); setTimeout(() => inputRef.current?.focus(), 0); }}
+              title="Scoreboard"
+              tabIndex={-1}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div
-          ref={wordsRef}
-          className="relative overflow-hidden select-none"
-          style={{ height: "2.5rem" }}
-        >
-          <div className="flex flex-nowrap gap-x-3 text-[1.3rem] leading-[2.5rem]">
+        {/* Words track — cursor is fixed, words translate past it */}
+        <div ref={containerRef} className="relative overflow-hidden select-none" style={{ height: "2.5rem" }}>
+          <div
+            ref={wordsRef}
+            className="absolute flex flex-nowrap gap-x-3 text-[1.3rem] leading-[2.5rem]"
+            style={{ transform: `translateX(${translateX}px)`, transition: "transform 60ms linear" }}
+          >
             {words.map((word, wi) => {
               const isActive = wi === wordIndex;
               const typedWord = typed[wi] ?? "";
               const result = wordResults[wi];
-
               return (
                 <span key={wi} data-active={isActive} className="relative shrink-0">
                   {word.split("").map((ch, ci) => {
                     const typedCh = typedWord[ci];
                     let color = "text-text-muted/40";
-                    if (typedCh !== undefined) {
-                      color = typedCh === ch ? "text-text" : "text-danger";
-                    }
+                    if (typedCh !== undefined) color = typedCh === ch ? "text-text" : "text-danger";
                     return <span key={ci} className={color}>{ch}</span>;
                   })}
                   {typedWord.length > word.length && (
                     <span className="text-danger">{typedWord.slice(word.length)}</span>
-                  )}
-                  {isActive && (
-                    <span
-                      className="absolute animate-pulse"
-                      style={{
-                        left: `${currentTyped.length}ch`,
-                        top: 0,
-                        width: "2px",
-                        height: "100%",
-                        background: "var(--color-accent)",
-                        borderRadius: "1px",
-                      }}
-                    />
                   )}
                   {!isActive && result === false && (
                     <span className="absolute bottom-0 left-0 right-0 h-[1px] bg-danger/50" />
@@ -185,6 +195,17 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
               );
             })}
           </div>
+
+          {/* Fixed cursor */}
+          <span
+            className="absolute top-0 bottom-0 animate-pulse pointer-events-none"
+            style={{
+              left: `${cursorX}px`,
+              width: "2px",
+              background: "var(--color-accent)",
+              borderRadius: "1px",
+            }}
+          />
         </div>
 
         <input
@@ -198,8 +219,28 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
         />
 
         <p className="text-center text-[11px] text-text-muted/50">
-          space / tab — next word · tab/enter after finish — restart
+          space / tab — next word · esc — restart
         </p>
+
+        {showScoreboard && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] text-text-muted uppercase tracking-widest">{mode}s best</span>
+            {highScores.filter((s) => s.mode === mode).slice(0, 5).length === 0 ? (
+              <span className="text-[12px] text-text-muted/50">no scores yet</span>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {highScores.filter((s) => s.mode === mode).slice(0, 5).map((s, i) => (
+                  <div key={i} className="flex items-center gap-4 text-[12px]">
+                    <span className="text-text-muted/50 w-4 tabular-nums">{i + 1}</span>
+                    <span className={`tabular-nums font-medium ${i === 0 ? "text-accent" : "text-text"}`}>{s.wpm} wpm</span>
+                    <span className="text-text-muted">{s.accuracy}%</span>
+                    <span className="text-text-muted/50 ml-auto text-[11px]">{new Date(s.date).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -228,21 +269,15 @@ function ResultsView({ onRestart }: { onRestart: () => void }) {
             <span className={`text-[5rem] font-light leading-none tabular-nums ${isPersonalBest ? "text-accent" : "text-text"}`}>
               {wpm}
             </span>
-            {isPersonalBest && (
-              <span className="text-[11px] text-accent">personal best</span>
-            )}
+            {isPersonalBest && <span className="text-[11px] text-accent">personal best</span>}
           </div>
           <div className="flex flex-col gap-1 pb-3">
             <span className="text-[12px] text-text-muted uppercase tracking-widest">acc</span>
-            <span className="text-[2.5rem] font-light leading-none tabular-nums text-text">
-              {accuracy}%
-            </span>
+            <span className="text-[2.5rem] font-light leading-none tabular-nums text-text">{accuracy}%</span>
           </div>
           <div className="flex flex-col gap-1 pb-3">
             <span className="text-[12px] text-text-muted uppercase tracking-widest">words</span>
-            <span className="text-[2.5rem] font-light leading-none tabular-nums text-text">
-              {correct}/{total}
-            </span>
+            <span className="text-[2.5rem] font-light leading-none tabular-nums text-text">{correct}/{total}</span>
           </div>
         </div>
 
@@ -253,13 +288,9 @@ function ResultsView({ onRestart }: { onRestart: () => void }) {
               {topScores.map((s, i) => (
                 <div key={i} className="flex items-center gap-4 text-[13px]">
                   <span className="text-text-muted/50 w-4 tabular-nums">{i + 1}</span>
-                  <span className={`tabular-nums font-medium ${i === 0 ? "text-accent" : "text-text"}`}>
-                    {s.wpm} wpm
-                  </span>
+                  <span className={`tabular-nums font-medium ${i === 0 ? "text-accent" : "text-text"}`}>{s.wpm} wpm</span>
                   <span className="text-text-muted">{s.accuracy}%</span>
-                  <span className="text-text-muted/50 ml-auto text-[11px]">
-                    {new Date(s.date).toLocaleDateString()}
-                  </span>
+                  <span className="text-text-muted/50 ml-auto text-[11px]">{new Date(s.date).toLocaleDateString()}</span>
                 </div>
               ))}
             </div>
@@ -278,7 +309,7 @@ function ResultsView({ onRestart }: { onRestart: () => void }) {
             </svg>
             restart
           </button>
-          <span className="text-[11px] text-text-muted/50">tab / enter to restart</span>
+          <span className="text-[11px] text-text-muted/50">esc / enter to restart</span>
         </div>
       </div>
     </div>
