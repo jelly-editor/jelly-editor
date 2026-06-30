@@ -327,7 +327,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             hiddenPaneIds,
           };
         }
-        const tab: Tab = { path, name: title, isDirty: false, isPinned: true, isPreview: false, kind: "view", viewType, viewId };
+        const tab: Tab = { path, name: title, isDirty: false, isPinned: false, isPreview: false, kind: "view", viewType, viewId };
         const addTo = (pane: Pane): Partial<EditorState> => {
           const hiddenPaneIds = new Set(s.hiddenPaneIds);
           hiddenPaneIds.delete(pane.id);
