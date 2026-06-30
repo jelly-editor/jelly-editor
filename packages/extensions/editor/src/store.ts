@@ -178,6 +178,7 @@ interface EditorState {
   /** Open a file in a specific pane, used by explicit drag/drop targets. */
   openPinnedInPane: (paneId: string, path: string, name: string) => void;
   pinTab: (paneId: string, path: string) => void;
+  unpinTab: (paneId: string, path: string) => void;
   closeTab: (paneId: string, path: string) => void;
   /** Close a path in every pane (e.g. after it is deleted on disk). */
   closeEverywhere: (path: string) => void;
@@ -533,6 +534,23 @@ export const useEditorStore = create<EditorState>((set, get) => {
         };
       }),
 
+    unpinTab: (paneId, path) =>
+      set((s) => {
+        const pane = s.panes[paneId];
+        if (!pane) return {};
+        return {
+          panes: {
+            ...s.panes,
+            [paneId]: {
+              ...pane,
+              tabs: pane.tabs.map((t) =>
+                t.path === path ? { ...t, isPinned: false } : t,
+              ),
+            },
+          },
+        };
+      }),
+
     closeTab: (paneId, path) =>
       set((s) => {
         const pane = s.panes[paneId];
@@ -703,7 +721,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     requestClose: (paneId, path) => {
       const s = get();
       const tab = s.panes[paneId]?.tabs.find((t) => t.path === path);
-      if (!tab) return;
+      if (!tab || tab.isPinned) return;
       if (tab.isDirty) set({ closing: { paneId, path } });
       else s.closeTab(paneId, path);
     },
