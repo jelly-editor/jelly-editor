@@ -3,8 +3,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { calcWpm, type HighScore, type Mode, useTypingStore } from "../store";
 
 const MODES: Mode[] = ["15", "30", "60"];
-const VISIBLE_ROWS = 3;
-const WORDS_PER_ROW_APPROX = 10;
 
 export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -17,14 +15,12 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     setHighScores,
   } = useTypingStore();
 
-  // Load high scores from storage on mount
   useEffect(() => {
     ctx.storage.get<HighScore[]>("highScores").then((scores) => {
       if (scores) setHighScores(scores);
     });
   }, []);
 
-  // Timer
   useEffect(() => {
     if (!started) return;
     const id = setInterval(() => {
@@ -33,7 +29,6 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     return () => clearInterval(id);
   }, [started]);
 
-  // Save high score on finish
   useEffect(() => {
     if (!finished) return;
     const wpm = calcWpm(wordResults, parseInt(mode, 10));
@@ -48,40 +43,39 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     ctx.storage.set("highScores", updated);
   }, [finished]);
 
-  // Scroll words display to keep current word visible
   useEffect(() => {
     if (!wordsRef.current) return;
-    const activeWord = wordsRef.current.querySelector("[data-active='true']");
+    const activeWord = wordsRef.current.querySelector("[data-active='true']") as HTMLElement | null;
     if (!activeWord) return;
     const container = wordsRef.current;
-    const wordTop = (activeWord as HTMLElement).offsetTop;
-    const lineHeight = (activeWord as HTMLElement).offsetHeight;
-    const targetRow = Math.floor(wordTop / lineHeight);
-    if (targetRow >= 2) {
-      container.scrollTop = (targetRow - 1) * lineHeight;
-    } else {
-      container.scrollTop = 0;
-    }
+    const scrollTarget = activeWord.offsetLeft - container.offsetWidth / 2 + activeWord.offsetWidth / 2;
+    container.scrollLeft = Math.max(0, scrollTarget);
   }, [wordIndex]);
 
-  // Focus input when pane becomes active
   useEffect(() => {
     if (active && !finished) {
       inputRef.current?.focus();
     }
   }, [active, finished]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (finished) {
-      if (e.key === "Tab" || e.key === "Enter") {
-        e.preventDefault();
+  const handleKeyDownCapture = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Tab" || e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (finished) {
         reset();
         setTimeout(() => inputRef.current?.focus(), 0);
+      } else if (e.key === "Tab") {
+        finishWord();
+        inputRef.current?.focus();
       }
-      return;
     }
+  }, [finished, finishWord, reset]);
 
-    if (e.key === " " || e.key === "Tab") {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (finished) return;
+
+    if (e.key === " ") {
       e.preventDefault();
       finishWord();
       return;
@@ -96,7 +90,7 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       typeChar(e.key);
     }
-  }, [finished, finishWord, backspace, typeChar, reset]);
+  }, [finished, finishWord, backspace, typeChar]);
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -114,9 +108,9 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
       className="flex flex-col h-full w-full items-center justify-center bg-bg overflow-hidden"
       style={{ fontFamily: "var(--font-mono, monospace)" }}
       onClick={focusInput}
+      onKeyDownCapture={handleKeyDownCapture}
     >
       <div className="w-full max-w-[750px] px-6 flex flex-col gap-8">
-        {/* Mode selector + timer */}
         <div className="flex items-center justify-between">
           <div className="flex gap-1">
             {MODES.map((m) => (
@@ -147,22 +141,19 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
           </div>
         </div>
 
-        {/* Words display */}
         <div
           ref={wordsRef}
           className="relative overflow-hidden select-none"
-          style={{ height: `${VISIBLE_ROWS * 2.5}rem` }}
+          style={{ height: "2.5rem" }}
         >
-          <div className="flex flex-wrap gap-x-3 gap-y-[0.6rem] text-[1.3rem] leading-[2.5rem]">
+          <div className="flex flex-nowrap gap-x-3 text-[1.3rem] leading-[2.5rem]">
             {words.map((word, wi) => {
               const isActive = wi === wordIndex;
               const typedWord = typed[wi] ?? "";
               const result = wordResults[wi];
 
-              if (wi > wordIndex + WORDS_PER_ROW_APPROX * VISIBLE_ROWS) return null;
-
               return (
-                <span key={wi} data-active={isActive} className="relative">
+                <span key={wi} data-active={isActive} className="relative shrink-0">
                   {word.split("").map((ch, ci) => {
                     const typedCh = typedWord[ci];
                     let color = "text-text-muted/40";
@@ -196,7 +187,6 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
           </div>
         </div>
 
-        {/* Hidden input captures keystrokes */}
         <input
           ref={inputRef}
           className="opacity-0 absolute w-0 h-0 pointer-events-none"
@@ -204,7 +194,7 @@ export function TypingTestView({ ctx, active }: { ctx: ExtensionContext; active:
           onChange={() => {}}
           value=""
           readOnly
-          tabIndex={0}
+          tabIndex={-1}
         />
 
         <p className="text-center text-[11px] text-text-muted/50">
