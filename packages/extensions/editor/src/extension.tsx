@@ -41,6 +41,7 @@ export const editorExtension: Extension = {
         { id: "editor.foldAll", title: "Fold All" },
         { id: "editor.unfoldAll", title: "Unfold All" },
         { id: "editor.toggleMarkdownPreview", title: "Toggle Markdown Preview" },
+        ...Array.from({ length: 9 }, (_, i) => ({ id: `editor.switchToTab${i + 1}`, title: `Switch to Tab ${i + 1}`, palette: false })),
       ],
       keybindings: [
         { command: "editor.save", key: "mod+s", when: "workspaceOpen" },
@@ -51,6 +52,7 @@ export const editorExtension: Extension = {
         { command: "editor.foldAll", key: "mod+k mod+0", when: "workspaceOpen" },
         { command: "editor.unfoldAll", key: "mod+k mod+j", when: "workspaceOpen" },
         { command: "editor.toggleMarkdownPreview", key: "mod+alt+v", when: "workspaceOpen" },
+        ...Array.from({ length: 9 }, (_, i) => ({ command: `editor.switchToTab${i + 1}`, key: `ctrl+${i + 1}`, when: "workspaceOpen" })),
       ],
     },
   },
@@ -160,6 +162,14 @@ export const editorExtension: Extension = {
       ctx.commands.register("editor.unfold", () => runFold(unfoldNearest)),
       ctx.commands.register("editor.foldAll", () => runFold(foldAll)),
       ctx.commands.register("editor.unfoldAll", () => runFold(unfoldAll)),
+      ...Array.from({ length: 9 }, (_, i) =>
+        ctx.commands.register(`editor.switchToTab${i + 1}`, () => {
+          const ed = store.getState();
+          const pane = ed.getActivePane();
+          const tab = pane.tabs[i];
+          if (tab) ed.setActiveTab(pane.id, tab.path);
+        }),
+      ),
       ctx.commands.register("editor.toggleMarkdownPreview", () => {
         const path = store.getState().getActivePane().activeTabPath;
         if (path?.endsWith(".md")) store.getState().toggleMdPreview(path);
