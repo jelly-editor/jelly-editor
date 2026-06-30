@@ -205,6 +205,44 @@ export const editorExtension: Extension = {
     });
     ctx.subscriptions.push({ dispose: unsub });
 
+    // Terminals (and other `view` tabs) are scoped per workspace: switching
+    // folders parks the old folder's live views and restores the new folder's
+    // own. Parked views stay alive (their PTYs survive) so they must not be
+    // reported as closed while stashed.
+    const viewStash = new Map<string, { tabs: Tab[]; size: number }>();
+    const isStashed = (path: string) =>
+      Array.from(viewStash.values()).some(({ tabs }) => tabs.some((t) => t.path === path));
+    // The normalized size share a pane holds within its parent split (so a parked
+    // terminal can be re-injected at the height the user last gave it).
+    const paneSizeShare = (node: LayoutNode, paneId: string): number | null => {
+      if (node.type === "leaf") return null;
+      const idx = node.children.findIndex((c) => c.type === "leaf" && c.paneId === paneId);
+      if (idx >= 0) {
+        const sum = node.sizes.reduce((a, b) => a + b, 0);
+        return sum > 0 ? node.sizes[idx] / sum : null;
+      }
+      for (const c of node.children) {
+        const r = paneSizeShare(c, paneId);
+        if (r !== null) return r;
+      }
+      return null;
+    };
+    const stashLiveViews = (ws: string | null) => {
+      if (!ws) return;
+      const s = store.getState();
+      const live: Tab[] = [];
+      let viewPaneId: string | null = null;
+      for (const pane of Object.values(s.panes)) {
+        if (!pane.tabs.some((t) => t.kind === "view" && t.viewType && t.viewId)) continue;
+        viewPaneId = pane.id;
+        for (const tab of pane.tabs) {
+          if (tab.kind === "view" && tab.viewType && tab.viewId) live.push(tab);
+        }
+      }
+      if (live.length) viewStash.set(ws, { tabs: live, size: (viewPaneId && paneSizeShare(s.root, viewPaneId)) || 0.28 });
+      else viewStash.delete(ws);
+    };
+
     // Tell a view's owner (e.g. the terminal extension) when its tab is gone, so
     // it can tear the instance down.
     const collectViews = (s: ReturnType<typeof store.getState>) => {
@@ -221,7 +259,7 @@ export const editorExtension: Extension = {
       dispose: store.subscribe((s) => {
         const cur = collectViews(s);
         for (const [path, v] of prevViews) {
-          if (!cur.has(path)) ctx.events.emit("editor:view_closed", v);
+          if (!cur.has(path) && !isStashed(path)) ctx.events.emit("editor:view_closed", v);
         }
         prevViews = cur;
       }),
@@ -323,11 +361,21 @@ export const editorExtension: Extension = {
     };
 
     const restoreTabs = async (ws: string) => {
+      const prevWs = workspacePath;
+      if (prevWs !== ws) stashLiveViews(prevWs);
       workspacePath = ws;
       const saved = await ctx.storage.get<SavedState>(`tabs:${ws}`).catch(() => undefined);
-      if (!saved?.root) return;
       restoring = true;
       try {
+        // This folder's own terminals, parked when we last left it.
+        const parked = viewStash.get(ws);
+        viewStash.delete(ws);
+        const liveViewTabs = parked?.tabs ?? [];
+        const viewSize = parked?.size ?? 0.28;
+        // No live session to reuse (cold start / first open this session) — rebuild
+        // saved terminals in place so they reopen where and how they were left.
+        const includeSavedViews = liveViewTabs.length === 0;
+
         const fileContents = new Map(store.getState().fileContents);
         const savedContents = new Map(store.getState().savedContents);
         const largeFiles = new Set(store.getState().largeFiles);
@@ -335,7 +383,6 @@ export const editorExtension: Extension = {
         const dirtyApply: { path: string; dirty: string }[] = [];
         const panes: Record<string, Pane> = {};
         let focusedPaneId: string | null = null;
-        let tabCount = 0;
 
         const build = async (sn: SavedNode): Promise<LayoutNode> => {
           if (sn.kind === "split") {
@@ -346,17 +393,8 @@ export const editorExtension: Extension = {
           const tabs: Tab[] = [];
           for (const t of sn.tabs) {
             if (t.kind === "view") {
-              if (!t.viewType || !t.viewId) continue;
-              tabs.push({
-                path: t.path,
-                name: t.name,
-                isDirty: false,
-                isPinned: true,
-                isPreview: false,
-                kind: "view",
-                viewType: t.viewType,
-                viewId: t.viewId,
-              });
+              if (!includeSavedViews || !t.viewType || !t.viewId) continue; // live ones are re-injected below
+              tabs.push({ path: t.path, name: t.name, isDirty: false, isPinned: false, isPreview: false, kind: "view", viewType: t.viewType, viewId: t.viewId });
               continue;
             }
 
@@ -374,7 +412,6 @@ export const editorExtension: Extension = {
             tabs.push({ path: t.path, name: t.name, isDirty: false, isPinned: true, isPreview: false });
             if (t.dirty !== undefined) dirtyApply.push({ path: t.path, dirty: t.dirty });
           }
-          tabCount += tabs.length;
           const id = newPaneId();
           const active = tabs.some((t) => t.path === sn.active) ? sn.active : tabs[tabs.length - 1]?.path ?? null;
           panes[id] = { id, tabs, activeTabPath: active, activeDiff: null };
@@ -382,8 +419,49 @@ export const editorExtension: Extension = {
           return { type: "leaf", paneId: id };
         };
 
-        const root = await build(saved.root);
-        if (tabCount === 0) return;
+        // Remove leaf panes that ended up empty because all their tabs were view
+        // tabs (skipped above). Without this, switching folders leaves orphan
+        // blank panes in the layout.
+        const pruneEmpty = (node: LayoutNode): LayoutNode | null => {
+          if (node.type === "leaf") {
+            const p = panes[node.paneId];
+            if (!p || p.tabs.length === 0) { delete panes[node.paneId]; return null; }
+            return node;
+          }
+          const kept: LayoutNode[] = [];
+          for (const c of node.children) { const r = pruneEmpty(c); if (r) kept.push(r); }
+          if (kept.length === 0) return null;
+          if (kept.length === 1) return kept[0];
+          return { ...node, children: kept, sizes: node.sizes.slice(0, kept.length) };
+        };
+        let root: LayoutNode | null = saved?.root ? pruneEmpty(await build(saved.root)) : null;
+
+        // Re-inject this folder's parked view tabs as a bottom pane so their PTY
+        // sessions survive the folder switch.
+        if (liveViewTabs.length > 0) {
+          const viewPaneId = newPaneId();
+          panes[viewPaneId] = {
+            id: viewPaneId,
+            tabs: liveViewTabs,
+            activeTabPath: liveViewTabs[liveViewTabs.length - 1]?.path ?? null,
+            activeDiff: null,
+          };
+          if (!root) {
+            root = { type: "leaf", paneId: viewPaneId };
+          } else if (root.type === "split" && root.dir === "column") {
+            const sum = root.sizes.reduce((a, b) => a + b, 0);
+            const weight = viewSize < 1 ? (viewSize / (1 - viewSize)) * sum : sum;
+            root = { ...root, children: [...root.children, { type: "leaf", paneId: viewPaneId }], sizes: [...root.sizes, weight] };
+          } else {
+            root = { type: "split", id: `split-r-2-${Math.random().toString(36).slice(2, 8)}`, dir: "column", children: [root, { type: "leaf", paneId: viewPaneId }], sizes: [1 - viewSize, viewSize] };
+          }
+        }
+
+        if (!root) {
+          const id = newPaneId();
+          panes[id] = { id, tabs: [], activeTabPath: null, activeDiff: null };
+          root = { type: "leaf", paneId: id };
+        }
 
         const ids = Object.keys(panes);
         store.setState({
