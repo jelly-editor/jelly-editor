@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync-icons": "bun scripts/sync-icons.ts",
+    "predev": "bun scripts/sync-icons.ts",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
