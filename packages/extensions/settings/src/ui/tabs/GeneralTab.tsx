@@ -10,6 +10,7 @@ export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
   const tabSize = useSetting(ctx, "editor.tabSize", 2);
   const wordWrap = useSetting(ctx, "editor.wordWrap", false);
   const telemetryEnabled = useSetting(ctx, "telemetry.enabled", true);
+  const hideGitIgnored = useSetting(ctx, "files.hideGitIgnored", false);
 
   const set = <T,>(key: string, value: T) => ctx.settings.set(key, value);
 
@@ -55,6 +56,10 @@ export function GeneralTab({ ctx }: { ctx: ExtensionContext }) {
 
       <Row label="Word Wrap">
         <Toggle value={wordWrap} onChange={(v) => set("editor.wordWrap", v)} />
+      </Row>
+
+      <Row label="Hide Git Ignored Files" description="When on, gitignored files are hidden from the explorer. When off, they appear dimmed.">
+        <Toggle value={hideGitIgnored} onChange={(v) => set("files.hideGitIgnored", v)} />
       </Row>
 
       <Row label="Send Usage Data" description="Anonymous events only — no file names, paths, or content.">

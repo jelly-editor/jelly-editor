@@ -1,6 +1,6 @@
 import type { DirEntry, ExtensionContext } from "@jelly/sdk";
 import { ipc } from "@jelly/ipc";
-import { ContextMenu, type ContextMenuEntry, useContextMenu } from "@jelly/ui";
+import { ContextMenu, type ContextMenuEntry, useContextMenu, useSetting } from "@jelly/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 import { DraftRow, Rows, type Draft } from "./FileRows";
@@ -47,6 +47,7 @@ async function refreshDir(dirPath: string) {
 export function FileTree({ ctx }: { ctx: ExtensionContext }) {
   const { path: root, tree, expandedDirs, setExpanded, setChildren, setSelection, toggleSelection, clearSelection } =
     useWorkspaceStore();
+  const hideGitIgnored = useSetting(ctx, "files.hideGitIgnored", false);
   // Right-click target: a tree entry, or null for the empty area (= root).
   const menu = useContextMenu<DirEntry | null>();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -316,6 +317,7 @@ export function FileTree({ ctx }: { ctx: ExtensionContext }) {
           depth={0}
           expandedDirs={expandedDirs}
           draft={draft}
+          hideGitIgnored={hideGitIgnored}
           rowEls={rowEls.current}
           highlightEls={highlightEls.current}
           onToggle={toggleDir}

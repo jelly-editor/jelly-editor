@@ -1,6 +1,6 @@
 import type { DirEntry, FileStatus } from "@jelly/sdk";
 import { FileIcon } from "@jelly/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceStore } from "../store";
 
 const STATUS_COLOR: Record<FileStatus, string> = {
@@ -10,6 +10,29 @@ const STATUS_COLOR: Record<FileStatus, string> = {
   renamed: "text-accent",
   deleted: "text-danger",
 };
+
+const STATUS_PRIORITY: Record<FileStatus, number> = {
+  deleted: 4,
+  modified: 3,
+  renamed: 2,
+  added: 1,
+  untracked: 1,
+};
+
+function buildFolderStatuses(gitStatuses: Record<string, FileStatus>): Record<string, FileStatus> {
+  const result: Record<string, FileStatus> = {};
+  for (const [filePath, status] of Object.entries(gitStatuses)) {
+    const parts = filePath.split("/");
+    for (let i = 1; i < parts.length; i++) {
+      const folderPath = parts.slice(0, i).join("/");
+      const existing = result[folderPath];
+      if (!existing || STATUS_PRIORITY[status] > STATUS_PRIORITY[existing]) {
+        result[folderPath] = status;
+      }
+    }
+  }
+  return result;
+}
 
 export const INDENT = 12;
 
@@ -26,6 +49,7 @@ interface RowsProps {
   depth: number;
   expandedDirs: Set<string>;
   draft: Draft | null;
+  hideGitIgnored: boolean;
   rowEls: Map<string, HTMLElement>;
   highlightEls: Map<string, HTMLElement>;
   onToggle: (entry: DirEntry) => void;
@@ -39,18 +63,23 @@ interface RowsProps {
 }
 
 export function Rows(props: RowsProps) {
-  const { nodes, depth, expandedDirs, draft } = props;
+  const { nodes, depth, expandedDirs, draft, hideGitIgnored } = props;
   const activeFilePath = useWorkspaceStore((s) => s.activeFilePath);
   const gitStatuses = useWorkspaceStore((s) => s.gitStatuses);
   const selected = useWorkspaceStore((s) => s.selected);
+  const folderStatuses = useMemo(() => buildFolderStatuses(gitStatuses), [gitStatuses]);
+
+  const visibleNodes = hideGitIgnored ? nodes.filter((n) => !n.ignored) : nodes;
 
   return (
     <>
-      {nodes.map((entry) => {
+      {visibleNodes.map((entry) => {
         const expanded = entry.isDir && expandedDirs.has(entry.path);
         const isActive = entry.path === activeFilePath && selected.size === 0;
         const isSelected = selected.has(entry.path);
-        const statusColor = entry.isDir ? "" : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
+        const statusColor = entry.isDir
+          ? STATUS_COLOR[folderStatuses[entry.path]] ?? ""
+          : STATUS_COLOR[gitStatuses[entry.path]] ?? "";
         return (
           <div
             key={entry.path}
@@ -62,7 +91,7 @@ export function Rows(props: RowsProps) {
                   }
                 : undefined
             }
-            className="w-full rounded-[4px]"
+            className={`w-full rounded-[4px] ${entry.ignored ? "opacity-40" : ""}`}
           >
             {draft?.renaming === entry.path ? (
               <DraftRow draft={draft} onCommit={props.onCommitDraft} onCancel={props.onCancelDraft} />

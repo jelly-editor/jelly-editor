@@ -6,12 +6,14 @@ const dir = (path: string, children?: DirEntry[]): DirEntry => ({
   name: path.slice(path.lastIndexOf("/") + 1),
   path,
   isDir: true,
+  ignored: false,
   ...(children ? { children } : {}),
 });
 const file = (path: string): DirEntry => ({
   name: path.slice(path.lastIndexOf("/") + 1),
   path,
   isDir: false,
+  ignored: false,
 });
 
 const s = () => useWorkspaceStore.getState();

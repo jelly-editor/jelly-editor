@@ -125,34 +125,44 @@ fn read_file(path: &Path) -> Result<String, String> {
     }
 }
 
-/// List the immediate children of `dir`, gitignore-aware. Hidden files (e.g.
-/// `.gitignore`) are shown, but `.git` and ignored paths are skipped.
-/// Directories are sorted first, then files, both alphabetically.
+/// List the immediate children of `dir`. Non-gitignored entries come first
+/// (sorted dirs-before-files), then gitignored entries (same order, dimmed
+/// on the frontend). `.git` is always excluded.
 pub fn list_dir(dir: &Path) -> Result<Vec<DirEntry>, String> {
     if !dir.is_dir() {
         return Err(format!("Not a directory: {}", dir.display()));
     }
 
-    let mut entries: Vec<DirEntry> = WalkBuilder::new(dir)
-        .max_depth(Some(1))
-        .hidden(false)
-        .git_ignore(true)
-        .git_global(true)
-        .git_exclude(true)
-        .parents(true)
-        .filter_entry(|e| e.file_name() != ".git")
-        .build()
-        .filter_map(Result::ok)
-        // Skip the root dir itself, which the walker yields first.
-        .filter(|e| e.path() != dir)
-        .filter_map(|e| {
-            let path = e.path();
+    let collect = |git_ignore: bool| -> std::collections::HashSet<std::path::PathBuf> {
+        WalkBuilder::new(dir)
+            .max_depth(Some(1))
+            .hidden(false)
+            .git_ignore(git_ignore)
+            .git_global(git_ignore)
+            .git_exclude(git_ignore)
+            .parents(git_ignore)
+            .filter_entry(|e| e.file_name() != ".git")
+            .build()
+            .filter_map(Result::ok)
+            .filter(|e| e.path() != dir)
+            .map(|e| e.path().to_path_buf())
+            .collect()
+    };
+
+    let not_ignored = collect(true);
+    let all_paths = collect(false);
+
+    let mut entries: Vec<DirEntry> = all_paths
+        .into_iter()
+        .filter_map(|path| {
             let name = path.file_name()?.to_string_lossy().to_string();
-            let is_dir = e.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            let is_dir = path.is_dir();
+            let ignored = !not_ignored.contains(&path);
             Some(DirEntry {
                 name,
                 path: path.to_string_lossy().to_string(),
                 is_dir,
+                ignored,
             })
         })
         .collect();
@@ -212,6 +222,7 @@ pub fn list_files(dir: &Path) -> Result<Vec<DirEntry>, String> {
                 name,
                 path: path.to_string_lossy().to_string(),
                 is_dir: false,
+                ignored: false,
             })
         })
         .collect();

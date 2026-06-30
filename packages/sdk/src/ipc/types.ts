@@ -8,6 +8,7 @@ export interface DirEntry {
   name: string;
   path: string;
   isDir: boolean;
+  ignored: boolean;
   /** populated lazily as directories are expanded */
   children?: DirEntry[];
 }

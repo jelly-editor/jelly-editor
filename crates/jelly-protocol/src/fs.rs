@@ -9,4 +9,5 @@ pub struct DirEntry {
     pub name: String,
     pub path: String,
     pub is_dir: bool,
+    pub ignored: bool,
 }
