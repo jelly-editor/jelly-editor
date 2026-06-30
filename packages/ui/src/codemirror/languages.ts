@@ -5,6 +5,7 @@ import { rust } from "@codemirror/lang-rust";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { markdown } from "@codemirror/lang-markdown";
+import { yaml } from "@codemirror/lang-yaml";
 
 /** Pick a language extension from the file extension. Unknown types render as
  * plain text (no error, just no colors). */
@@ -38,6 +39,9 @@ export function languageFor(name: string): Extension[] {
     case "mdx":
     case "markdown":
       return [markdown()];
+    case "yml":
+    case "yaml":
+      return [yaml()];
     default:
       return [];
   }
