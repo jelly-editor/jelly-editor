@@ -1,64 +1,57 @@
 ---
-/**
- * DownloadButton
- *
- * Fetches the latest .dmg release asset from the GitHub API and triggers a
- * direct file download. Falls back to the releases page if the API is
- * unavailable or no .dmg is found.
- *
- * Props
- * -----
- * class   — extra Tailwind classes forwarded to the <button> element
- * size    — "sm" | "md" (default "md")
- * label   — button text (default "Download for macOS")
- * showIcon — whether to render the Apple icon (default true)
- */
-
 interface Props {
   class?: string;
   size?: "sm" | "md";
   label?: string;
   showIcon?: boolean;
   id?: string;
+  autoOsLabel?: boolean;
 }
 
 const {
   class: className = "",
   size = "md",
-  label = "Download for macOS",
+  label = "Download",
   showIcon = true,
   id = "download-btn",
+  autoOsLabel = true,
 } = Astro.props;
+
+const iconSize = size === "sm" ? "h-3.5 w-3.5" : "h-3.5 w-3.5";
+const spinnerSize = size === "sm" ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin";
 ---
 
 <button
   id={id}
   type="button"
   data-download-btn
+  data-auto-os-label={autoOsLabel ? "true" : undefined}
   class={className}
-  aria-label="Download Jelly for macOS"
+  aria-label="Download Jelly"
 >
   {showIcon && (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 814 1000"
-      fill="currentColor"
-      class={size === "sm" ? "h-3.5 w-3.5" : "h-3.5 w-3.5"}
-      aria-hidden="true"
-    >
-      <!-- Apple logo path -->
-      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.5 135.4-317.3 269-317.3 71 0 130.3 46.4 175.1 46.4 42.8 0 109.6-49 192.9-49 31.3 0 108.2 2.6 168.1 71.9zm-136-99.4c32.7-39.5 56.1-94.4 56.1-149.3 0-7.8-.6-15.6-2-22.7-53.5 2-117.1 35.7-155.5 79.5-31.3 36.3-59.9 91.3-59.9 147.5 0 8.4 1.3 16.7 2 19.3 3.3.6 8.5 1.3 13.7 1.3 47.7 0 108.2-32 145.6-75.6z" />
-    </svg>
+    <>
+      <span data-icon="mac">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000" fill="currentColor" class={iconSize} aria-hidden="true">
+          <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.5 135.4-317.3 269-317.3 71 0 130.3 46.4 175.1 46.4 42.8 0 109.6-49 192.9-49 31.3 0 108.2 2.6 168.1 71.9zm-136-99.4c32.7-39.5 56.1-94.4 56.1-149.3 0-7.8-.6-15.6-2-22.7-53.5 2-117.1 35.7-155.5 79.5-31.3 36.3-59.9 91.3-59.9 147.5 0 8.4 1.3 16.7 2 19.3 3.3.6 8.5 1.3 13.7 1.3 47.7 0 108.2-32 145.6-75.6z" />
+        </svg>
+      </span>
+      <span data-icon="windows" class="hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" class={iconSize} aria-hidden="true">
+          <path d="M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v178H448V32L203.8 65.7z" />
+        </svg>
+      </span>
+      <span data-icon="linux" class="hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={iconSize} aria-hidden="true">
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
+        </svg>
+      </span>
+    </>
   )}
   <span data-label>{label}</span>
   <span data-spinner class="hidden">
-    <svg
-      class={size === "sm" ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin"}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
+    <svg class={spinnerSize} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
     </svg>
@@ -66,22 +59,38 @@ const {
 </button>
 
 <script>
-  const GITHUB_API =
-    "https://api.github.com/repos/jelly-editor/jelly-editor/releases/latest";
-  const FALLBACK =
-    "https://github.com/jelly-editor/jelly-editor/releases/latest";
+  const GITHUB_API = "https://api.github.com/repos/jelly-editor/jelly-editor/releases/latest";
+  const FALLBACK = "https://github.com/jelly-editor/jelly-editor/releases/latest";
 
-  async function fetchLatestDmg(): Promise<string | null> {
+  type OS = "mac" | "windows" | "linux" | "unknown";
+
+  function detectOS(): OS {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("macintosh") || ua.includes("mac os")) return "mac";
+    if (ua.includes("windows")) return "windows";
+    if (ua.includes("linux")) return "linux";
+    return "unknown";
+  }
+
+  const OS_NAMES: Record<OS, string> = {
+    mac: "macOS",
+    windows: "Windows",
+    linux: "Linux",
+    unknown: "macOS",
+  };
+
+  async function fetchAssets() {
     try {
       const res = await fetch(GITHUB_API, {
         headers: { Accept: "application/vnd.github+json" },
       });
       if (!res.ok) return null;
-      const data = await res.json();
-      const assets: { name: string; browser_download_url: string }[] =
-        data.assets ?? [];
-      const dmg = assets.find((a) => a.name.endsWith(".dmg"));
-      return dmg?.browser_download_url ?? null;
+      const { assets = [] } = await res.json() as { assets: { name: string; browser_download_url: string }[] };
+      return {
+        mac: assets.find((a) => a.name.endsWith(".dmg"))?.browser_download_url ?? null,
+        windows: assets.find((a) => a.name.endsWith("-setup.exe"))?.browser_download_url ?? null,
+        linux: assets.find((a) => a.name.endsWith(".deb"))?.browser_download_url ?? null,
+      };
     } catch {
       return null;
     }
@@ -91,35 +100,46 @@ const {
     const label = btn.querySelector("[data-label]");
     const spinner = btn.querySelector("[data-spinner]");
     btn.disabled = loading;
-    if (loading) {
-      label?.classList.add("opacity-50");
-      spinner?.classList.remove("hidden");
-    } else {
-      label?.classList.remove("opacity-50");
-      spinner?.classList.add("hidden");
-    }
+    label?.classList.toggle("opacity-50", loading);
+    spinner?.classList.toggle("hidden", !loading);
   }
 
-  async function handleDownload(btn: HTMLButtonElement) {
-    setLoading(btn, true);
-    const url = await fetchLatestDmg();
-    setLoading(btn, false);
-
-    if (url) {
-      // Trigger browser download without navigation
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
-      // Graceful fallback
-      window.open(FALLBACK, "_blank", "noopener,noreferrer");
-    }
+  function triggerDownload(url: string) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
+
+  const os = detectOS();
+  const resolvedOs = os === "unknown" ? "mac" : os;
 
   document.querySelectorAll<HTMLButtonElement>("[data-download-btn]").forEach((btn) => {
-    btn.addEventListener("click", () => handleDownload(btn));
+    btn.querySelectorAll<HTMLElement>("[data-icon]").forEach((icon) => {
+      icon.classList.toggle("hidden", icon.dataset.icon !== resolvedOs);
+    });
+
+    if (btn.dataset.autoOsLabel) {
+      const label = btn.querySelector("[data-label]");
+      if (label) label.textContent = `Download for ${OS_NAMES[os]}`;
+      btn.setAttribute("aria-label", `Download Jelly for ${OS_NAMES[os]}`);
+    }
+
+    btn.addEventListener("click", async () => {
+      setLoading(btn, true);
+      const assets = await fetchAssets();
+      setLoading(btn, false);
+
+      const url = assets?.[resolvedOs] ?? null;
+      (window as any).umami?.track("download", { os: OS_NAMES[os] });
+
+      if (url) {
+        triggerDownload(url);
+      } else {
+        window.open(FALLBACK, "_blank", "noopener,noreferrer");
+      }
+    });
   });
 </script>
