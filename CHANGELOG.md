@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0](https://github.com/jelly-editor/jelly-editor/compare/v0.1.11...v0.2.0) (2026-06-30)
+
+### Features
+
+* **editor:** add pin/unpin for tabs with close protection ([da57eb8](https://github.com/jelly-editor/jelly-editor/commit/da57eb8e4e97447eef695827638ac3b40ffc7543))
+* **editor:** add yaml syntax highlighting ([0534999](https://github.com/jelly-editor/jelly-editor/commit/0534999361f29ddc430ce4bfe35799f128ee923d))
+* **editor:** switch tabs via ctrl+1–9 per active pane ([d90db6a](https://github.com/jelly-editor/jelly-editor/commit/d90db6a7316c9beb03d0efc842d9178cab084872))
+* **git:** add push and pull via three-dot menu ([aac8177](https://github.com/jelly-editor/jelly-editor/commit/aac8177c15312287567d20ce07b697a94a5702fb))
+* **git:** add stash management ([e5e0cd0](https://github.com/jelly-editor/jelly-editor/commit/e5e0cd0cd9924c1d08c409fdc28b6a928da1e10c))
+* **typing-test:** fixed cursor with smooth per-char scroll, scoreboard toggle, fix tab/esc keys ([29c0176](https://github.com/jelly-editor/jelly-editor/commit/29c01760c25e9a304e92bf82d78abef701dd1945))
+
+### Bug Fixes
+
+* **editor:** don't pin view tabs by default ([bc0aebe](https://github.com/jelly-editor/jelly-editor/commit/bc0aebefb36972f0aca4569a73614f3304082fad))
+* **editor:** show dirty dot alongside pin icon; reveal active file in explorer on tab switch ([9765483](https://github.com/jelly-editor/jelly-editor/commit/97654832d173874b1e8ab49ce9c0ab1a03f3097c))
+* **files:** open new file in editor after creation ([d668d72](https://github.com/jelly-editor/jelly-editor/commit/d668d724f6f182bd444316176ade26141fc9844a))
+* **files:** select new file in explorer after creation ([259c01c](https://github.com/jelly-editor/jelly-editor/commit/259c01c8ec37ca86d6fff3e04f1c7e03f280b9b9))
+* **git:** async push/pull with 60s timeout, combined error output, notifications ([349ab88](https://github.com/jelly-editor/jelly-editor/commit/349ab883e60ea565a0b41188be651de7689ca03e))
+* **terminal:** keep sessions alive across folder switches, dispose only on tab close ([6f9d183](https://github.com/jelly-editor/jelly-editor/commit/6f9d183b72a96599375527aa1c6c28c6709c8174))
+* **typing-test:** single-line auto-scroll, fix tab/enter input handling ([93e1059](https://github.com/jelly-editor/jelly-editor/commit/93e10597844aeeb3cada49ee0f9735076ff77cc3))
+
 ## [0.1.11](https://github.com/jelly-editor/jelly-editor/compare/v0.1.10...v0.1.11) (2026-06-29)
 
 ### Features
