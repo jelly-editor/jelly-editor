@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/jelly-editor/jelly-editor/compare/v0.2.2...v0.2.3) (2026-06-30)
+
+### Features
+
+* **files:** catppuccin vscode icons with light/dark flavor support ([43083d8](https://github.com/jelly-editor/jelly-editor/commit/43083d8719c77b5bbb78c1f5f68a4663ea153867))
+* **files:** git status colors on folders + dim/hide gitignored files ([242642f](https://github.com/jelly-editor/jelly-editor/commit/242642fbd0bdbcd018a155e2d45fccff4cc085d2))
+
 ## [0.2.2](https://github.com/jelly-editor/jelly-editor/compare/v0.2.1...v0.2.2) (2026-06-30)
 
 ### Features
