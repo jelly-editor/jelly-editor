@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1](https://github.com/jelly-editor/jelly-editor/compare/v0.2.0...v0.2.1) (2026-06-30)
+
+### Features
+
+* **editor:** scope terminals per workspace; persist across folder switch and reopen ([0d3c08c](https://github.com/jelly-editor/jelly-editor/commit/0d3c08cfaf85a53944a8e58e79035570e84706f0))
+
+### Bug Fixes
+
+* **build:** commit Cargo.lock for jelly-git tokio dep so --locked CI passes ([203f797](https://github.com/jelly-editor/jelly-editor/commit/203f7977108268c905a08ceb4b2d19815775ac4e))
+* **files:** track active buffer in explorer by clearing stale selection on tab switch ([cad9a93](https://github.com/jelly-editor/jelly-editor/commit/cad9a938c0fd9ce34d20aca385b60a45887399ff))
+
 ## [0.2.0](https://github.com/jelly-editor/jelly-editor/compare/v0.1.11...v0.2.0) (2026-06-30)
 
 ### Features
